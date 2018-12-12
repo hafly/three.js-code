@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>three.js canvas - geometry - cube</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+            background: #000;
+        }
+    </style>
+    <script src="../build/three.js"></script>
+    <script src="js/libs/stats.min.js"></script>
+</head>
+<body>
+<div id="container"></div>
+<script>
+    let container, stats;
+    let camera, scene, renderer;
+    let cube;
+
+    let targetRotation = 0;
+    let targetRotationOnMouseDown = 0;
+
+    let mouseX = 0;
+    let mouseXOnMouseDown = 0;
+    let windowHalfX = window.innerWidth / 2;
+    let windowHalfY = window.innerHeight / 2;
+
+    init();
+    update();
+
+    function init() {
+        container = document.getElementById('container');
+
+        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 1000;
+
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xf0f0f0);
+
+        // Cube
+        let geometry = new THREE.BoxGeometry(200, 200, 200);
+        for (let i = 0; i < geometry.faces.length; i++) {
+            let hex = Math.random() * 0xffffff;
+            geometry.faces[i].color.setHex(hex);
+        }
+
+        cube = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({vertexColors: THREE.FaceColors}));
+        cube.rotation.x = -THREE.Math.DEG2RAD * 10;
+        cube.position.y = 99;
+
+        let geometry2 = new THREE.BoxGeometry(200, 200, 200);
+
+        let cube2 = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        cube2.rotation.x = -THREE.Math.DEG2RAD * 30;
+        cube2.position.x = 200;
+        cube2.position.y = 66;
+        cube.add(cube2);
+
+        scene.add(cube);
+
+        renderer = new THREE.CanvasRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        stats = new Stats();
+        container.appendChild(stats.dom);
+
+        document.addEventListener('mousedown', onDocumentMouseDown, false);
+    }
+
+    function update() {
+        requestAnimationFrame(update);
+        // cube.rotation.y += THREE.Math.DEG2RAD * 0.5;
+        // cube.rotation.x += THREE.Math.DEG2RAD * 1;
+        cube.rotation.y += (targetRotation - cube.rotation.y) * 0.05;
+
+        renderer.render(scene, camera);
+        stats.update();
+    }
+
+    function onDocumentMouseDown(event) {
+        event.preventDefault();
+
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+        document.addEventListener('mouseup', onDocumentMouseUp, false);
+
+        mouseXOnMouseDown = event.clientX - windowHalfX;
+        targetRotationOnMouseDown = targetRotation;
+    }
+
+    function onDocumentMouseMove(event) {
+        mouseX = event.clientX - windowHalfX;
+        targetRotation = targetRotationOnMouseDown + (mouseX - mouseXOnMouseDown) * 0.05;
+    }
+
+    function onDocumentMouseUp(event) {
+        document.removeEventListener('mousemove', onDocumentMouseMove, false);
+        document.removeEventListener('mouseup', onDocumentMouseUp, false);
+    }
+</script>
+</body>
+</html>

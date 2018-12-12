@@ -1,0 +1,13 @@
+{
+  "name": "three.js-code",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "rollup -c",
+    "server": "node app.js"
+  },
+  "dependencies": {
+
+  },
+  "author": "hafly",
+  "license": "MIT"
+}
