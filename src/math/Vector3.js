@@ -262,7 +262,6 @@ class Vector3 {
         return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
     }
 
-
     /**
      * 从矩阵中获取位置向量（原getFromMatrixPosition方法）
      * @param m

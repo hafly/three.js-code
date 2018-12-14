@@ -4,11 +4,15 @@ import {Camera} from "./Camera";
 class PerspectiveCamera extends Camera {
     constructor(fov = 50, aspect = 1, near = 0.1, far = 2000) {
         super();
+        this.type = 'PerspectiveCamera';
         this.fov = fov;
-        this.aspect = aspect;
+        this.zoom = 1;
+
         this.near = near;
         this.far = far;
-        this.zoom = 1;
+
+        this.aspect = aspect;
+        this.view = null;
 
         this.updateProjectionMatrix();
     }

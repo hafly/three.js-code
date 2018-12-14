@@ -477,7 +477,6 @@
 	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
 	    }
 
-
 	    /**
 	     * 从矩阵中获取位置向量（原getFromMatrixPosition方法）
 	     * @param m
@@ -875,6 +874,23 @@
 	        te[2] = 0;te[6] = 0;te[10] = c; te[14] = d;
 	        te[3] = 0;te[7] = 0;te[11] = -1;te[15] = 0;
 
+	        return this;
+	    }
+
+	    makeOrthographic(left, right, top, bottom, near, far) {
+	        let te = this.elements;
+	        let w = 1.0 / (right - left);
+	        let h = 1.0 / (top - bottom);
+	        let p = 1.0 / (far - near);
+
+	        let x = (right + left) * w;
+	        let y = (top + bottom) * h;
+	        let z = (far + near) * p;
+
+	        te[0] = 2 * w;te[4] = 0;te[8] = 0;te[12] = -x;
+	        te[1] = 0;te[5] = 2 * h;te[9] = 0;te[13] = -y;
+	        te[2] = 0;te[6] = 0;te[10] = -2 * p;te[14] = -z;
+	        te[3] = 0;te[7] = 0;te[11] = 0;te[15] = 1;
 	        return this;
 	    }
 
@@ -2205,7 +2221,6 @@
 	        return this;
 	    }
 
-
 	    add(v) {
 	        this.x += v.x;
 	        this.y += v.y;
@@ -2276,9 +2291,7 @@
 	    }
 
 	    divideScalar(scalar) {
-
 	        return this.multiplyScalar(1 / scalar);
-
 	    }
 
 	    applyMatrix4(m) {
@@ -2298,9 +2311,7 @@
 	    }
 
 	    lengthSq() {
-
 	        return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
-
 	    }
 
 	    length() {
@@ -2358,11 +2369,15 @@
 	class PerspectiveCamera extends Camera {
 	    constructor(fov = 50, aspect = 1, near = 0.1, far = 2000) {
 	        super();
+	        this.type = 'PerspectiveCamera';
 	        this.fov = fov;
-	        this.aspect = aspect;
+	        this.zoom = 1;
+
 	        this.near = near;
 	        this.far = far;
-	        this.zoom = 1;
+
+	        this.aspect = aspect;
+	        this.view = null;
 
 	        this.updateProjectionMatrix();
 	    }
@@ -2377,6 +2392,51 @@
 
 	        this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.far);
 	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
+	    }
+	}
+
+	class OrthographicCamera extends Camera {
+	    constructor(left, right, top, bottom, near = 0.1, far = 2000) {
+	        super();
+	        this.type = 'OrthographicCamera';
+	        this.zoom = 1;
+	        this.view = null;
+
+	        this.left = left;
+	        this.right = right;
+	        this.top = top;
+	        this.bottom = bottom;
+
+	        this.near = near;
+	        this.far = far;
+
+	        this.updateProjectionMatrix();
+	    }
+
+	    updateProjectionMatrix() {
+	        let dx = (this.right - this.left) / (2 * this.zoom);
+	        let dy = (this.top - this.bottom) / (2 * this.zoom);
+	        let cx = (this.right + this.left) / 2;
+	        let cy = (this.top + this.bottom) / 2;
+
+	        let left = cx - dx;
+	        let right = cx + dx;
+	        let top = cy + dy;
+	        let bottom = cy - dy;
+
+	        if (this.view !== null && this.view.enabled) {
+	            let zoomW = this.zoom / (this.view.width / this.view.fullWidth);
+	            let zoomH = this.zoom / (this.view.height / this.view.fullHeight);
+	            let scaleW = (this.right - this.left) / this.view.width;
+	            let scaleH = (this.top - this.bottom) / this.view.height;
+
+	            left += scaleW * (this.view.offsetX / zoomW);
+	            right = left + scaleW * (this.view.width / zoomW);
+	            top -= scaleH * (this.view.offsetY / zoomH);
+	            bottom = top - scaleH * (this.view.height / zoomH);
+	        }
+
+	        this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far);
 	    }
 	}
 
@@ -2643,8 +2703,7 @@
 	    }
 
 	    checkBackfaceCulling(v1, v2, v3) {
-	        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) -
-	            (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
+	        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
 	    }
 	}
 
@@ -2919,10 +2978,10 @@
 	        this.setBlending(material.blending);
 	        this.setFillStyle(material.getStyle());
 	        this.context.beginPath();
-	        this.context.moveTo(element.v1.positionScreen.x * this.canvasWidthHalf, element.v1.positionScreen.y * this.canvasHeightHalf);
-	        this.context.lineTo(element.v2.positionScreen.x * this.canvasWidthHalf, element.v2.positionScreen.y * this.canvasHeightHalf);
-	        this.context.lineTo(element.v3.positionScreen.x * this.canvasWidthHalf, element.v3.positionScreen.y * this.canvasHeightHalf);
-	        this.context.lineTo(element.v4.positionScreen.x * this.canvasWidthHalf, element.v4.positionScreen.y * this.canvasHeightHalf);
+	        this.context.moveTo(element.v1.positionScreen.x * this.canvasWidthHalf, -element.v1.positionScreen.y * this.canvasHeightHalf);
+	        this.context.lineTo(element.v2.positionScreen.x * this.canvasWidthHalf, -element.v2.positionScreen.y * this.canvasHeightHalf);
+	        this.context.lineTo(element.v3.positionScreen.x * this.canvasWidthHalf, -element.v3.positionScreen.y * this.canvasHeightHalf);
+	        this.context.lineTo(element.v4.positionScreen.x * this.canvasWidthHalf, -element.v4.positionScreen.y * this.canvasHeightHalf);
 	        this.context.fill();
 	        this.context.closePath();
 	    }
@@ -2932,7 +2991,7 @@
 	        this.setBlending(material.blending);
 	        let _context = this.context;
 	        element.x *= this.canvasWidthHalf;
-	        element.y *= this.canvasHeightHalf;
+	        element.y *= -this.canvasHeightHalf;
 	        let scaleX = element.scale.x * this.canvasWidthHalf;
 	        let scaleY = element.scale.y * this.canvasHeightHalf;
 	        if (material.isSpriteMaterial) {
@@ -3093,6 +3152,7 @@
 	exports.Matrix4 = Matrix4;
 	exports.Color = Color;
 	exports.PerspectiveCamera = PerspectiveCamera;
+	exports.OrthographicCamera = OrthographicCamera;
 	exports.Scene = Scene;
 	exports.Texture = Texture;
 	exports.CanvasTexture = CanvasTexture;

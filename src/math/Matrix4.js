@@ -334,6 +334,23 @@ class Matrix4 {
         return this;
     }
 
+    makeOrthographic(left, right, top, bottom, near, far) {
+        let te = this.elements;
+        let w = 1.0 / (right - left);
+        let h = 1.0 / (top - bottom);
+        let p = 1.0 / (far - near);
+
+        let x = (right + left) * w;
+        let y = (top + bottom) * h;
+        let z = (far + near) * p;
+
+        te[0] = 2 * w;te[4] = 0;te[8] = 0;te[12] = -x;
+        te[1] = 0;te[5] = 2 * h;te[9] = 0;te[13] = -y;
+        te[2] = 0;te[6] = 0;te[10] = -2 * p;te[14] = -z;
+        te[3] = 0;te[7] = 0;te[11] = 0;te[15] = 1;
+        return this;
+    }
+
     // 获取逆矩阵
     getInverse(m, throwOnDegenerate) {
         let te = this.elements,

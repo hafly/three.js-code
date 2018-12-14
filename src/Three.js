@@ -12,6 +12,7 @@ export {Matrix3} from "./math/Matrix3";
 export {Matrix4} from "./math/Matrix4";
 export {Color} from "./math/Color";
 export {PerspectiveCamera} from "./cameras/PerspectiveCamera";
+export {OrthographicCamera} from "./cameras/OrthographicCamera";
 export {Scene} from "./scenes/Scene";
 export {Texture} from './textures/Texture';
 export {CanvasTexture} from './textures/CanvasTexture';

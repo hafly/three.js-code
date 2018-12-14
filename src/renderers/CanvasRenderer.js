@@ -79,10 +79,10 @@ class CanvasRenderer extends Renderer {
         this.setBlending(material.blending);
         this.setFillStyle(material.getStyle());
         this.context.beginPath();
-        this.context.moveTo(element.v1.positionScreen.x * this.canvasWidthHalf, element.v1.positionScreen.y * this.canvasHeightHalf);
-        this.context.lineTo(element.v2.positionScreen.x * this.canvasWidthHalf, element.v2.positionScreen.y * this.canvasHeightHalf);
-        this.context.lineTo(element.v3.positionScreen.x * this.canvasWidthHalf, element.v3.positionScreen.y * this.canvasHeightHalf);
-        this.context.lineTo(element.v4.positionScreen.x * this.canvasWidthHalf, element.v4.positionScreen.y * this.canvasHeightHalf);
+        this.context.moveTo(element.v1.positionScreen.x * this.canvasWidthHalf, -element.v1.positionScreen.y * this.canvasHeightHalf);
+        this.context.lineTo(element.v2.positionScreen.x * this.canvasWidthHalf, -element.v2.positionScreen.y * this.canvasHeightHalf);
+        this.context.lineTo(element.v3.positionScreen.x * this.canvasWidthHalf, -element.v3.positionScreen.y * this.canvasHeightHalf);
+        this.context.lineTo(element.v4.positionScreen.x * this.canvasWidthHalf, -element.v4.positionScreen.y * this.canvasHeightHalf);
         this.context.fill();
         this.context.closePath();
     }
@@ -92,7 +92,7 @@ class CanvasRenderer extends Renderer {
         this.setBlending(material.blending);
         let _context = this.context;
         element.x *= this.canvasWidthHalf;
-        element.y *= this.canvasHeightHalf;
+        element.y *= -this.canvasHeightHalf;
         let scaleX = element.scale.x * this.canvasWidthHalf;
         let scaleY = element.scale.y * this.canvasHeightHalf;
         if (material.isSpriteMaterial) {

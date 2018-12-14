@@ -38,7 +38,6 @@ class Vector4 {
         return this;
     }
 
-
     add(v) {
         this.x += v.x;
         this.y += v.y;
@@ -109,9 +108,7 @@ class Vector4 {
     }
 
     divideScalar(scalar) {
-
         return this.multiplyScalar(1 / scalar);
-
     }
 
     applyMatrix4(m) {
@@ -131,9 +128,7 @@ class Vector4 {
     }
 
     lengthSq() {
-
         return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
-
     }
 
     length() {
