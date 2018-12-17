@@ -4,18 +4,19 @@
 
 ### 已实现功能
 
-1.BoxGeometry立方体，用的Face4，后面准备改成Face3实现  
-2.Sprite粒子和基础材质，材质写得很简单，也没有VU贴图等  
+1.Face3实现  
+2.Buffer 数据缓存  
+3.添加Box盒子模型检查  
+4.解决canvas y轴颠倒  
+5.多面材质bug修复  
 
 ### 准备实现功能
 
-1.Face3  
-2.Buffer  
-3.VU贴图  
-4.WebGLRenderer  
+1.添加常见几何体模型  
+2.VU贴图  
 
 ### Change Log
 
-2018/12/12 - r1
+2018/12/17 - r2
 
-* First release
+[releases](https://github.com/hafly/three.js-test/releases)

@@ -1,14 +1,15 @@
-import {MeshBasicMaterial} from "../materials/MeshBasicMaterial";
+import {Color} from "../math/Color";
 
 /**
  * 三角面片
  */
 class Face3 {
-    constructor(a, b, c, color = new MeshBasicMaterial()) {
+    constructor(a, b, c, color = new Color(), materialIndex = 0) {
         this.a = a;
         this.b = b;
         this.c = c;
-        this.faceColor = color;
+        this.color = color;
+        this.materialIndex = materialIndex;
     }
 
     clone() {
@@ -21,6 +22,7 @@ class Face3 {
         this.c = source.c;
 
         this.color.copy(source.color);
+        this.materialIndex = source.materialIndex;
 
         return this;
     }

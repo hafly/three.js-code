@@ -1,5 +1,3 @@
-import {BufferGeometry} from "./BufferGeometry";
-
 class BufferAttribute {
     constructor(array, itemSize, normalized = true) {
         this.isBufferAttribute = true;
@@ -19,59 +17,65 @@ class BufferAttribute {
     }
 }
 
-
-class Int8BufferAttribute extends BufferGeometry {
+class Int8BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Int8Array(array), itemSize, normalized);
     }
 }
-class UInt8BufferAttribute extends BufferGeometry {
+class Uint8BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
-        super(new UInt8Array(array), itemSize, normalized);
+        super(new Uint8Array(array), itemSize, normalized);
     }
 }
 
-class Int16BufferAttribute extends BufferGeometry {
+class Int16BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Int16Array(array), itemSize, normalized);
     }
 }
-class UInt16BufferAttribute extends BufferGeometry {
+class Uint16BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
-        super(new UInt16Array(array), itemSize, normalized);
+        super(new Uint16Array(array), itemSize, normalized);
     }
 }
 
-class Int32BufferAttribute extends BufferGeometry {
+class Int32BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Int32Array(array), itemSize, normalized);
     }
 }
-class UInt32BufferAttribute extends BufferGeometry {
+class Uint32BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
-        super(new UInt32Array(array), itemSize, normalized);
+        super(new Uint32Array(array), itemSize, normalized);
     }
 }
 
-class Int64BufferAttribute extends BufferGeometry {
+class Int64BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Int64Array(array), itemSize, normalized);
     }
 }
-class UInt64BufferAttribute extends BufferGeometry {
+class Float32BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
-        super(new UInt64Array(array), itemSize, normalized);
+        super(new Float32Array(array), itemSize, normalized);
+    }
+}
+
+class Float64BufferAttribute extends BufferAttribute {
+    constructor(array, itemSize, normalized) {
+        super(new Float64Array(array), itemSize, normalized);
     }
 }
 
 export {
     BufferAttribute,
     Int8BufferAttribute,
-    UInt8BufferAttribute,
+    Uint8BufferAttribute,
     Int16BufferAttribute,
-    UInt16BufferAttribute,
+    Uint16BufferAttribute,
     Int32BufferAttribute,
-    UInt32BufferAttribute,
+    Uint32BufferAttribute,
     Int64BufferAttribute,
-    UInt64BufferAttribute
+    Float32BufferAttribute,
+    Float64BufferAttribute
 };

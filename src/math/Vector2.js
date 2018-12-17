@@ -131,6 +131,20 @@ class Vector2 {
         return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
     }
 
+    min(v) {
+        this.x = Math.min(this.x, v.x);
+        this.y = Math.min(this.y, v.y);
+
+        return this;
+    }
+
+    max(v) {
+        this.x = Math.max(this.x, v.x);
+        this.y = Math.max(this.y, v.y);
+
+        return this;
+    }
+
     equals(v) {
         return ((v.x === this.x) && (v.y === this.y));
     }

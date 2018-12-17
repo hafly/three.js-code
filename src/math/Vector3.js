@@ -298,6 +298,22 @@ class Vector3 {
         return this.fromArray(m.elements, index * 4);
     }
 
+    min(v) {
+        this.x = Math.min(this.x, v.x);
+        this.y = Math.min(this.y, v.y);
+        this.z = Math.min(this.z, v.z);
+
+        return this;
+    }
+
+    max(v) {
+        this.x = Math.max(this.x, v.x);
+        this.y = Math.max(this.y, v.y);
+        this.z = Math.max(this.z, v.z);
+
+        return this;
+    }
+
     equals(v) {
         return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z));
     }

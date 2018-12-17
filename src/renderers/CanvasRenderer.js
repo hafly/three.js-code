@@ -1,8 +1,15 @@
 import {Renderer} from "./Renderer";
 import {Projector, RenderableFace, RenderableSprite} from "./Projector";
-import {SpriteCanvasMaterial} from "../materials/SpriteCanvasMaterial";
+import {Box2} from "../math/Box2";
+import {Color} from "../math/Color";
 
 let _patterns = {};
+let _v1, _v2, _v3,
+    _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
+let _clipBox = new Box2(),
+    _clearBox = new Box2(), // 清空画布2d盒子模型（不需要全屏清除，只清除绘制部分）
+    _elemBox = new Box2();
+let _color = new Color();
 
 class CanvasRenderer extends Renderer {
     constructor() {
@@ -37,54 +44,131 @@ class CanvasRenderer extends Renderer {
         this.canvasWidthHalf = Math.floor(this.canvasWidth / 2);
         this.canvasHeightHalf = Math.floor(this.canvasHeight / 2);
 
-        this.context.setTransform(1, 0, 0, 1, this.canvasWidthHalf, this.canvasHeightHalf);
+        _clipBox.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
+        _clipBox.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
+
+        _clearBox.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
+        _clearBox.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
     }
 
     render(scene, camera) {
+        if (scene.autoUpdate === true) scene.updateMatrixWorld();
+        if (camera.parent === null) camera.updateMatrixWorld();
+
         let background = scene.background;
         if (background && background.isColor) {
             this.setOpacity(1);
             this.setBlending(THREE.NormalBlending);
             this.setFillStyle(background.getStyle());
-            this.context.fillRect(-this.canvasWidthHalf, -this.canvasHeightHalf, this.canvasWidth, this.canvasHeight);
+            this.context.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 
         } else if (this.autoClear === true) {
             this.clear();
         }
 
-        if (scene.autoUpdate === true) scene.updateMatrixWorld();
-        if (camera.parent === null) camera.updateMatrixWorld();
+        // 通过缩放翻转画布上下方向
+        this.context.setTransform(1, 0, 0, -1, 0, this.canvasHeight);
+        // 以画布中心为原点
+        this.context.translate(this.canvasWidthHalf, this.canvasHeightHalf);
 
         let projector = new Projector();
-        let _renderData = projector.projectScene(scene, camera);
+        let _renderData = projector.projectScene(scene, camera, this.sortObjects, this.sortElements);
 
         for (let i = 0; i < _renderData.elements.length; i++) {
             let element = _renderData.elements[i];
+            let material = element.material;
+
+            _elemBox.makeEmpty();
 
             if (element instanceof RenderableFace) {
-                this.renderFace(element, element.material);
+                _v1 = element.v1;
+                _v2 = element.v2;
+                _v3 = element.v3;
+
+                _v1.positionScreen.x *= this.canvasWidthHalf, _v1.positionScreen.y *= this.canvasHeightHalf;
+                _v2.positionScreen.x *= this.canvasWidthHalf, _v2.positionScreen.y *= this.canvasHeightHalf;
+                _v3.positionScreen.x *= this.canvasWidthHalf, _v3.positionScreen.y *= this.canvasHeightHalf;
+
+                if (material.overdraw > 0) {
+                    this.expand(_v1.positionScreen, _v2.positionScreen, material.overdraw);
+                    this.expand(_v2.positionScreen, _v3.positionScreen, material.overdraw);
+                    this.expand(_v3.positionScreen, _v1.positionScreen, material.overdraw);
+                }
+
+                _elemBox.setFromPoints([_v1.positionScreen, _v2.positionScreen, _v3.positionScreen]);
+
+                if (_clipBox.intersectsBox(_elemBox) === true) {
+                    this.renderFace3(_v1, _v2, _v3, element, element.material);
+                }
             }
             else if (element instanceof RenderableSprite) {
                 this.renderSprite(element, element.material);
             }
+
+            _clearBox.union(_elemBox);
         }
+
+        this.context.setTransform(1, 0, 0, 1, 0, 0);
     }
 
     clear() {
-        this.context.clearRect(-this.canvasWidthHalf, -this.canvasHeightHalf, this.canvasWidth, this.canvasHeight);
+        if (_clearBox.isEmpty() === false) {
+            _clearBox.intersect(_clipBox).expandByScalar(2);
+
+            _clearBox.min.x = _clearBox.min.x + this.canvasWidthHalf;
+            _clearBox.min.y = -_clearBox.min.y + this.canvasHeightHalf;		// higher y value !
+            _clearBox.max.x = _clearBox.max.x + this.canvasWidthHalf;
+            _clearBox.max.y = -_clearBox.max.y + this.canvasHeightHalf;		// lower y value !
+            this.context.clearRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+
+            _clearBox.makeEmpty();
+        }
     }
 
-    renderFace(element, material) {
+    renderFace3(v1, v2, v3, element, material) {
         this.setOpacity(material.opacity);
         this.setBlending(material.blending);
-        this.setFillStyle(material.getStyle());
+
+        _v1x = v1.positionScreen.x, _v1y = v1.positionScreen.y;
+        _v2x = v2.positionScreen.x, _v2y = v2.positionScreen.y;
+        _v3x = v3.positionScreen.x, _v3y = v3.positionScreen.y;
+
+        this.drawTriangle(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y);
+        if (material.isMeshBasicMaterial) {
+            if (material.map != null) {
+                console.log("暂未实现");
+            }
+            else if (material.vertexColors === THREE.FaceColors) {
+                _color = element.color;
+            }
+
+            material.wireframe === true
+                ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
+                : this.fillPath(_color);
+        }
+    }
+
+    drawTriangle(x0, y0, x1, y1, x2, y2) {
         this.context.beginPath();
-        this.context.moveTo(element.v1.positionScreen.x * this.canvasWidthHalf, -element.v1.positionScreen.y * this.canvasHeightHalf);
-        this.context.lineTo(element.v2.positionScreen.x * this.canvasWidthHalf, -element.v2.positionScreen.y * this.canvasHeightHalf);
-        this.context.lineTo(element.v3.positionScreen.x * this.canvasWidthHalf, -element.v3.positionScreen.y * this.canvasHeightHalf);
-        this.context.lineTo(element.v4.positionScreen.x * this.canvasWidthHalf, -element.v4.positionScreen.y * this.canvasHeightHalf);
-        this.context.fill();
+        this.context.moveTo(x0, y0);
+        this.context.lineTo(x1, y1);
+        this.context.lineTo(x2, y2);
         this.context.closePath();
+    }
+
+    strokePath(color, linewidth, linecap, linejoin) {
+        this.setLineWidth(linewidth);
+        this.setLineCap(linecap);
+        this.setLineJoin(linejoin);
+        this.setStrokeStyle(color.getStyle());
+        this.context.stroke();
+
+        _elemBox.expandByScalar(linewidth * 2);
+    }
+
+    fillPath(color) {
+        this.setFillStyle(color.getStyle());
+        this.context.fill();
     }
 
     renderSprite(element, material) {
@@ -92,9 +176,14 @@ class CanvasRenderer extends Renderer {
         this.setBlending(material.blending);
         let _context = this.context;
         element.x *= this.canvasWidthHalf;
-        element.y *= -this.canvasHeightHalf;
+        element.y *= this.canvasHeightHalf;
         let scaleX = element.scale.x * this.canvasWidthHalf;
         let scaleY = element.scale.y * this.canvasHeightHalf;
+
+        let dist = Math.sqrt(scaleX * scaleX + scaleY * scaleY); // allow for rotated sprite
+        _elemBox.min.set(element.x - dist, element.y - dist);
+        _elemBox.max.set(element.x + dist, element.y + dist);
+
         if (material.isSpriteMaterial) {
             let texture = material.map;
             if (texture !== null) {
@@ -164,10 +253,10 @@ class CanvasRenderer extends Renderer {
                 version: 0
             };
         }
-        // let repeatX = texture.wrapS === THREE.RepeatWrapping || texture.wrapS === THREE.MirroredRepeatWrapping;
-        // let repeatY = texture.wrapT === THREE.RepeatWrapping || texture.wrapT === THREE.MirroredRepeatWrapping;
-        // let mirrorX = texture.wrapS === THREE.MirroredRepeatWrapping;
-        // let mirrorY = texture.wrapT === THREE.MirroredRepeatWrapping;
+        // let repeatX = texture.wrapS === RepeatWrapping || texture.wrapS === MirroredRepeatWrapping;
+        // let repeatY = texture.wrapT === RepeatWrapping || texture.wrapT === MirroredRepeatWrapping;
+        // let mirrorX = texture.wrapS === MirroredRepeatWrapping;
+        // let mirrorY = texture.wrapT === MirroredRepeatWrapping;
 
         let mirrorX = false;
         let mirrorY = false;
@@ -203,6 +292,23 @@ class CanvasRenderer extends Renderer {
             canvas: pattern,
             version: texture.version
         };
+    }
+
+    // Hide anti-alias gaps
+    expand(v1, v2, pixels) {
+        let x = v2.x - v1.x, y = v2.y - v1.y,
+            det = x * x + y * y, idet;
+
+        if (det === 0) return;
+        idet = pixels / Math.sqrt(det);
+
+        x *= idet;
+        y *= idet;
+
+        v2.x += x;
+        v2.y += y;
+        v1.x -= x;
+        v1.y -= y;
     }
 
     setOpacity(value) {

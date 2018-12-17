@@ -1,3 +1,7 @@
+import {arrayMax} from "../utils";
+import {_Math} from "../math/Math";
+import {BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute} from './BufferAttribute.js';
+
 let bufferGeometryId = 1; // BufferGeometry uses odd numbers as Id
 class BufferGeometry {
     constructor() {
@@ -8,6 +12,20 @@ class BufferGeometry {
 
         this.index = null;
         this.attributes = {};
+
+        this.groups = [];
+    }
+
+    getIndex() {
+        return this.index;
+    }
+
+    setIndex(index) {
+        if (Array.isArray(index)) {
+            this.index = new (arrayMax(index) > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute)(index, 1);
+        } else {
+            this.index = index;
+        }
     }
 
     addAttribute(name, attribute) {
@@ -22,6 +40,18 @@ class BufferGeometry {
     removeAttribute(name) {
         delete this.attributes[name];
         return this;
+    }
+
+    addGroup(start, count, materialIndex) {
+        this.groups.push({
+            start: start,
+            count: count,
+            materialIndex: materialIndex !== undefined ? materialIndex : 0
+        });
+    }
+
+    clearGroups() {
+        this.groups = [];
     }
 }
 

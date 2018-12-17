@@ -4,11 +4,16 @@ class Material {
     constructor() {
         this.isMaterial = true;
         this.color = new Color(0xffffff);
-        this.vertexColors = THREE.NoColors; // THREE.NoColors, THREE.VertexColors, THREE.FaceColors
+        this.vertexColors = THREE.NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
 
         this.blending = THREE.NormalBlending;
         this.opacity = 1;
         this.transparent = false;
+
+        this.overdraw = 0; // Overdrawn pixels (typically between 0 and 1) for fixing antialiasing gaps in CanvasRenderer
+        this.visible = true;
+
+        this.needsUpdate = true;
     }
 
     setValues(values) {

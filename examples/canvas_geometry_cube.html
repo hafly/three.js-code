@@ -16,7 +16,6 @@
         #container {
             width: 100%;
             height: 100%;
-            background: #000;
         }
     </style>
     <script src="../build/three.js"></script>
@@ -43,30 +42,31 @@
     function init() {
         container = document.getElementById('container');
 
-        camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
-        camera.position.z = 1000;
+        camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.z = 500;
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f0f0);
 
         // Cube
         let geometry = new THREE.BoxGeometry(200, 200, 200);
-        for (let i = 0; i < geometry.faces.length; i++) {
+        for (let i = 0; i < geometry.faces.length; i += 2) {
             let hex = Math.random() * 0xffffff;
             geometry.faces[i].color.setHex(hex);
+            geometry.faces[i + 1].color.setHex(hex);
         }
 
-        cube = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({vertexColors: THREE.FaceColors}));
-        cube.rotation.x = -THREE.Math.DEG2RAD * 10;
-        cube.position.y = 99;
+        let material = new THREE.MeshBasicMaterial({vertexColors: THREE.FaceColors, overdraw: 0.5});
+        cube = new THREE.Mesh(geometry, material);
+        // cube.rotation.x = -THREE.Math.DEG2RAD * 10;
+        cube.position.y = 150;
 
-        let geometry2 = new THREE.BoxGeometry(200, 200, 200);
-
-        let cube2 = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial({color: 0x0000ff}));
-        cube2.rotation.x = -THREE.Math.DEG2RAD * 30;
-        cube2.position.x = 200;
-        cube2.position.y = 66;
-        cube.add(cube2);
+        // let geometry2 = new THREE.BoxGeometry(200, 200, 200);
+        // let cube2 = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial({color: 0x0000ff}));
+        // cube2.rotation.x = -THREE.Math.DEG2RAD * 30;
+        // cube2.position.x = 200;
+        // cube2.position.y = 66;
+        // cube.add(cube2);
 
         scene.add(cube);
 
@@ -78,6 +78,7 @@
         container.appendChild(stats.dom);
 
         document.addEventListener('mousedown', onDocumentMouseDown, false);
+        window.addEventListener('resize', onWindowResize, false);
     }
 
     function update() {
@@ -108,6 +109,16 @@
     function onDocumentMouseUp(event) {
         document.removeEventListener('mousemove', onDocumentMouseMove, false);
         document.removeEventListener('mouseup', onDocumentMouseUp, false);
+    }
+
+    function onWindowResize() {
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(window.innerWidth, window.innerHeight);
     }
 </script>
 </body>

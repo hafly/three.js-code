@@ -4,6 +4,94 @@
 	(factory((global.THREE = {})));
 }(this, (function (exports) { 'use strict';
 
+	let lut = [];
+	for (let i = 0; i < 256; i++) {
+	    lut[i] = (i < 16 ? '0' : '') + (i).toString(16);
+	}
+
+	let _Math = {
+	    DEG2RAD: Math.PI / 180,
+	    RAD2DEG: 180 / Math.PI,
+	    generateUUID: function () {
+	        let d0 = Math.random() * 0xffffffff | 0;
+	        let d1 = Math.random() * 0xffffffff | 0;
+	        let d2 = Math.random() * 0xffffffff | 0;
+	        let d3 = Math.random() * 0xffffffff | 0;
+	        let uuid = lut[ d0 & 0xff ] + lut[ d0 >> 8 & 0xff ] + lut[ d0 >> 16 & 0xff ] + lut[ d0 >> 24 & 0xff ] + '-' +
+	            lut[ d1 & 0xff ] + lut[ d1 >> 8 & 0xff ] + '-' + lut[ d1 >> 16 & 0x0f | 0x40 ] + lut[ d1 >> 24 & 0xff ] + '-' +
+	            lut[ d2 & 0x3f | 0x80 ] + lut[ d2 >> 8 & 0xff ] + '-' + lut[ d2 >> 16 & 0xff ] + lut[ d2 >> 24 & 0xff ] +
+	            lut[ d3 & 0xff ] + lut[ d3 >> 8 & 0xff ] + lut[ d3 >> 16 & 0xff ] + lut[ d3 >> 24 & 0xff ];
+
+	        // .toUpperCase() here flattens concatenated strings to save heap memory space.
+	        return uuid.toUpperCase();
+	    },
+
+	    //限制最小最大值
+	    clamp: function (value, min, max) {
+	        return Math.max(min, Math.min(max, value));
+	    },
+
+	    //计算m % n的欧几里得模
+	    euclideanModulo: function (n, m) {
+	        return ((n % m) + m) % m;
+	    },
+
+	    //线性插值
+	    lerp: function (x, y, t) {
+	        return (1 - t) * x + t * y;
+	    },
+
+	    //平滑值(返回0-1之间的值，该值表示x在最小值和最大值之间移动的百分比，但当x接近最小值和最大值时，则使其平滑或减慢)
+	    smoothstep: function (x, min, max) {
+	        if (x <= min) return 0;
+	        if (x >= max) return 1;
+	        x = (x - min) / (max - min);
+	        return x * x * (3 - 2 * x);
+	    },
+	    smootherstep: function (x, min, max) {
+	        if (x <= min) return 0;
+	        if (x >= max) return 1;
+	        x = (x - min) / (max - min);
+	        return x * x * x * (x * (x * 6 - 15) + 10);
+	    },
+
+	    randInt: function (low, high) {
+	        return low + Math.floor(Math.random() * (high - low + 1));
+	    },
+
+	    randFloat: function (low, high) {
+	        return low + Math.random() * (high - low);
+	    },
+
+	    // Random float from <-range/2, range/2> interval
+	    randFloatSpread: function (range) {
+	        return range * (0.5 - Math.random());
+	    },
+
+	    //角度转弧度
+	    degToRad: function (degrees) {
+	        return degrees * _Math.DEG2RAD;
+	    },
+
+	    //弧度转角度
+	    radToDeg: function (radians) {
+	        return radians * _Math.RAD2DEG;
+	    },
+
+	    //是否是n的2次幂
+	    isPowerOfTwo: function (value) {
+	        return (value & (value - 1)) === 0 && value !== 0;
+	    },
+
+	    ceilPowerOfTwo: function (value) {
+	        return Math.pow(2, Math.ceil(Math.log(value) / Math.LN2));
+	    },
+
+	    floorPowerOfTwo: function (value) {
+	        return Math.pow(2, Math.floor(Math.log(value) / Math.LN2));
+	    }
+	};
+
 	class Matrix3 {
 	    constructor(){
 	        this.elements = [
@@ -127,94 +215,6 @@
 	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
 	    }
 	}
-
-	let lut = [];
-	for (let i = 0; i < 256; i++) {
-	    lut[i] = (i < 16 ? '0' : '') + (i).toString(16);
-	}
-
-	let _Math = {
-	    DEG2RAD: Math.PI / 180,
-	    RAD2DEG: 180 / Math.PI,
-	    generateUUID: function () {
-	        let d0 = Math.random() * 0xffffffff | 0;
-	        let d1 = Math.random() * 0xffffffff | 0;
-	        let d2 = Math.random() * 0xffffffff | 0;
-	        let d3 = Math.random() * 0xffffffff | 0;
-	        let uuid = lut[ d0 & 0xff ] + lut[ d0 >> 8 & 0xff ] + lut[ d0 >> 16 & 0xff ] + lut[ d0 >> 24 & 0xff ] + '-' +
-	            lut[ d1 & 0xff ] + lut[ d1 >> 8 & 0xff ] + '-' + lut[ d1 >> 16 & 0x0f | 0x40 ] + lut[ d1 >> 24 & 0xff ] + '-' +
-	            lut[ d2 & 0x3f | 0x80 ] + lut[ d2 >> 8 & 0xff ] + '-' + lut[ d2 >> 16 & 0xff ] + lut[ d2 >> 24 & 0xff ] +
-	            lut[ d3 & 0xff ] + lut[ d3 >> 8 & 0xff ] + lut[ d3 >> 16 & 0xff ] + lut[ d3 >> 24 & 0xff ];
-
-	        // .toUpperCase() here flattens concatenated strings to save heap memory space.
-	        return uuid.toUpperCase();
-	    },
-
-	    //限制最小最大值
-	    clamp: function (value, min, max) {
-	        return Math.max(min, Math.min(max, value));
-	    },
-
-	    //计算m % n的欧几里得模
-	    euclideanModulo: function (n, m) {
-	        return ((n % m) + m) % m;
-	    },
-
-	    //线性插值
-	    lerp: function (x, y, t) {
-	        return (1 - t) * x + t * y;
-	    },
-
-	    //平滑值(返回0-1之间的值，该值表示x在最小值和最大值之间移动的百分比，但当x接近最小值和最大值时，则使其平滑或减慢)
-	    smoothstep: function (x, min, max) {
-	        if (x <= min) return 0;
-	        if (x >= max) return 1;
-	        x = (x - min) / (max - min);
-	        return x * x * (3 - 2 * x);
-	    },
-	    smootherstep: function (x, min, max) {
-	        if (x <= min) return 0;
-	        if (x >= max) return 1;
-	        x = (x - min) / (max - min);
-	        return x * x * x * (x * (x * 6 - 15) + 10);
-	    },
-
-	    randInt: function (low, high) {
-	        return low + Math.floor(Math.random() * (high - low + 1));
-	    },
-
-	    randFloat: function (low, high) {
-	        return low + Math.random() * (high - low);
-	    },
-
-	    // Random float from <-range/2, range/2> interval
-	    randFloatSpread: function (range) {
-	        return range * (0.5 - Math.random());
-	    },
-
-	    //角度转弧度
-	    degToRad: function (degrees) {
-	        return degrees * _Math.DEG2RAD;
-	    },
-
-	    //弧度转角度
-	    radToDeg: function (radians) {
-	        return radians * _Math.RAD2DEG;
-	    },
-
-	    //是否是n的2次幂
-	    isPowerOfTwo: function (value) {
-	        return (value & (value - 1)) === 0 && value !== 0;
-	    },
-
-	    ceilPowerOfTwo: function (value) {
-	        return Math.pow(2, Math.ceil(Math.log(value) / Math.LN2));
-	    },
-
-	    floorPowerOfTwo: function (value) {
-	        return Math.pow(2, Math.floor(Math.log(value) / Math.LN2));
-	    }
-	};
 
 	class Vector3 {
 	    constructor(x = 0, y = 0, z = 0) {
@@ -511,6 +511,22 @@
 
 	    setFromMatrixColumn(m, index) {
 	        return this.fromArray(m.elements, index * 4);
+	    }
+
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+	        this.z = Math.min(this.z, v.z);
+
+	        return this;
+	    }
+
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+	        this.z = Math.max(this.z, v.z);
+
+	        return this;
 	    }
 
 	    equals(v) {
@@ -1640,76 +1656,6 @@
 	Object3D.DefaultUp = new Vector3(0, 1, 0);
 	Object3D.DefaultMatrixAutoUpdate = true;
 
-	/**
-	 * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）
-	 */
-	class Geometry {
-	    constructor() {
-	        this.vertices = []; // 顶点
-	        this.faces = [];    // 面
-
-	        this.isGeometry = true;
-	    }
-
-	    applyMatrix(matrix) {
-	        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
-
-	        for (let i = 0; i < this.vertices.length; i++) {
-	            let vertex = this.vertices[i];
-	            vertex.applyMatrix4(matrix);
-	        }
-
-	        for (let i = 0; i < this.faces.length; i++) {
-	            let face = this.faces[i];
-	            face.normal.applyMatrix3(normalMatrix).normalize();
-	        }
-
-	        return this;
-	    }
-
-	    rotateX(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationY(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateY(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationX(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateZ(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationZ(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    translate(x, y, z) {
-	        let m1 = new Matrix4();
-	        m1.makeTranslation(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    scale(x, y, z) {
-	        let m1 = new Matrix4();
-	        m1.makeScale(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    lookAt(vector) {
-	        let obj = new Object3D();
-	        obj.lookAt(vector);
-	        obj.updateMatrix();
-	        this.applyMatrix(obj.matrix);
-	    }
-	}
-
 	const ColorKeywords={'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFFF,'aquamarine':0x7FFFD4,'azure':0xF0FFFF,'beige':0xF5F5DC,'bisque':0xFFE4C4,'black':0x000000,'blanchedalmond':0xFFEBCD,'blue':0x0000FF,'blueviolet':0x8A2BE2,'brown':0xA52A2A,'burlywood':0xDEB887,'cadetblue':0x5F9EA0,'chartreuse':0x7FFF00,'chocolate':0xD2691E,'coral':0xFF7F50,'cornflowerblue':0x6495ED,'cornsilk':0xFFF8DC,'crimson':0xDC143C,'cyan':0x00FFFF,'darkblue':0x00008B,'darkcyan':0x008B8B,'darkgoldenrod':0xB8860B,'darkgray':0xA9A9A9,'darkgreen':0x006400,'darkgrey':0xA9A9A9,'darkkhaki':0xBDB76B,'darkmagenta':0x8B008B,'darkolivegreen':0x556B2F,'darkorange':0xFF8C00,'darkorchid':0x9932CC,'darkred':0x8B0000,'darksalmon':0xE9967A,'darkseagreen':0x8FBC8F,'darkslateblue':0x483D8B,'darkslategray':0x2F4F4F,'darkslategrey':0x2F4F4F,'darkturquoise':0x00CED1,'darkviolet':0x9400D3,'deeppink':0xFF1493,'deepskyblue':0x00BFFF,'dimgray':0x696969,'dimgrey':0x696969,'dodgerblue':0x1E90FF,'firebrick':0xB22222,'floralwhite':0xFFFAF0,'forestgreen':0x228B22,'fuchsia':0xFF00FF,'gainsboro':0xDCDCDC,'ghostwhite':0xF8F8FF,'gold':0xFFD700,'goldenrod':0xDAA520,'gray':0x808080,'green':0x008000,'greenyellow':0xADFF2F,'grey':0x808080,'honeydew':0xF0FFF0,'hotpink':0xFF69B4,'indianred':0xCD5C5C,'indigo':0x4B0082,'ivory':0xFFFFF0,'khaki':0xF0E68C,'lavender':0xE6E6FA,'lavenderblush':0xFFF0F5,'lawngreen':0x7CFC00,'lemonchiffon':0xFFFACD,'lightblue':0xADD8E6,'lightcoral':0xF08080,'lightcyan':0xE0FFFF,'lightgoldenrodyellow':0xFAFAD2,'lightgray':0xD3D3D3,'lightgreen':0x90EE90,'lightgrey':0xD3D3D3,'lightpink':0xFFB6C1,'lightsalmon':0xFFA07A,'lightseagreen':0x20B2AA,'lightskyblue':0x87CEFA,'lightslategray':0x778899,'lightslategrey':0x778899,'lightsteelblue':0xB0C4DE,'lightyellow':0xFFFFE0,'lime':0x00FF00,'limegreen':0x32CD32,'linen':0xFAF0E6,'magenta':0xFF00FF,'maroon':0x800000,'mediumaquamarine':0x66CDAA,'mediumblue':0x0000CD,'mediumorchid':0xBA55D3,'mediumpurple':0x9370DB,'mediumseagreen':0x3CB371,'mediumslateblue':0x7B68EE,'mediumspringgreen':0x00FA9A,'mediumturquoise':0x48D1CC,'mediumvioletred':0xC71585,'midnightblue':0x191970,'mintcream':0xF5FFFA,'mistyrose':0xFFE4E1,'moccasin':0xFFE4B5,'navajowhite':0xFFDEAD,'navy':0x000080,'oldlace':0xFDF5E6,'olive':0x808000,'olivedrab':0x6B8E23,'orange':0xFFA500,'orangered':0xFF4500,'orchid':0xDA70D6,'palegoldenrod':0xEEE8AA,'palegreen':0x98FB98,'paleturquoise':0xAFEEEE,'palevioletred':0xDB7093,'papayawhip':0xFFEFD5,'peachpuff':0xFFDAB9,'peru':0xCD853F,'pink':0xFFC0CB,'plum':0xDDA0DD,'powderblue':0xB0E0E6,'purple':0x800080,'rebeccapurple':0x663399,'red':0xFF0000,'rosybrown':0xBC8F8F,'royalblue':0x4169E1,'saddlebrown':0x8B4513,'salmon':0xFA8072,'sandybrown':0xF4A460,'seagreen':0x2E8B57,'seashell':0xFFF5EE,'sienna':0xA0522D,'silver':0xC0C0C0,'skyblue':0x87CEEB,'slateblue':0x6A5ACD,'slategray':0x708090,'slategrey':0x708090,'snow':0xFFFAFA,'springgreen':0x00FF7F,'steelblue':0x4682B4,'tan':0xD2B48C,'teal':0x008080,'thistle':0xD8BFD8,'tomato':0xFF6347,'turquoise':0x40E0D0,'violet':0xEE82EE,'wheat':0xF5DEB3,'white':0xFFFFFF,'whitesmoke':0xF5F5F5,'yellow':0xFFFF00,'yellowgreen':0x9ACD32};
 
 	/**
@@ -1960,15 +1906,16 @@
 	    }
 	}
 
-	// 面
-	class Face4 {
-	    constructor(a, b, c, d) {
-	        this.a = a; // 顶点序号
+	/**
+	 * 三角面片
+	 */
+	class Face3 {
+	    constructor(a, b, c, color = new Color(), materialIndex = 0) {
+	        this.a = a;
 	        this.b = b;
 	        this.c = c;
-	        this.d = d;
-
-	        this.color = new Color(); // 单面颜色
+	        this.color = color;
+	        this.materialIndex = materialIndex;
 	    }
 
 	    clone() {
@@ -1979,54 +1926,415 @@
 	        this.a = source.a;
 	        this.b = source.b;
 	        this.c = source.c;
-	        this.d = source.d;
 
 	        this.color.copy(source.color);
+	        this.materialIndex = source.materialIndex;
 
 	        return this;
 	    }
 	}
 
+	/**
+	 * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）
+	 */
+
+	let geometryId = 0;// Geometry uses even numbers as Id
+	class Geometry {
+	    constructor() {
+	        this.id = geometryId += 2;
+	        this.uuid = _Math.generateUUID();
+	        this.isGeometry = true;
+	        this.type = 'Geometry';
+
+	        this.vertices = []; // 顶点
+	        this.faces = [];    // 面
+	    }
+
+	    applyMatrix(matrix) {
+	        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
+
+	        for (let i = 0; i < this.vertices.length; i++) {
+	            let vertex = this.vertices[i];
+	            vertex.applyMatrix4(matrix);
+	        }
+
+	        for (let i = 0; i < this.faces.length; i++) {
+	            let face = this.faces[i];
+	            face.normal.applyMatrix3(normalMatrix).normalize();
+	        }
+
+	        return this;
+	    }
+
+	    rotateX(angle) {
+	        let m1 = new Matrix4();
+	        m1.makeRotationY(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    rotateY(angle) {
+	        let m1 = new Matrix4();
+	        m1.makeRotationX(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    rotateZ(angle) {
+	        let m1 = new Matrix4();
+	        m1.makeRotationZ(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    translate(x, y, z) {
+	        let m1 = new Matrix4();
+	        m1.makeTranslation(x, y, z);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    scale(x, y, z) {
+	        let m1 = new Matrix4();
+	        m1.makeScale(x, y, z);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    lookAt(vector) {
+	        let obj = new Object3D();
+	        obj.lookAt(vector);
+	        obj.updateMatrix();
+	        this.applyMatrix(obj.matrix);
+	    }
+
+	    fromBufferGeometry(geometry) {
+	        let scope = this;
+	        let indices = geometry.index !== null ? geometry.index.array : undefined;
+	        let attributes = geometry.attributes;
+	        let positions = attributes.position.array;
+
+	        for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
+	            scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+	        }
+
+	        if (indices !== undefined) {
+	            for (let i = 0; i < indices.length; i += 3) {
+	                addFace(indices[i], indices[i + 1], indices[i + 2]);
+	            }
+	        } else {
+	            for (let i = 0; i < positions.length / 3; i += 3) {
+	                addFace(i, i + 1, i + 2);
+	            }
+	        }
+
+	        function addFace(a, b, c, materialIndex) {
+	            let face = new Face3(a, b, c, materialIndex);
+	            scope.faces.push(face);
+	        }
+	    }
+
+	    mergeVertices() {
+	        let verticesMap = {}; // Hashmap for looking up vertices by position coordinates (and making sure they are unique)
+	        let unique = [], changes = [];
+
+	        let v, key;
+	        let precisionPoints = 4; // number of decimal points, e.g. 4 for epsilon of 0.0001
+	        let precision = Math.pow(10, precisionPoints);
+	        let i, il, face;
+	        let indices;
+
+	        for (i = 0, il = this.vertices.length; i < il; i++) {
+	            v = this.vertices[i];
+	            key = Math.round(v.x * precision) + '_' + Math.round(v.y * precision) + '_' + Math.round(v.z * precision);
+
+	            if (verticesMap[key] === undefined) {
+	                verticesMap[key] = i;
+	                unique.push(this.vertices[i]);
+	                changes[i] = unique.length - 1;
+	            } else {
+	                //console.log('Duplicate vertex found. ', i, ' could be using ', verticesMap[key]);
+	                changes[i] = changes[verticesMap[key]];
+	            }
+	        }
+
+	        // if faces are completely degenerate after merging vertices, we
+	        // have to remove them from the geometry.
+	        let faceIndicesToRemove = [];
+
+	        for (i = 0, il = this.faces.length; i < il; i++) {
+
+	            face = this.faces[i];
+
+	            face.a = changes[face.a];
+	            face.b = changes[face.b];
+	            face.c = changes[face.c];
+
+	            indices = [face.a, face.b, face.c];
+
+	            // if any duplicate vertices are found in a Face3
+	            // we have to remove the face as nothing can be saved
+	            for (let n = 0; n < 3; n++) {
+	                if (indices[n] === indices[(n + 1) % 3]) {
+	                    faceIndicesToRemove.push(i);
+	                    break;
+	                }
+	            }
+	        }
+
+	        for (i = faceIndicesToRemove.length - 1; i >= 0; i--) {
+	            let idx = faceIndicesToRemove[i];
+
+	            this.faces.splice(idx, 1);
+	        }
+
+	        // Use unique set of vertices
+	        let diff = this.vertices.length - unique.length;
+	        this.vertices = unique;
+	        return diff;
+	    }
+	}
+
+	function arrayMax(array) {
+	    if (array.length === 0) return -Infinity;
+	    var max = array[0];
+	    for (var i = 1, l = array.length; i < l; ++i) {
+	        if (array[i] > max) max = array[i];
+	    }
+	    return max;
+	}
+
+	class BufferAttribute {
+	    constructor(array, itemSize, normalized = true) {
+	        this.isBufferAttribute = true;
+	        this.array = array;
+	        this.itemSize = itemSize;
+	        this.normalized = normalized;
+
+	        this.count = array.length;
+	        this.version = 0;
+	    }
+
+	    set needsUpdate(value) {
+	        if (value === true) this.version++;
+	    }
+
+	    onUploadCallback() {
+	    }
+	}
+	class Uint16BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Uint16Array(array), itemSize, normalized);
+	    }
+	}
+	class Uint32BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Uint32Array(array), itemSize, normalized);
+	    }
+	}
+	class Float32BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Float32Array(array), itemSize, normalized);
+	    }
+	}
+
+	let bufferGeometryId = 1; // BufferGeometry uses odd numbers as Id
+	class BufferGeometry {
+	    constructor() {
+	        this.id = bufferGeometryId += 2;
+	        this.uuid = _Math.generateUUID();
+	        this.type = 'BufferGeometry';
+	        this.isBufferGeometry = true;
+
+	        this.index = null;
+	        this.attributes = {};
+
+	        this.groups = [];
+	    }
+
+	    getIndex() {
+	        return this.index;
+	    }
+
+	    setIndex(index) {
+	        if (Array.isArray(index)) {
+	            this.index = new (arrayMax(index) > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute)(index, 1);
+	        } else {
+	            this.index = index;
+	        }
+	    }
+
+	    addAttribute(name, attribute) {
+	        this.attributes[name] = attribute;
+	        return this;
+	    }
+
+	    getAttribute(name) {
+	        return this.attributes[name];
+	    }
+
+	    removeAttribute(name) {
+	        delete this.attributes[name];
+	        return this;
+	    }
+
+	    addGroup(start, count, materialIndex) {
+	        this.groups.push({
+	            start: start,
+	            count: count,
+	            materialIndex: materialIndex !== undefined ? materialIndex : 0
+	        });
+	    }
+
+	    clearGroups() {
+	        this.groups = [];
+	    }
+	}
+
 	// 立方体
-	//    v3----- v0
-	//   /|      /|
-	//  v7------v4|
-	//  | |     | |
-	//  | |v2---|-|v1
-	//  |/      |/
-	//  v6------v5
-	class BoxGeometry extends Geometry{
-	    constructor(width, height, depth) {
+	class BoxGeometry extends Geometry {
+	    constructor(width = 1, height = 1, depth = 1, widthSegments = 1, heightSegments = 1, depthSegments = 1) {
 	        super();
+	        this.type = 'BoxGeometry';
 
-	        let width_half = width / 2;
-	        let height_half = height / 2;
-	        let depth_half = depth / 2;
+	        this.parameters = {
+	            width: width,
+	            height: height,
+	            depth: depth,
+	            widthSegments: widthSegments,
+	            heightSegments: heightSegments,
+	            depthSegments: depthSegments
+	        };
 
-	        this._v(width_half, height_half, -depth_half);  // v0
-	        this._v(width_half, -height_half, -depth_half);  // v1
-	        this._v(-width_half, -height_half, -depth_half);  // v2
-	        this._v(-width_half, height_half, -depth_half);  // v3
-	        this._v(width_half, height_half, depth_half);  // v4
-	        this._v(width_half, -height_half, depth_half);  // v5
-	        this._v(-width_half, -height_half, depth_half);  // v6
-	        this._v(-width_half, height_half, depth_half);  // v7
-
-	        // 对应顶点序号
-	        this._f4(0, 1, 2, 3); // back
-	        this._f4(4, 7, 6, 5); // front
-	        this._f4(0, 4, 5, 1); // left
-	        this._f4(1, 5, 6, 2); // bottom
-	        this._f4(2, 6, 7, 3); // right
-	        this._f4(4, 0, 3, 7); // top
+	        this.fromBufferGeometry(new BoxBufferGeometry(width, height, depth, widthSegments, heightSegments, depthSegments));
+	        this.mergeVertices();
 	    }
+	}
 
-	    _v(x, y, z) {
-	        this.vertices.push(new Vector3(x, y, z));
-	    }
+	class BoxBufferGeometry extends BufferGeometry {
+	    constructor(width = 1, height = 1, depth = 1, widthSegments = 1, heightSegments = 1, depthSegments = 1) {
+	        super();
+	        this.type = 'BoxBufferGeometry';
 
-	    _f4(a, b, c, d) {
-	        this.faces.push(new Face4(a, b, c, d));
+	        this.parameters = {
+	            width: width,
+	            height: height,
+	            depth: depth,
+	            widthSegments: widthSegments,
+	            heightSegments: heightSegments,
+	            depthSegments: depthSegments
+	        };
+
+	        let scope = this;
+
+	        // buffers
+
+	        let indices = [];
+	        let vertices = [];
+	        let normals = [];
+	        let uvs = [];
+
+	        // helper letiables
+
+	        let numberOfVertices = 0;
+	        let groupStart = 0;
+
+	        // build each side of the box geometry
+
+	        buildPlane('z', 'y', 'x', -1, -1, depth, height, width, depthSegments, heightSegments, 0); // px
+	        buildPlane('z', 'y', 'x', 1, -1, depth, height, -width, depthSegments, heightSegments, 1); // nx
+	        buildPlane('x', 'z', 'y', 1, 1, width, depth, height, widthSegments, depthSegments, 2); // py
+	        buildPlane('x', 'z', 'y', 1, -1, width, depth, -height, widthSegments, depthSegments, 3); // ny
+	        buildPlane('x', 'y', 'z', 1, -1, width, height, depth, widthSegments, heightSegments, 4); // pz
+	        buildPlane('x', 'y', 'z', -1, -1, width, height, -depth, widthSegments, heightSegments, 5); // nz
+
+	        // build geometry
+
+	        this.setIndex(indices);
+	        this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
+	        this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
+	        this.addAttribute('uv', new Float32BufferAttribute(uvs, 2));
+
+	        function buildPlane(u, v, w, udir, vdir, width, height, depth, gridX, gridY, materialIndex) {
+
+	            let segmentWidth = width / gridX;
+	            let segmentHeight = height / gridY;
+
+	            let widthHalf = width / 2;
+	            let heightHalf = height / 2;
+	            let depthHalf = depth / 2;
+
+	            let gridX1 = gridX + 1;
+	            let gridY1 = gridY + 1;
+
+	            let vertexCounter = 0;
+	            let groupCount = 0;
+
+	            let ix, iy;
+
+	            let vector = new Vector3();
+
+	            // generate vertices, normals and uvs
+	            for (iy = 0; iy < gridY1; iy++) {
+	                let y = iy * segmentHeight - heightHalf;
+	                for (ix = 0; ix < gridX1; ix++) {
+	                    let x = ix * segmentWidth - widthHalf;
+
+	                    // set values to correct vector component
+	                    vector[u] = x * udir;
+	                    vector[v] = y * vdir;
+	                    vector[w] = depthHalf;
+
+	                    // now apply vector to vertex buffer
+	                    vertices.push(vector.x, vector.y, vector.z);
+
+	                    // set values to correct vector component
+	                    vector[u] = 0;
+	                    vector[v] = 0;
+	                    vector[w] = depth > 0 ? 1 : -1;
+
+	                    // now apply vector to normal buffer
+	                    normals.push(vector.x, vector.y, vector.z);
+
+	                    // uvs
+	                    uvs.push(ix / gridX);
+	                    uvs.push(1 - (iy / gridY));
+
+	                    // counters
+	                    vertexCounter += 1;
+	                }
+	            }
+
+	            // indices
+
+	            // 1. you need three indices to draw a single face
+	            // 2. a single segment consists of two faces
+	            // 3. so we need to generate six (2*3) indices per segment
+	            for (iy = 0; iy < gridY; iy++) {
+	                for (ix = 0; ix < gridX; ix++) {
+	                    let a = numberOfVertices + ix + gridX1 * iy;
+	                    let b = numberOfVertices + ix + gridX1 * (iy + 1);
+	                    let c = numberOfVertices + (ix + 1) + gridX1 * (iy + 1);
+	                    let d = numberOfVertices + (ix + 1) + gridX1 * iy;
+
+	                    // faces
+	                    indices.push(a, b, d);
+	                    indices.push(b, c, d);
+
+	                    // increase counter
+	                    groupCount += 6;
+	                }
+	            }
+
+	            // add a group to the geometry. this will ensure multi material support
+	            scope.addGroup( groupStart, groupCount, materialIndex );
+
+	            // calculate new start value for groups
+	            groupStart += groupCount;
+
+	            // update total number of vertices
+	            numberOfVertices += vertexCounter;
+	        }
 	    }
 	}
 
@@ -2174,6 +2482,20 @@
 
 	    lerpVectors(v1, v2, alpha) {
 	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+	    }
+
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+
+	        return this;
+	    }
+
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+
+	        return this;
 	    }
 
 	    equals(v) {
@@ -2493,11 +2815,16 @@
 	    constructor() {
 	        this.isMaterial = true;
 	        this.color = new Color(0xffffff);
-	        this.vertexColors = THREE.NoColors; // THREE.NoColors, THREE.VertexColors, THREE.FaceColors
+	        this.vertexColors = THREE.NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
 
 	        this.blending = THREE.NormalBlending;
 	        this.opacity = 1;
 	        this.transparent = false;
+
+	        this.overdraw = 0; // Overdrawn pixels (typically between 0 and 1) for fixing antialiasing gaps in CanvasRenderer
+	        this.visible = true;
+
+	        this.needsUpdate = true;
 	    }
 
 	    setValues(values) {
@@ -2532,6 +2859,15 @@
 	    constructor(parameters) {
 	        super();
 	        this.isMeshBasicMaterial = true;
+	        this.type = 'MeshBasicMaterial';
+
+	        this.map = null;
+
+	        this.wireframe = false;
+	        this.wireframeLinewidth = 1;
+	        this.wireframeLinecap = 'round';
+	        this.wireframeLinejoin = 'round';
+
 	        this.setValues(parameters);
 	    }
 	}
@@ -2559,15 +2895,15 @@
 	    }
 	}
 
-	/**
-	 * 三角面片
-	 */
-	class Face3 {
-	    constructor(a, b, c, color = new MeshBasicMaterial()) {
-	        this.a = a;
+	// 面
+	class Face4 {
+	    constructor(a, b, c, d) {
+	        this.a = a; // 顶点序号
 	        this.b = b;
 	        this.c = c;
-	        this.faceColor = color;
+	        this.d = d;
+
+	        this.color = new Color(); // 单面颜色
 	    }
 
 	    clone() {
@@ -2578,6 +2914,7 @@
 	        this.a = source.a;
 	        this.b = source.b;
 	        this.c = source.c;
+	        this.d = source.d;
 
 	        this.color.copy(source.color);
 
@@ -2613,13 +2950,62 @@
 	    }
 	}
 
+	class Box3 {
+	    constructor(min = new Vector3(+Infinity, +Infinity, +Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity)) {
+	        this.isBox3 = true;
+	        this.min = min;
+	        this.max = max;
+	    }
+
+	    set(min, max) {
+	        this.min.copy(min);
+	        this.max.copy(max);
+
+	        return this;
+	    }
+
+	    makeEmpty() {
+	        this.min.x = this.min.y = this.min.z = +Infinity;
+	        this.max.x = this.max.y = this.max.z = -Infinity;
+
+	        return this;
+	    }
+
+	    expandByPoint(point) {
+	        this.min.min(point);
+	        this.max.max(point);
+
+	        return this;
+	    }
+
+	    setFromPoints(points) {
+	        this.makeEmpty();
+
+	        for (let i = 0, il = points.length; i < il; i++) {
+	            this.expandByPoint(points[i]);
+	        }
+
+	        return this;
+	    }
+
+	    intersectsBox(box) {
+	        // using 6 splitting planes to rule out intersections.
+	        return box.max.x < this.min.x || box.min.x > this.max.x ||
+	        box.max.y < this.min.y || box.min.y > this.max.y ||
+	        box.max.z < this.min.z || box.min.z > this.max.z ? false : true;
+	    }
+	}
+
 	// 存储对象池
 	let _object, _face, _vertex, _sprite,
 	    _objectPool = [], _facePool = [], _vertexPool = [], _spritePool = [],
 	    _objectCount = 0, _faceCount = 0, _vertexCount = 0, _spriteCount = 0;
 
 	let _vector3 = new Vector3(),
-	    _vector4 = new Vector4();
+	    _vector4 = new Vector4(),
+	    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)),
+	    _boundingBox = new Box3();
+	let _points3 = new Array(3);
 
 	let _viewMatrix = new Matrix4(),
 	    _viewProjectionMatrix = new Matrix4();
@@ -2630,34 +3016,7 @@
 	let _renderData = {objects: [], elements: []};
 
 	class RenderList {
-	    projectObject(object) {
-	        let self = this;
-	        if (object.visible === false) return;
-	        if (object.isMesh) {
-	            self.pushObject(object);
-	        }
-	        else if (object.isSprite) {
-	            self.pushObject(object);
-	        }
-
-	        let children = object.children;
-	        for (let i = 0, l = children.length; i < l; i++) {
-	            self.projectObject(children[i]);
-	        }
-	    }
-
-	    pushObject(object) {
-	        _object = getNextObjectInPool();
-	        _object.id = object.id;
-	        _object.object = object;
-
-	        _vector3.setFromMatrixPosition(object.matrixWorld);
-	        _vector3.applyMatrix4(_viewProjectionMatrix);
-	        _object.z = _vector3.z;
-	        _object.renderOrder = object.renderOrder;
-	        _renderData.objects.push(_object);
-	    }
-
+	    // 投影顶点
 	    projectVertex(vertex) {
 	        let position = vertex.position;
 	        let positionWorld = vertex.positionWorld;
@@ -2676,12 +3035,14 @@
 	        vertex.visible = positionScreen.x >= -1 && positionScreen.x <= 1 && positionScreen.y >= -1 && positionScreen.y <= 1 && positionScreen.z >= -1 && positionScreen.z <= 1;
 	    }
 
+	    // 添加顶点
 	    pushVertex(x, y, z) {
 	        _vertex = getNextVertexInPool();
 	        _vertex.position.set(x, y, z);
 	        this.projectVertex(_vertex);
 	    }
 
+	    // 添加粒子
 	    pushPoint(_vector4, object, camera) {
 	        let invW = 1 / _vector4.w;
 	        _vector4.z *= invW;
@@ -2702,6 +3063,16 @@
 	        }
 	    }
 
+	    checkTriangleVisibility(v1, v2, v3) {
+	        if (v1.visible === true || v2.visible === true || v3.visible === true) return true;
+
+	        _points3[0] = v1.positionScreen;
+	        _points3[1] = v2.positionScreen;
+	        _points3[2] = v3.positionScreen;
+
+	        return _clipBox.intersectsBox(_boundingBox.setFromPoints(_points3));
+	    }
+
 	    checkBackfaceCulling(v1, v2, v3) {
 	        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
 	    }
@@ -2710,7 +3081,7 @@
 	let renderList = new RenderList();
 
 	class Projector {
-	    projectScene(scene, camera) {
+	    projectScene(scene, camera, sortObjects, sortElements) {
 	        let self = this;
 	        _objectCount = 0;
 	        _faceCount = 0;
@@ -2719,7 +3090,12 @@
 
 	        _viewMatrix.copy(camera.matrixWorldInverse);
 	        _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
-	        renderList.projectObject(scene);
+	        self.projectObject(scene);
+
+	        if (sortObjects === true) {
+	            _renderData.objects.sort(self.painterSort);
+	        }
+
 	        let objects = _renderData.objects;
 	        for (let o = 0; o < objects.length; o++) {
 	            let object = objects[o].object;
@@ -2729,6 +3105,10 @@
 	            if (object.isMesh) {
 	                let vertices = geometry.vertices;
 	                let faces = geometry.faces;
+
+	                let material = object.material;
+	                let isMultiMaterial = Array.isArray(material);
+
 	                // 点
 	                for (let v = 0; v < vertices.length; v++) {
 	                    let vertex = vertices[v];
@@ -2738,30 +3118,29 @@
 
 	                // 面
 	                for (let f = 0; f < faces.length; f++) {
+	                    material = isMultiMaterial === true ? object.material[face.materialIndex] : object.material;
+
 	                    let face = faces[f];
 	                    let v1 = _vertexPool[face.a];
 	                    let v2 = _vertexPool[face.b];
 	                    let v3 = _vertexPool[face.c];
-	                    let v4 = _vertexPool[face.d];
 
+	                    if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
 	                    // 过滤面
-	                    let visible = renderList.checkBackfaceCulling(v1, v2, v3);
-	                    if (!visible) continue;
+	                    if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
 
 	                    _face = getNextFaceInPool();
 
 	                    _face.id = object.id;
-	                    if (object.material.vertexColors === THREE.FaceColors) {
-	                        _face.material = object.geometry.faces[f].color;
-	                    }
-	                    else {
-	                        _face.material = object.material.color;
-	                    }
+	                    _face.color = face.color;
+	                    _face.material = material;
+
 	                    _face.v1.copy(v1);
 	                    _face.v2.copy(v2);
 	                    _face.v3.copy(v3);
-	                    _face.v4.copy(v4);
-	                    _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z + v4.positionScreen.z) / 4;
+	                    _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
+	                    _face.renderOrder = object.renderOrder;
+
 	                    _renderData.elements.push(_face);
 	                }
 	            }
@@ -2771,8 +3150,40 @@
 	                renderList.pushPoint(_vector4, object, camera);
 	            }
 	        }
-	        _renderData.elements.sort(self.painterSort);
+
+	        if (sortElements === true) {
+	            _renderData.elements.sort(self.painterSort);
+	        }
 	        return _renderData;
+	    }
+
+	    projectObject(object) {
+	        let self = this;
+	        if (object.visible === false) return;
+	        if (object.isMesh) {
+	            self.pushObject(object);
+	        }
+	        else if (object.isSprite) {
+	            self.pushObject(object);
+	        }
+
+	        let children = object.children;
+	        for (let i = 0, l = children.length; i < l; i++) {
+	            self.projectObject(children[i]);
+	        }
+	    }
+
+	    // 添加object
+	    pushObject(object) {
+	        _object = getNextObjectInPool();
+	        _object.id = object.id;
+	        _object.object = object;
+
+	        _vector3.setFromMatrixPosition(object.matrixWorld);
+	        _vector3.applyMatrix4(_viewProjectionMatrix);
+	        _object.z = _vector3.z;
+	        _object.renderOrder = object.renderOrder;
+	        _renderData.objects.push(_object);
 	    }
 
 	    painterSort(a, b) {
@@ -2798,7 +3209,7 @@
 	    }
 	}
 
-	// Face4 TODO 这里先用Face4代替Face3
+	// Face3
 	class RenderableFace {
 	    constructor() {
 	        this.id = 0;
@@ -2806,7 +3217,6 @@
 	        this.v1 = new RenderableVertex();
 	        this.v2 = new RenderableVertex();
 	        this.v3 = new RenderableVertex();
-	        this.v4 = new RenderableVertex();
 
 	        this.color = new MeshBasicMaterial();
 	        this.material = null;
@@ -2901,7 +3311,85 @@
 	    }
 	}
 
+	class Box2 {
+	    constructor(min = new Vector2(+Infinity, +Infinity), max = new Vector2(-Infinity, -Infinity)) {
+	        this.min = min;
+	        this.max = max;
+	    }
+
+	    set(min, max) {
+	        this.min.copy(min);
+	        this.max.copy(max);
+
+	        return this;
+	    }
+
+	    makeEmpty() {
+	        this.min.x = this.min.y = +Infinity;
+	        this.max.x = this.max.y = -Infinity;
+
+	        return this;
+	    }
+
+	    isEmpty() {
+	        // this is a more robust check for empty than ( volume <= 0 ) because volume can get positive with two negative axes
+	        return (this.max.x < this.min.x) || (this.max.y < this.min.y);
+	    }
+
+	    // 应该被盒子包含的点
+	    expandByPoint(point) {
+	        this.min.min(point);
+	        this.max.max(point);
+
+	        return this;
+	    }
+
+	    setFromPoints(points) {
+	        this.makeEmpty();
+
+	        for (let i = 0, il = points.length; i < il; i++) {
+	            this.expandByPoint(points[i]);
+	        }
+
+	        return this;
+	    }
+
+	    intersectsBox(box) {
+	        // using 4 splitting planes to rule out intersections
+	        return box.max.x < this.min.x || box.min.x > this.max.x ||
+	        box.max.y < this.min.y || box.min.y > this.max.y ? false : true;
+	    }
+
+	    // 盒子扩展的距离
+	    expandByScalar(scalar) {
+	        this.min.addScalar(-scalar);
+	        this.max.addScalar(scalar);
+
+	        return this;
+	    }
+
+	    intersect(box) {
+	        this.min.max(box.min);
+	        this.max.min(box.max);
+
+	        return this;
+	    }
+
+	    union(box) {
+	        this.min.min(box.min);
+	        this.max.max(box.max);
+
+	        return this;
+	    }
+	}
+
 	let _patterns = {};
+	let _v1, _v2, _v3,
+	    _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
+	let _clipBox$1 = new Box2(),
+	    _clearBox = new Box2(), // 清空画布2d盒子模型（不需要全屏清除，只清除绘制部分）
+	    _elemBox = new Box2();
+	let _color = new Color();
 
 	class CanvasRenderer extends Renderer {
 	    constructor() {
@@ -2936,54 +3424,135 @@
 	        this.canvasWidthHalf = Math.floor(this.canvasWidth / 2);
 	        this.canvasHeightHalf = Math.floor(this.canvasHeight / 2);
 
-	        this.context.setTransform(1, 0, 0, 1, this.canvasWidthHalf, this.canvasHeightHalf);
+	        _clipBox$1.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
+	        _clipBox$1.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
+
+	        _clearBox.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
+	        _clearBox.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
 	    }
 
 	    render(scene, camera) {
+	        if (scene.autoUpdate === true) scene.updateMatrixWorld();
+	        if (camera.parent === null) camera.updateMatrixWorld();
+
 	        let background = scene.background;
 	        if (background && background.isColor) {
 	            this.setOpacity(1);
 	            this.setBlending(THREE.NormalBlending);
 	            this.setFillStyle(background.getStyle());
-	            this.context.fillRect(-this.canvasWidthHalf, -this.canvasHeightHalf, this.canvasWidth, this.canvasHeight);
+	            this.context.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 
 	        } else if (this.autoClear === true) {
 	            this.clear();
 	        }
 
-	        if (scene.autoUpdate === true) scene.updateMatrixWorld();
-	        if (camera.parent === null) camera.updateMatrixWorld();
+	        // 通过缩放翻转画布上下方向
+	        this.context.setTransform(1, 0, 0, -1, 0, this.canvasHeight);
+	        // 以画布中心为原点
+	        this.context.translate(this.canvasWidthHalf, this.canvasHeightHalf);
 
 	        let projector = new Projector();
-	        let _renderData = projector.projectScene(scene, camera);
+	        let _renderData = projector.projectScene(scene, camera, this.sortObjects, this.sortElements);
 
 	        for (let i = 0; i < _renderData.elements.length; i++) {
 	            let element = _renderData.elements[i];
+	            let material = element.material;
+
+	            _elemBox.makeEmpty();
 
 	            if (element instanceof RenderableFace) {
-	                this.renderFace(element, element.material);
+	                _v1 = element.v1;
+	                _v2 = element.v2;
+	                _v3 = element.v3;
+
+	                _v1.positionScreen.x *= this.canvasWidthHalf, _v1.positionScreen.y *= this.canvasHeightHalf;
+	                _v2.positionScreen.x *= this.canvasWidthHalf, _v2.positionScreen.y *= this.canvasHeightHalf;
+	                _v3.positionScreen.x *= this.canvasWidthHalf, _v3.positionScreen.y *= this.canvasHeightHalf;
+
+	                if (material.overdraw > 0) {
+	                    this.expand(_v1.positionScreen, _v2.positionScreen, material.overdraw);
+	                    this.expand(_v2.positionScreen, _v3.positionScreen, material.overdraw);
+	                    this.expand(_v3.positionScreen, _v1.positionScreen, material.overdraw);
+	                }
+
+	                _elemBox.setFromPoints([
+	                    _v1.positionScreen,
+	                    _v2.positionScreen,
+	                    _v3.positionScreen
+	                ]);
+
+	                if (_clipBox$1.intersectsBox(_elemBox) === true) {
+	                    this.renderFace3(_v1, _v2, _v3, element, element.material);
+	                }
 	            }
 	            else if (element instanceof RenderableSprite) {
 	                this.renderSprite(element, element.material);
 	            }
+
+	            _clearBox.union(_elemBox);
 	        }
+
+	        this.context.setTransform(1, 0, 0, 1, 0, 0);
 	    }
 
 	    clear() {
-	        this.context.clearRect(-this.canvasWidthHalf, -this.canvasHeightHalf, this.canvasWidth, this.canvasHeight);
+	        if (_clearBox.isEmpty() === false) {
+	            _clearBox.intersect(_clipBox$1).expandByScalar(2);
+
+	            _clearBox.min.x = _clearBox.min.x + this.canvasWidthHalf;
+	            _clearBox.min.y = -_clearBox.min.y + this.canvasHeightHalf;		// higher y value !
+	            _clearBox.max.x = _clearBox.max.x + this.canvasWidthHalf;
+	            _clearBox.max.y = -_clearBox.max.y + this.canvasHeightHalf;		// lower y value !
+	            this.context.clearRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+
+	            _clearBox.makeEmpty();
+	        }
 	    }
 
-	    renderFace(element, material) {
+	    renderFace3(v1, v2, v3, element, material) {
 	        this.setOpacity(material.opacity);
 	        this.setBlending(material.blending);
-	        this.setFillStyle(material.getStyle());
+
+	        _v1x = v1.positionScreen.x, _v1y = v1.positionScreen.y;
+	        _v2x = v2.positionScreen.x, _v2y = v2.positionScreen.y;
+	        _v3x = v3.positionScreen.x, _v3y = v3.positionScreen.y;
+
+	        this.drawTriangle(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y);
+	        if (material.isMeshBasicMaterial) {
+	            if (material.map != null) {
+	                console.log("暂未实现");
+	            }
+	            else if (material.vertexColors === THREE.FaceColors) {
+	                _color = element.color;
+	            }
+
+	            material.wireframe === true
+	                ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
+	                : this.fillPath(_color);
+	        }
+	    }
+
+	    drawTriangle(x0, y0, x1, y1, x2, y2) {
 	        this.context.beginPath();
-	        this.context.moveTo(element.v1.positionScreen.x * this.canvasWidthHalf, -element.v1.positionScreen.y * this.canvasHeightHalf);
-	        this.context.lineTo(element.v2.positionScreen.x * this.canvasWidthHalf, -element.v2.positionScreen.y * this.canvasHeightHalf);
-	        this.context.lineTo(element.v3.positionScreen.x * this.canvasWidthHalf, -element.v3.positionScreen.y * this.canvasHeightHalf);
-	        this.context.lineTo(element.v4.positionScreen.x * this.canvasWidthHalf, -element.v4.positionScreen.y * this.canvasHeightHalf);
-	        this.context.fill();
+	        this.context.moveTo(x0, y0);
+	        this.context.lineTo(x1, y1);
+	        this.context.lineTo(x2, y2);
 	        this.context.closePath();
+	    }
+
+	    strokePath(color, linewidth, linecap, linejoin) {
+	        this.setLineWidth(linewidth);
+	        this.setLineCap(linecap);
+	        this.setLineJoin(linejoin);
+	        this.setStrokeStyle(color.getStyle());
+	        this.context.stroke();
+
+	        _elemBox.expandByScalar( linewidth * 2 );
+	    }
+
+	    fillPath(color) {
+	        this.setFillStyle(color.getStyle());
+	        this.context.fill();
 	    }
 
 	    renderSprite(element, material) {
@@ -2991,9 +3560,14 @@
 	        this.setBlending(material.blending);
 	        let _context = this.context;
 	        element.x *= this.canvasWidthHalf;
-	        element.y *= -this.canvasHeightHalf;
+	        element.y *= this.canvasHeightHalf;
 	        let scaleX = element.scale.x * this.canvasWidthHalf;
 	        let scaleY = element.scale.y * this.canvasHeightHalf;
+
+	        let dist = Math.sqrt(scaleX * scaleX + scaleY * scaleY); // allow for rotated sprite
+	        _elemBox.min.set(element.x - dist, element.y - dist);
+	        _elemBox.max.set(element.x + dist, element.y + dist);
+
 	        if (material.isSpriteMaterial) {
 	            let texture = material.map;
 	            if (texture !== null) {
@@ -3095,6 +3669,23 @@
 	            canvas: pattern,
 	            version: texture.version
 	        };
+	    }
+
+	    // Hide anti-alias gaps
+	    expand(v1, v2, pixels) {
+	        let x = v2.x - v1.x, y = v2.y - v1.y,
+	            det = x * x + y * y, idet;
+
+	        if (det === 0) return;
+	        idet = pixels / Math.sqrt(det);
+
+	        x *= idet;
+	        y *= idet;
+
+	        v2.x += x;
+	        v2.y += y;
+	        v1.x -= x;
+	        v1.y -= y;
 	    }
 
 	    setOpacity(value) {
