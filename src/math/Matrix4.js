@@ -5,6 +5,7 @@ let y = new Vector3();
 let z = new Vector3();
 let zero = new Vector3(0, 0, 0);
 let one = new Vector3(1, 1, 1);
+let v1 = new Vector3();
 
 class Matrix4 {
     constructor() {
@@ -164,6 +165,19 @@ class Matrix4 {
         te[3] *= s;te[7] *= s;te[11] *= s;te[15] *= s;
 
         return this;
+    }
+
+    applyToBufferAttribute(attribute) {
+        for (let i = 0, l = attribute.count; i < l; i++) {
+            v1.x = attribute.getX(i);
+            v1.y = attribute.getY(i);
+            v1.z = attribute.getZ(i);
+
+            v1.applyMatrix4(this);
+
+            attribute.setXYZ(i, v1.x, v1.y, v1.z);
+        }
+        return attribute;
     }
 
     /**

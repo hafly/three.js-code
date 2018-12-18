@@ -13,6 +13,28 @@ class BufferAttribute {
         if (value === true) this.version++;
     }
 
+    getX( index ) {
+        return this.array[ index * this.itemSize ];
+    }
+
+    getY( index ) {
+        return this.array[ index * this.itemSize + 1 ];
+    }
+
+    getZ( index ) {
+        return this.array[ index * this.itemSize + 2 ];
+    }
+
+    setXYZ(index, x, y, z) {
+        index *= this.itemSize;
+
+        this.array[index + 0] = x;
+        this.array[index + 1] = y;
+        this.array[index + 2] = z;
+
+        return this;
+    }
+
     onUploadCallback() {
     }
 }

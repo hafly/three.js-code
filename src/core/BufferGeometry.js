@@ -1,6 +1,8 @@
 import {arrayMax} from "../utils";
 import {_Math} from "../math/Math";
-import {BufferAttribute, Float32BufferAttribute, Uint16BufferAttribute, Uint32BufferAttribute} from './BufferAttribute.js';
+import {Uint16BufferAttribute, Uint32BufferAttribute} from './BufferAttribute.js';
+import {Matrix4} from "../math/Matrix4";
+import {Object3D} from "./Object3D";
 
 let bufferGeometryId = 1; // BufferGeometry uses odd numbers as Id
 class BufferGeometry {
@@ -52,6 +54,57 @@ class BufferGeometry {
 
     clearGroups() {
         this.groups = [];
+    }
+
+    applyMatrix(matrix) {
+        let position = this.attributes.position;
+        if (position !== undefined) {
+            matrix.applyToBufferAttribute(position);
+            position.needsUpdate = true;
+        }
+        return this;
+    }
+
+    rotateX(angle) {
+        let m1 = new Matrix4();
+        m1.makeRotationX(angle);
+        this.applyMatrix(m1);
+        return this;
+    }
+
+    rotateY(angle) {
+        let m1 = new Matrix4();
+        m1.makeRotationY(angle);
+        this.applyMatrix(m1);
+        return this;
+    }
+
+    rotateZ(angle) {
+        let m1 = new Matrix4();
+        m1.makeRotationZ(angle);
+        this.applyMatrix(m1);
+        return this;
+    }
+
+    translate(x, y, z) {
+        let m1 = new Matrix4();
+        m1.makeTranslation(x, y, z);
+        this.applyMatrix(m1);
+        return this;
+    }
+
+    scale(x, y, z) {
+        let m1 = new Matrix4();
+        m1.makeScale(x, y, z);
+        this.applyMatrix(m1);
+        return this;
+    }
+
+    lookAt(vector) {
+        let obj = new Object3D();
+        obj.lookAt(vector);
+        obj.updateMatrix();
+        this.applyMatrix(obj.matrix);
     }
 }
 

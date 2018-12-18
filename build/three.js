@@ -564,8 +564,9 @@
 	let z = new Vector3();
 	let zero = new Vector3(0, 0, 0);
 	let one = new Vector3(1, 1, 1);
+	let v1 = new Vector3();
 
-	class Matrix4 {
+	class Matrix4$1 {
 	    constructor() {
 	        this.elements = [
 	            1, 0, 0, 0,
@@ -723,6 +724,19 @@
 	        te[3] *= s;te[7] *= s;te[11] *= s;te[15] *= s;
 
 	        return this;
+	    }
+
+	    applyToBufferAttribute(attribute) {
+	        for (let i = 0, l = attribute.count; i < l; i++) {
+	            v1.x = attribute.getX(i);
+	            v1.y = attribute.getY(i);
+	            v1.z = attribute.getZ(i);
+
+	            v1.applyMatrix4(this);
+
+	            attribute.setXYZ(i, v1.x, v1.y, v1.z);
+	        }
+	        return attribute;
 	    }
 
 	    /**
@@ -1032,7 +1046,7 @@
 	    }
 	}
 
-	let matrix = new Matrix4();
+	let matrix = new Matrix4$1();
 
 	class Euler {
 	    constructor(x = 0, y = 0, z = 0, order = Euler.DefaultOrder) {
@@ -1488,7 +1502,7 @@
 	    }
 	}
 
-	let m1 = new Matrix4();
+	let m1 = new Matrix4$1();
 	let target = new Vector3();
 	let position = new Vector3();
 
@@ -1513,8 +1527,8 @@
 
 	        this.up = Object3D.DefaultUp.clone();
 
-	        this.matrix = new Matrix4();
-	        this.matrixWorld = new Matrix4();
+	        this.matrix = new Matrix4$1();
+	        this.matrixWorld = new Matrix4$1();
 
 	        // 默认true，当设置为true时，自动更新局部矩阵。
 	        this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;
@@ -1887,6 +1901,14 @@
 	        return this;
 	    }
 
+	    multiply(color) {
+	        this.r *= color.r;
+	        this.g *= color.g;
+	        this.b *= color.b;
+
+	        return this;
+	    }
+
 	    equals(c) {
 	        return (c.r === this.r) && (c.g === this.g) && (c.b === this.b) && (c.a === this.a);
 	    }
@@ -1943,8 +1965,8 @@
 	    constructor() {
 	        this.id = geometryId += 2;
 	        this.uuid = _Math.generateUUID();
-	        this.isGeometry = true;
 	        this.type = 'Geometry';
+	        this.isGeometry = true;
 
 	        this.vertices = []; // 顶点
 	        this.faces = [];    // 面
@@ -1960,42 +1982,42 @@
 
 	        for (let i = 0; i < this.faces.length; i++) {
 	            let face = this.faces[i];
-	            face.normal.applyMatrix3(normalMatrix).normalize();
+	            // face.normal.applyMatrix3(normalMatrix).normalize();
 	        }
 
 	        return this;
 	    }
 
 	    rotateX(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationY(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateY(angle) {
-	        let m1 = new Matrix4();
+	        let m1 = new Matrix4$1();
 	        m1.makeRotationX(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
+	    rotateY(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationY(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
 	    rotateZ(angle) {
-	        let m1 = new Matrix4();
+	        let m1 = new Matrix4$1();
 	        m1.makeRotationZ(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    translate(x, y, z) {
-	        let m1 = new Matrix4();
+	        let m1 = new Matrix4$1();
 	        m1.makeTranslation(x, y, z);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    scale(x, y, z) {
-	        let m1 = new Matrix4();
+	        let m1 = new Matrix4$1();
 	        m1.makeScale(x, y, z);
 	        this.applyMatrix(m1);
 	        return this;
@@ -2119,6 +2141,28 @@
 	        if (value === true) this.version++;
 	    }
 
+	    getX( index ) {
+	        return this.array[ index * this.itemSize ];
+	    }
+
+	    getY( index ) {
+	        return this.array[ index * this.itemSize + 1 ];
+	    }
+
+	    getZ( index ) {
+	        return this.array[ index * this.itemSize + 2 ];
+	    }
+
+	    setXYZ(index, x, y, z) {
+	        index *= this.itemSize;
+
+	        this.array[index + 0] = x;
+	        this.array[index + 1] = y;
+	        this.array[index + 2] = z;
+
+	        return this;
+	    }
+
 	    onUploadCallback() {
 	    }
 	}
@@ -2189,6 +2233,57 @@
 	    clearGroups() {
 	        this.groups = [];
 	    }
+
+	    applyMatrix(matrix) {
+	        let position = this.attributes.position;
+	        if (position !== undefined) {
+	            matrix.applyToBufferAttribute(position);
+	            position.needsUpdate = true;
+	        }
+	        return this;
+	    }
+
+	    rotateX(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationX(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    rotateY(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationY(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    rotateZ(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationZ(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    translate(x, y, z) {
+	        let m1 = new Matrix4$1();
+	        m1.makeTranslation(x, y, z);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    scale(x, y, z) {
+	        let m1 = new Matrix4$1();
+	        m1.makeScale(x, y, z);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    lookAt(vector) {
+	        let obj = new Object3D();
+	        obj.lookAt(vector);
+	        obj.updateMatrix();
+	        this.applyMatrix(obj.matrix);
+	    }
 	}
 
 	// 立方体
@@ -2228,19 +2323,16 @@
 	        let scope = this;
 
 	        // buffers
-
 	        let indices = [];
 	        let vertices = [];
 	        let normals = [];
 	        let uvs = [];
 
 	        // helper letiables
-
 	        let numberOfVertices = 0;
 	        let groupStart = 0;
 
 	        // build each side of the box geometry
-
 	        buildPlane('z', 'y', 'x', -1, -1, depth, height, width, depthSegments, heightSegments, 0); // px
 	        buildPlane('z', 'y', 'x', 1, -1, depth, height, -width, depthSegments, heightSegments, 1); // nx
 	        buildPlane('x', 'z', 'y', 1, 1, width, depth, height, widthSegments, depthSegments, 2); // py
@@ -2249,7 +2341,6 @@
 	        buildPlane('x', 'y', 'z', -1, -1, width, height, -depth, widthSegments, heightSegments, 5); // nz
 
 	        // build geometry
-
 	        this.setIndex(indices);
 	        this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
 	        this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
@@ -2327,7 +2418,7 @@
 	            }
 
 	            // add a group to the geometry. this will ensure multi material support
-	            scope.addGroup( groupStart, groupCount, materialIndex );
+	            scope.addGroup(groupStart, groupCount, materialIndex);
 
 	            // calculate new start value for groups
 	            groupStart += groupCount;
@@ -2655,12 +2746,12 @@
 	        this.isCamera = true;
 
 	        // 投影矩阵
-	        this.projectionMatrix = new Matrix4();
+	        this.projectionMatrix = new Matrix4$1();
 	        // 投影矩阵逆矩阵
-	        this.projectionMatrixInverse = new Matrix4();
+	        this.projectionMatrixInverse = new Matrix4$1();
 
 	        // matrixWorld逆矩阵
-	        this.matrixWorldInverse = new Matrix4();
+	        this.matrixWorldInverse = new Matrix4$1();
 	    }
 
 	    // 重写父类
@@ -2950,6 +3041,92 @@
 	    }
 	}
 
+	class PlaneGeometry extends Geometry {
+	    constructor(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
+	        super();
+	        this.type = 'PlaneGeometry';
+
+	        this.parameters = {
+	            width: width,
+	            height: height,
+	            widthSegments: widthSegments,
+	            heightSegments: heightSegments
+	        };
+
+	        this.fromBufferGeometry(new PlaneBufferGeometry(width, height, widthSegments, heightSegments));
+	        this.mergeVertices();
+	    }
+	}
+
+	class PlaneBufferGeometry extends BufferGeometry {
+	    constructor(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
+	        super();
+	        this.type = 'PlaneBufferGeometry';
+
+	        this.parameters = {
+	            width: width,
+	            height: height,
+	            widthSegments: widthSegments,
+	            heightSegments: heightSegments
+	        };
+
+	        let width_half = width / 2;
+	        let height_half = height / 2;
+
+	        let gridX = Math.floor(widthSegments);
+	        let gridY = Math.floor(heightSegments);
+
+	        let gridX1 = gridX + 1;
+	        let gridY1 = gridY + 1;
+
+	        let segment_width = width / gridX;
+	        let segment_height = height / gridY;
+
+	        let ix, iy;
+
+	        // buffers
+	        let indices = [];
+	        let vertices = [];
+	        let normals = [];
+	        let uvs = [];
+
+	        // generate vertices, normals and uvs
+	        for (iy = 0; iy < gridY1; iy++) {
+	            let y = iy * segment_height - height_half;
+	            for (ix = 0; ix < gridX1; ix++) {
+	                let x = ix * segment_width - width_half;
+
+	                vertices.push(x, -y, 0);
+
+	                normals.push(0, 0, 1);
+
+	                uvs.push(ix / gridX);
+	                uvs.push(1 - (iy / gridY));
+	            }
+	        }
+
+	        // indices
+	        for (iy = 0; iy < gridY; iy++) {
+	            for (ix = 0; ix < gridX; ix++) {
+	                let a = ix + gridX1 * iy;
+	                let b = ix + gridX1 * (iy + 1);
+	                let c = (ix + 1) + gridX1 * (iy + 1);
+	                let d = (ix + 1) + gridX1 * iy;
+
+	                // faces
+	                indices.push(a, b, d);
+	                indices.push(b, c, d);
+	            }
+	        }
+
+	        // build geometry
+	        this.setIndex(indices);
+	        this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
+	        this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
+	        this.addAttribute('uv', new Float32BufferAttribute(uvs, 2));
+	    }
+	}
+
 	class Box3 {
 	    constructor(min = new Vector3(+Infinity, +Infinity, +Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity)) {
 	        this.isBox3 = true;
@@ -3007,8 +3184,8 @@
 	    _boundingBox = new Box3();
 	let _points3 = new Array(3);
 
-	let _viewMatrix = new Matrix4(),
-	    _viewProjectionMatrix = new Matrix4();
+	let _viewMatrix = new Matrix4$1(),
+	    _viewProjectionMatrix = new Matrix4$1();
 
 	let _modelMatrix;
 
@@ -3016,7 +3193,47 @@
 	let _renderData = {objects: [], elements: []};
 
 	class RenderList {
-	    // 投影顶点
+	    constructor() {
+	        this.object = null;
+	        this.material = null;
+	    }
+
+	    setObject(value) {
+	        this.object = value;
+	        this.material = value.material;
+	    }
+
+	    // 检查所有渲染对象和子对象
+	    projectObject(object) {
+	        let self = this;
+	        if (object.visible === false) return;
+	        if (object.isMesh) {
+	            self.pushObject(object);
+	        }
+	        else if (object.isSprite) {
+	            self.pushObject(object);
+	        }
+
+	        let children = object.children;
+	        for (let i = 0, l = children.length; i < l; i++) {
+	            self.projectObject(children[i]);
+	        }
+	    }
+
+	    // 添加object
+	    pushObject(object) {
+	        _object = getNextObjectInPool();
+	        _object.id = object.id;
+	        _object.object = object;
+
+	        _vector3.setFromMatrixPosition(object.matrixWorld);
+	        _vector3.applyMatrix4(_viewProjectionMatrix);
+	        _object.z = _vector3.z;
+	        _object.renderOrder = object.renderOrder;
+	        _renderData.objects.push(_object);
+	    }
+
+	    // 投影顶点到屏幕
 	    projectVertex(vertex) {
 	        let position = vertex.position;
 	        let positionWorld = vertex.positionWorld;
@@ -3042,24 +3259,69 @@
 	        this.projectVertex(_vertex);
 	    }
 
-	    // 添加粒子
+	    // 添加粒子且投影到屏幕
 	    pushPoint(_vector4, object, camera) {
 	        let invW = 1 / _vector4.w;
 	        _vector4.z *= invW;
 	        if (_vector4.z >= -1 && _vector4.z <= 1) {
 	            _sprite = getNextSpriteInPool();
 	            _sprite.id = object.id;
+	            _sprite.renderOrder = object.renderOrder;
+	            _sprite.rotation = object.rotation;
+	            _sprite.material = object.material;
+
 	            _sprite.x = _vector4.x * invW;
 	            _sprite.y = _vector4.y * invW;
 	            _sprite.z = _vector4.z;
-	            _sprite.renderOrder = object.renderOrder;
-
-	            _sprite.rotation = object.rotation;
 	            _sprite.scale.x = object.scale.x * Math.abs(_sprite.x - (_vector4.x + camera.projectionMatrix.elements[0]) / (_vector4.w + camera.projectionMatrix.elements[12]));
 	            _sprite.scale.y = object.scale.y * Math.abs(_sprite.y - (_vector4.y + camera.projectionMatrix.elements[5]) / (_vector4.w + camera.projectionMatrix.elements[13]));
-	            _sprite.material = object.material;
 
 	            _renderData.elements.push(_sprite);
+	        }
+	    }
+
+	    // 添加三角面（BufferGeometry支持）
+	    pushTriangle(a, b, c) {
+	        let object = this.object;
+	        let v1 = _vertexPool[a];
+	        let v2 = _vertexPool[b];
+	        let v3 = _vertexPool[c];
+
+	        if (this.checkTriangleVisibility(v1, v2, v3) === false) return;
+
+	        if (this.checkBackfaceCulling(v1, v2, v3) === true) {
+
+	            _face = getNextFaceInPool();
+
+	            _face.id = object.id;
+	            _face.v1.copy(v1);
+	            _face.v2.copy(v2);
+	            _face.v3.copy(v3);
+	            _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
+	            _face.renderOrder = object.renderOrder;
+
+	            // use first vertex normal as face normal
+
+	            // _face.normalModel.fromArray(normals, a * 3);
+	            // _face.normalModel.applyMatrix3(normalMatrix).normalize();
+
+	            // for (let i = 0; i < 3; i++) {
+	            //
+	            //     let normal = _face.vertexNormalsModel[i];
+	            //     normal.fromArray(normals, arguments[i] * 3);
+	            //     normal.applyMatrix3(normalMatrix).normalize();
+	            //
+	            //     let uv = _face.uvs[i];
+	            //     uv.fromArray(uvs, arguments[i] * 2);
+	            //
+	            // }
+	            //
+	            // _face.vertexNormalsLength = 3;
+
+	            _face.material = object.material;
+
+	            _renderData.elements.push(_face);
+
 	        }
 	    }
 
@@ -3090,7 +3352,7 @@
 
 	        _viewMatrix.copy(camera.matrixWorldInverse);
 	        _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
-	        self.projectObject(scene);
+	        renderList.projectObject(scene);
 
 	        if (sortObjects === true) {
 	            _renderData.objects.sort(self.painterSort);
@@ -3100,48 +3362,91 @@
 	        for (let o = 0; o < objects.length; o++) {
 	            let object = objects[o].object;
 	            let geometry = object.geometry;
+
+	            renderList.setObject(object);
+
 	            _vertexCount = 0;
 	            _modelMatrix = object.matrixWorld;
+
 	            if (object.isMesh) {
-	                let vertices = geometry.vertices;
-	                let faces = geometry.faces;
+	                // BufferGeometry
+	                if (geometry.isBufferGeometry === true) {
+	                    let attributes = geometry.attributes;
+	                    let groups = geometry.groups;
 
-	                let material = object.material;
-	                let isMultiMaterial = Array.isArray(material);
+	                    if (attributes.position === undefined) continue;
 
-	                // 点
-	                for (let v = 0; v < vertices.length; v++) {
-	                    let vertex = vertices[v];
-	                    _vector3.copy(vertex);
-	                    renderList.pushVertex(_vector3.x, _vector3.y, _vector3.z);
+	                    let positions = attributes.position.array;
+
+	                    for (let i = 0, l = positions.length; i < l; i += 3) {
+	                        renderList.pushVertex(positions[i], positions[i + 1], positions[i + 2]);
+	                    }
+
+	                    if (geometry.index !== null) {
+	                        let indices = geometry.index.array;
+
+	                        if (groups.length > 0) {
+	                            for (let g = 0; g < groups.length; g++) {
+	                                let group = groups[g];
+	                                for (let i = group.start, l = group.start + group.count; i < l; i += 3) {
+	                                    renderList.pushTriangle(indices[i], indices[i + 1], indices[i + 2]);
+	                                }
+	                            }
+	                        }
+	                        else {
+	                            for (let i = 0, l = indices.length; i < l; i += 3) {
+	                                renderList.pushTriangle(indices[i], indices[i + 1], indices[i + 2]);
+	                            }
+	                        }
+	                    }
+	                    else {
+	                        for (let i = 0, l = positions.length / 3; i < l; i += 3) {
+	                            renderList.pushTriangle(i, i + 1, i + 2);
+	                        }
+	                    }
 	                }
+	                // Geometry
+	                else if (geometry.Geometry) {
+	                    let vertices = geometry.vertices;
+	                    let faces = geometry.faces;
 
-	                // 面
-	                for (let f = 0; f < faces.length; f++) {
-	                    material = isMultiMaterial === true ? object.material[face.materialIndex] : object.material;
+	                    let material = object.material;
+	                    let isMultiMaterial = Array.isArray(material);
 
-	                    let face = faces[f];
-	                    let v1 = _vertexPool[face.a];
-	                    let v2 = _vertexPool[face.b];
-	                    let v3 = _vertexPool[face.c];
+	                    // 点
+	                    for (let v = 0; v < vertices.length; v++) {
+	                        let vertex = vertices[v];
+	                        _vector3.copy(vertex);
+	                        renderList.pushVertex(_vector3.x, _vector3.y, _vector3.z);
+	                    }
 
-	                    if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
-	                    // 过滤面
-	                    if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
+	                    // 面
+	                    for (let f = 0; f < faces.length; f++) {
+	                        material = isMultiMaterial === true ? object.material[face.materialIndex] : object.material;
 
-	                    _face = getNextFaceInPool();
+	                        let face = faces[f];
+	                        let v1 = _vertexPool[face.a];
+	                        let v2 = _vertexPool[face.b];
+	                        let v3 = _vertexPool[face.c];
 
-	                    _face.id = object.id;
-	                    _face.color = face.color;
-	                    _face.material = material;
+	                        if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
+	                        // 过滤面
+	                        if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
 
-	                    _face.v1.copy(v1);
-	                    _face.v2.copy(v2);
-	                    _face.v3.copy(v3);
-	                    _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
-	                    _face.renderOrder = object.renderOrder;
+	                        _face = getNextFaceInPool();
 
-	                    _renderData.elements.push(_face);
+	                        _face.id = object.id;
+	                        _face.color = face.color;
+	                        _face.material = material;
+
+	                        _face.v1.copy(v1);
+	                        _face.v2.copy(v2);
+	                        _face.v3.copy(v3);
+	                        _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
+	                        _face.renderOrder = object.renderOrder;
+
+	                        _renderData.elements.push(_face);
+	                    }
 	                }
 	            }
 	            else if (object.isSprite) {
@@ -3155,35 +3460,6 @@
 	            _renderData.elements.sort(self.painterSort);
 	        }
 	        return _renderData;
-	    }
-
-	    projectObject(object) {
-	        let self = this;
-	        if (object.visible === false) return;
-	        if (object.isMesh) {
-	            self.pushObject(object);
-	        }
-	        else if (object.isSprite) {
-	            self.pushObject(object);
-	        }
-
-	        let children = object.children;
-	        for (let i = 0, l = children.length; i < l; i++) {
-	            self.projectObject(children[i]);
-	        }
-	    }
-
-	    // 添加object
-	    pushObject(object) {
-	        _object = getNextObjectInPool();
-	        _object.id = object.id;
-	        _object.object = object;
-
-	        _vector3.setFromMatrixPosition(object.matrixWorld);
-	        _vector3.applyMatrix4(_viewProjectionMatrix);
-	        _object.z = _vector3.z;
-	        _object.renderOrder = object.renderOrder;
-	        _renderData.objects.push(_object);
 	    }
 
 	    painterSort(a, b) {
@@ -3475,11 +3751,7 @@
 	                    this.expand(_v3.positionScreen, _v1.positionScreen, material.overdraw);
 	                }
 
-	                _elemBox.setFromPoints([
-	                    _v1.positionScreen,
-	                    _v2.positionScreen,
-	                    _v3.positionScreen
-	                ]);
+	                _elemBox.setFromPoints([_v1.positionScreen, _v2.positionScreen, _v3.positionScreen]);
 
 	                if (_clipBox$1.intersectsBox(_elemBox) === true) {
 	                    this.renderFace3(_v1, _v2, _v3, element, element.material);
@@ -3522,13 +3794,16 @@
 	            if (material.map != null) {
 	                console.log("暂未实现");
 	            }
-	            else if (material.vertexColors === THREE.FaceColors) {
-	                _color = element.color;
-	            }
+	            else {
+	                _color.copy(material.color);
+	                if (material.vertexColors === THREE.FaceColors) {
+	                    _color.multiply(element.color);
+	                }
 
-	            material.wireframe === true
-	                ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
-	                : this.fillPath(_color);
+	                material.wireframe === true
+	                    ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
+	                    : this.fillPath(_color);
+	            }
 	        }
 	    }
 
@@ -3547,7 +3822,7 @@
 	        this.setStrokeStyle(color.getStyle());
 	        this.context.stroke();
 
-	        _elemBox.expandByScalar( linewidth * 2 );
+	        _elemBox.expandByScalar(linewidth * 2);
 	    }
 
 	    fillPath(color) {
@@ -3740,7 +4015,7 @@
 	exports.Vector3 = Vector3;
 	exports.Vector4 = Vector4;
 	exports.Matrix3 = Matrix3;
-	exports.Matrix4 = Matrix4;
+	exports.Matrix4 = Matrix4$1;
 	exports.Color = Color;
 	exports.PerspectiveCamera = PerspectiveCamera;
 	exports.OrthographicCamera = OrthographicCamera;
@@ -3756,6 +4031,9 @@
 	exports.Mesh = Mesh;
 	exports.Sprite = Sprite;
 	exports.BoxGeometry = BoxGeometry;
+	exports.BoxBufferGeometry = BoxBufferGeometry;
+	exports.PlaneGeometry = PlaneGeometry;
+	exports.PlaneBufferGeometry = PlaneBufferGeometry;
 	exports.RenderableObject = RenderableObject;
 	exports.RenderableFace = RenderableFace;
 	exports.Projector = Projector;

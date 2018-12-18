@@ -138,13 +138,16 @@ class CanvasRenderer extends Renderer {
             if (material.map != null) {
                 console.log("暂未实现");
             }
-            else if (material.vertexColors === THREE.FaceColors) {
-                _color = element.color;
-            }
+            else {
+                _color.copy(material.color);
+                if (material.vertexColors === THREE.FaceColors) {
+                    _color.multiply(element.color);
+                }
 
-            material.wireframe === true
-                ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
-                : this.fillPath(_color);
+                material.wireframe === true
+                    ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
+                    : this.fillPath(_color);
+            }
         }
     }
 

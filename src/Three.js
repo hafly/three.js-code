@@ -24,6 +24,7 @@ export {Face4} from "./core/Face4";
 export {Group} from "./objects/Group";
 export {Mesh} from "./objects/Mesh";
 export {Sprite} from "./objects/Sprite";
-export {BoxGeometry} from "./geometries/BoxGeometry";
+export {BoxGeometry, BoxBufferGeometry} from "./geometries/BoxGeometry";
+export {PlaneGeometry, PlaneBufferGeometry} from "./geometries/PlaneGeometry";
 export {RenderableObject, RenderableFace, Projector} from "./renderers/Projector";
 export {CanvasRenderer} from "./renderers/CanvasRenderer";

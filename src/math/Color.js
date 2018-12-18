@@ -231,6 +231,14 @@ class Color {
         return this;
     }
 
+    multiply(color) {
+        this.r *= color.r;
+        this.g *= color.g;
+        this.b *= color.b;
+
+        return this;
+    }
+
     equals(c) {
         return (c.r === this.r) && (c.g === this.g) && (c.b === this.b) && (c.a === this.a);
     }

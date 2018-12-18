@@ -1,7 +1,7 @@
 import {Geometry} from "../core/Geometry";
 import {BufferGeometry} from "../core/BufferGeometry";
 import {Vector3} from "../math/Vector3";
-import { Float32BufferAttribute } from '../core/BufferAttribute.js';
+import {Float32BufferAttribute} from '../core/BufferAttribute.js';
 
 // 立方体
 class BoxGeometry extends Geometry {
@@ -40,19 +40,16 @@ class BoxBufferGeometry extends BufferGeometry {
         let scope = this;
 
         // buffers
-
         let indices = [];
         let vertices = [];
         let normals = [];
         let uvs = [];
 
         // helper letiables
-
         let numberOfVertices = 0;
         let groupStart = 0;
 
         // build each side of the box geometry
-
         buildPlane('z', 'y', 'x', -1, -1, depth, height, width, depthSegments, heightSegments, 0); // px
         buildPlane('z', 'y', 'x', 1, -1, depth, height, -width, depthSegments, heightSegments, 1); // nx
         buildPlane('x', 'z', 'y', 1, 1, width, depth, height, widthSegments, depthSegments, 2); // py
@@ -61,7 +58,6 @@ class BoxBufferGeometry extends BufferGeometry {
         buildPlane('x', 'y', 'z', -1, -1, width, height, -depth, widthSegments, heightSegments, 5); // nz
 
         // build geometry
-
         this.setIndex(indices);
         this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
         this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
@@ -139,7 +135,7 @@ class BoxBufferGeometry extends BufferGeometry {
             }
 
             // add a group to the geometry. this will ensure multi material support
-            scope.addGroup( groupStart, groupCount, materialIndex );
+            scope.addGroup(groupStart, groupCount, materialIndex);
 
             // calculate new start value for groups
             groupStart += groupCount;
@@ -150,4 +146,4 @@ class BoxBufferGeometry extends BufferGeometry {
     }
 }
 
-export {BoxGeometry};
+export {BoxGeometry, BoxBufferGeometry};

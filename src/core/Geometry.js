@@ -14,8 +14,8 @@ class Geometry {
     constructor() {
         this.id = geometryId += 2;
         this.uuid = _Math.generateUUID();
-        this.isGeometry = true;
         this.type = 'Geometry';
+        this.isGeometry = true;
 
         this.vertices = []; // 顶点
         this.faces = [];    // 面
@@ -31,7 +31,7 @@ class Geometry {
 
         for (let i = 0; i < this.faces.length; i++) {
             let face = this.faces[i];
-            face.normal.applyMatrix3(normalMatrix).normalize();
+            // face.normal.applyMatrix3(normalMatrix).normalize();
         }
 
         return this;
@@ -39,14 +39,14 @@ class Geometry {
 
     rotateX(angle) {
         let m1 = new Matrix4();
-        m1.makeRotationY(angle);
+        m1.makeRotationX(angle);
         this.applyMatrix(m1);
         return this;
     }
 
     rotateY(angle) {
         let m1 = new Matrix4();
-        m1.makeRotationX(angle);
+        m1.makeRotationY(angle);
         this.applyMatrix(m1);
         return this;
     }

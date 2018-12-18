@@ -43,32 +43,32 @@
         container = document.getElementById('container');
 
         camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 1000);
+        camera.position.y = 150;
         camera.position.z = 500;
 
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf0f0f0);
 
         // Cube
-        let geometry = new THREE.BoxGeometry(200, 200, 200);
+        var geometry = new THREE.BoxGeometry(200, 200, 200);
         for (let i = 0; i < geometry.faces.length; i += 2) {
             let hex = Math.random() * 0xffffff;
             geometry.faces[i].color.setHex(hex);
             geometry.faces[i + 1].color.setHex(hex);
         }
 
-        let material = new THREE.MeshBasicMaterial({vertexColors: THREE.FaceColors, overdraw: 0.5});
+        var material = new THREE.MeshBasicMaterial({vertexColors: THREE.FaceColors, overdraw: 0.5});
         cube = new THREE.Mesh(geometry, material);
-        // cube.rotation.x = -THREE.Math.DEG2RAD * 10;
         cube.position.y = 150;
-
-        // let geometry2 = new THREE.BoxGeometry(200, 200, 200);
-        // let cube2 = new THREE.Mesh(geometry2, new THREE.MeshBasicMaterial({color: 0x0000ff}));
-        // cube2.rotation.x = -THREE.Math.DEG2RAD * 30;
-        // cube2.position.x = 200;
-        // cube2.position.y = 66;
-        // cube.add(cube2);
-
         scene.add(cube);
+
+        // Plane
+        var geometry = new THREE.PlaneBufferGeometry(200, 200);
+        geometry.rotateX(-Math.PI / 2);
+        var material = new THREE.MeshBasicMaterial({color: 0xe0e0e0, overdraw: 0.5});
+
+        plane = new THREE.Mesh(geometry, material);
+        scene.add(plane);
 
         renderer = new THREE.CanvasRenderer();
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -83,9 +83,7 @@
 
     function update() {
         requestAnimationFrame(update);
-        // cube.rotation.y += THREE.Math.DEG2RAD * 0.5;
-        // cube.rotation.x += THREE.Math.DEG2RAD * 1;
-        cube.rotation.y += (targetRotation - cube.rotation.y) * 0.05;
+        cube.rotation.y = plane.rotation.y += (targetRotation - cube.rotation.y) * 0.05;
 
         renderer.render(scene, camera);
         stats.update();

@@ -26,7 +26,47 @@ let _modelMatrix,
 let _renderData = {objects: [], elements: []};
 
 class RenderList {
-    // 投影顶点
+    constructor() {
+        this.object = null;
+        this.material = null;
+    }
+
+    setObject(value) {
+        this.object = value;
+        this.material = value.material;
+    }
+
+    // 检查所有渲染对象和子对象
+    projectObject(object) {
+        let self = this;
+        if (object.visible === false) return;
+        if (object.isMesh) {
+            self.pushObject(object);
+        }
+        else if (object.isSprite) {
+            self.pushObject(object);
+        }
+
+        let children = object.children;
+        for (let i = 0, l = children.length; i < l; i++) {
+            self.projectObject(children[i]);
+        }
+    }
+
+    // 添加object
+    pushObject(object) {
+        _object = getNextObjectInPool();
+        _object.id = object.id;
+        _object.object = object;
+
+        _vector3.setFromMatrixPosition(object.matrixWorld);
+        _vector3.applyMatrix4(_viewProjectionMatrix);
+        _object.z = _vector3.z;
+        _object.renderOrder = object.renderOrder;
+        _renderData.objects.push(_object);
+    }
+
+    // 投影顶点到屏幕
     projectVertex(vertex) {
         let position = vertex.position;
         let positionWorld = vertex.positionWorld;
@@ -52,24 +92,69 @@ class RenderList {
         this.projectVertex(_vertex);
     }
 
-    // 添加粒子
+    // 添加粒子且投影到屏幕
     pushPoint(_vector4, object, camera) {
         let invW = 1 / _vector4.w;
         _vector4.z *= invW;
         if (_vector4.z >= -1 && _vector4.z <= 1) {
             _sprite = getNextSpriteInPool();
             _sprite.id = object.id;
+            _sprite.renderOrder = object.renderOrder;
+            _sprite.rotation = object.rotation;
+            _sprite.material = object.material;
+
             _sprite.x = _vector4.x * invW;
             _sprite.y = _vector4.y * invW;
             _sprite.z = _vector4.z;
-            _sprite.renderOrder = object.renderOrder;
-
-            _sprite.rotation = object.rotation;
             _sprite.scale.x = object.scale.x * Math.abs(_sprite.x - (_vector4.x + camera.projectionMatrix.elements[0]) / (_vector4.w + camera.projectionMatrix.elements[12]));
             _sprite.scale.y = object.scale.y * Math.abs(_sprite.y - (_vector4.y + camera.projectionMatrix.elements[5]) / (_vector4.w + camera.projectionMatrix.elements[13]));
-            _sprite.material = object.material;
 
             _renderData.elements.push(_sprite);
+        }
+    }
+
+    // 添加三角面（BufferGeometry支持）
+    pushTriangle(a, b, c) {
+        let object = this.object;
+        let v1 = _vertexPool[a];
+        let v2 = _vertexPool[b];
+        let v3 = _vertexPool[c];
+
+        if (this.checkTriangleVisibility(v1, v2, v3) === false) return;
+
+        if (this.checkBackfaceCulling(v1, v2, v3) === true) {
+
+            _face = getNextFaceInPool();
+
+            _face.id = object.id;
+            _face.v1.copy(v1);
+            _face.v2.copy(v2);
+            _face.v3.copy(v3);
+            _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
+            _face.renderOrder = object.renderOrder;
+
+            // use first vertex normal as face normal
+
+            // _face.normalModel.fromArray(normals, a * 3);
+            // _face.normalModel.applyMatrix3(normalMatrix).normalize();
+
+            // for (let i = 0; i < 3; i++) {
+            //
+            //     let normal = _face.vertexNormalsModel[i];
+            //     normal.fromArray(normals, arguments[i] * 3);
+            //     normal.applyMatrix3(normalMatrix).normalize();
+            //
+            //     let uv = _face.uvs[i];
+            //     uv.fromArray(uvs, arguments[i] * 2);
+            //
+            // }
+            //
+            // _face.vertexNormalsLength = 3;
+
+            _face.material = object.material;
+
+            _renderData.elements.push(_face);
+
         }
     }
 
@@ -100,7 +185,7 @@ class Projector {
 
         _viewMatrix.copy(camera.matrixWorldInverse);
         _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
-        self.projectObject(scene);
+        renderList.projectObject(scene);
 
         if (sortObjects === true) {
             _renderData.objects.sort(self.painterSort);
@@ -110,48 +195,91 @@ class Projector {
         for (let o = 0; o < objects.length; o++) {
             let object = objects[o].object;
             let geometry = object.geometry;
+
+            renderList.setObject(object);
+
             _vertexCount = 0;
             _modelMatrix = object.matrixWorld;
+
             if (object.isMesh) {
-                let vertices = geometry.vertices;
-                let faces = geometry.faces;
+                // BufferGeometry
+                if (geometry.isBufferGeometry === true) {
+                    let attributes = geometry.attributes;
+                    let groups = geometry.groups;
 
-                let material = object.material;
-                let isMultiMaterial = Array.isArray(material);
+                    if (attributes.position === undefined) continue;
 
-                // 点
-                for (let v = 0; v < vertices.length; v++) {
-                    let vertex = vertices[v];
-                    _vector3.copy(vertex);
-                    renderList.pushVertex(_vector3.x, _vector3.y, _vector3.z);
+                    let positions = attributes.position.array;
+
+                    for (let i = 0, l = positions.length; i < l; i += 3) {
+                        renderList.pushVertex(positions[i], positions[i + 1], positions[i + 2]);
+                    }
+
+                    if (geometry.index !== null) {
+                        let indices = geometry.index.array;
+
+                        if (groups.length > 0) {
+                            for (let g = 0; g < groups.length; g++) {
+                                let group = groups[g];
+                                for (let i = group.start, l = group.start + group.count; i < l; i += 3) {
+                                    renderList.pushTriangle(indices[i], indices[i + 1], indices[i + 2]);
+                                }
+                            }
+                        }
+                        else {
+                            for (let i = 0, l = indices.length; i < l; i += 3) {
+                                renderList.pushTriangle(indices[i], indices[i + 1], indices[i + 2]);
+                            }
+                        }
+                    }
+                    else {
+                        for (let i = 0, l = positions.length / 3; i < l; i += 3) {
+                            renderList.pushTriangle(i, i + 1, i + 2);
+                        }
+                    }
                 }
+                // Geometry
+                else if (geometry.Geometry) {
+                    let vertices = geometry.vertices;
+                    let faces = geometry.faces;
 
-                // 面
-                for (let f = 0; f < faces.length; f++) {
-                    material = isMultiMaterial === true ? object.material[face.materialIndex] : object.material;
+                    let material = object.material;
+                    let isMultiMaterial = Array.isArray(material);
 
-                    let face = faces[f];
-                    let v1 = _vertexPool[face.a];
-                    let v2 = _vertexPool[face.b];
-                    let v3 = _vertexPool[face.c];
+                    // 点
+                    for (let v = 0; v < vertices.length; v++) {
+                        let vertex = vertices[v];
+                        _vector3.copy(vertex);
+                        renderList.pushVertex(_vector3.x, _vector3.y, _vector3.z);
+                    }
 
-                    if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
-                    // 过滤面
-                    if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
+                    // 面
+                    for (let f = 0; f < faces.length; f++) {
+                        material = isMultiMaterial === true ? object.material[face.materialIndex] : object.material;
 
-                    _face = getNextFaceInPool();
+                        let face = faces[f];
+                        let v1 = _vertexPool[face.a];
+                        let v2 = _vertexPool[face.b];
+                        let v3 = _vertexPool[face.c];
 
-                    _face.id = object.id;
-                    _face.color = face.color;
-                    _face.material = material;
+                        if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
+                        // 过滤面
+                        if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
 
-                    _face.v1.copy(v1);
-                    _face.v2.copy(v2);
-                    _face.v3.copy(v3);
-                    _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
-                    _face.renderOrder = object.renderOrder;
+                        _face = getNextFaceInPool();
 
-                    _renderData.elements.push(_face);
+                        _face.id = object.id;
+                        _face.color = face.color;
+                        _face.material = material;
+
+                        _face.v1.copy(v1);
+                        _face.v2.copy(v2);
+                        _face.v3.copy(v3);
+                        _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
+                        _face.renderOrder = object.renderOrder;
+
+                        _renderData.elements.push(_face);
+                    }
                 }
             }
             else if (object.isSprite) {
@@ -165,35 +293,6 @@ class Projector {
             _renderData.elements.sort(self.painterSort);
         }
         return _renderData;
-    }
-
-    projectObject(object) {
-        let self = this;
-        if (object.visible === false) return;
-        if (object.isMesh) {
-            self.pushObject(object);
-        }
-        else if (object.isSprite) {
-            self.pushObject(object);
-        }
-
-        let children = object.children;
-        for (let i = 0, l = children.length; i < l; i++) {
-            self.projectObject(children[i]);
-        }
-    }
-
-    // 添加object
-    pushObject(object) {
-        _object = getNextObjectInPool();
-        _object.id = object.id;
-        _object.object = object;
-
-        _vector3.setFromMatrixPosition(object.matrixWorld);
-        _vector3.applyMatrix4(_viewProjectionMatrix);
-        _object.z = _vector3.z;
-        _object.renderOrder = object.renderOrder;
-        _renderData.objects.push(_object);
     }
 
     painterSort(a, b) {
