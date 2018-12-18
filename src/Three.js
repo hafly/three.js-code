@@ -20,7 +20,6 @@ export {MeshBasicMaterial} from "./materials/MeshBasicMaterial";
 export {SpriteMaterial} from "./materials/SpriteMaterial";
 export {SpriteCanvasMaterial} from "./materials/SpriteCanvasMaterial";
 export {Face3} from "./core/Face3";
-export {Face4} from "./core/Face4";
 export {Group} from "./objects/Group";
 export {Mesh} from "./objects/Mesh";
 export {Sprite} from "./objects/Sprite";

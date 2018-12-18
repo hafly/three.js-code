@@ -1,4 +1,5 @@
 import {_Math} from "../math/Math";
+import {Vector2} from "../math/Vector2";
 import {Matrix3} from "../math/Matrix3";
 import {Matrix4} from "../math/Matrix4";
 import {Vector3} from "../math/Vector3";
@@ -19,6 +20,7 @@ class Geometry {
 
         this.vertices = []; // 顶点
         this.faces = [];    // 面
+        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
     }
 
     applyMatrix(matrix) {
@@ -83,10 +85,18 @@ class Geometry {
         let scope = this;
         let indices = geometry.index !== null ? geometry.index.array : undefined;
         let attributes = geometry.attributes;
+
         let positions = attributes.position.array;
+        let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
+
+        let tempUVs = [];
 
         for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
             scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+
+            if (uvs !== undefined) {
+                tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
+            }
         }
 
         if (indices !== undefined) {
@@ -102,6 +112,10 @@ class Geometry {
         function addFace(a, b, c, materialIndex) {
             let face = new Face3(a, b, c, materialIndex);
             scope.faces.push(face);
+
+            if (uvs !== undefined) {
+                scope.faceVertexUvs[0].push([tempUVs[a].clone(), tempUVs[b].clone(), tempUVs[c].clone()]);
+            }
         }
     }
 

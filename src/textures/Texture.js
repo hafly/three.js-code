@@ -2,15 +2,17 @@ import {EventDispatcher} from "../core/EventDispatcher";
 import {_Math} from "../math/Math";
 import {Vector2} from "../math/Vector2";
 import {Matrix3} from "../math/Matrix3";
+import {UVMapping} from "../constants";
 
 let textureId = 0;
 
-class Texture extends EventDispatcher{
+class Texture extends EventDispatcher {
     constructor(image) {
         super();
         this.id = textureId++;
         this.uuid = _Math.generateUUID();
         this.image = image;
+        this.mapping = UVMapping;   // 纹理映射
 
         this.offset = new Vector2(0, 0);
         this.repeat = new Vector2(1, 1);

@@ -92,6 +92,167 @@
 	    }
 	};
 
+	class Vector2 {
+	    constructor(x = 0, y = 0) {
+	        this.isVector2 = true;
+	        this.x = x;
+	        this.y = y;
+	    }
+
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.x, this.y);
+	    }
+
+	    set(x, y) {
+	        this.x = x;
+	        this.y = y;
+
+	        return this;
+	    }
+
+	    /**
+	     * 左加向量
+	     * @param v
+	     * @returns {Vector3}
+	     */
+	    add(v) {
+	        this.x += v.x;
+	        this.y += v.y;
+	        return this;
+	    }
+
+	    /**
+	     * 左加标量
+	     * @param s
+	     * @returns {Vector3}
+	     */
+	    addScalar(s) {
+	        this.x += s;
+	        this.y += s;
+	        return this;
+	    }
+
+	    /**
+	     * 两向量相加
+	     * @param a
+	     * @param b
+	     * @returns {Vector3}
+	     */
+	    addVectors(a, b) {
+	        this.x = a.x + b.x;
+	        this.y = a.y + b.y;
+	        return this;
+	    }
+
+	    sub(v) {
+	        this.x -= v.x;
+	        this.y -= v.y;
+	        return this;
+	    }
+
+	    subScalar(s) {
+	        this.x -= s;
+	        this.y -= s;
+	        return this;
+	    }
+
+	    subVectors(a, b) {
+	        this.x = a.x - b.x;
+	        this.y = a.y - b.y;
+	        return this;
+	    }
+
+	    multiply(v) {
+	        this.x *= v.x;
+	        this.y *= v.y;
+	        return this;
+	    }
+
+	    multiplyScalar(scalar) {
+	        this.x *= scalar;
+	        this.y *= scalar;
+	        return this;
+	    }
+
+	    divide(v) {
+	        this.x /= v.x;
+	        this.y /= v.y;
+	        return this;
+	    }
+
+	    divideScalar(scalar) {
+	        return this.multiplyScalar(1 / scalar);
+	    }
+
+	    negate() {
+	        this.x = -this.x;
+	        this.y = -this.y;
+
+	        return this;
+	    }
+
+	    dot(v) {
+	        return this.x * v.x + this.y * v.y;
+	    }
+
+	    cross(v) {
+	        return this.x * v.y - this.y * v.x;
+	    }
+
+	    lengthSq() {
+	        return this.x * this.x + this.y * this.y;
+	    }
+
+	    length() {
+	        return Math.sqrt(this.x * this.x + this.y * this.y);
+	    }
+
+	    lerp(v, alpha) {
+	        this.x += (v.x - this.x) * alpha;
+	        this.y += (v.y - this.y) * alpha;
+
+	        return this;
+	    }
+
+	    lerpVectors(v1, v2, alpha) {
+	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+	    }
+
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+
+	        return this;
+	    }
+
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+
+	        return this;
+	    }
+
+	    equals(v) {
+	        return ((v.x === this.x) && (v.y === this.y));
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this.x = array[offset];
+	        this.y = array[offset + 1];
+
+	        return this;
+	    }
+	}
+
 	class Matrix3 {
 	    constructor(){
 	        this.elements = [
@@ -1932,6 +2093,7 @@
 	 * 三角面片
 	 */
 	class Face3 {
+	    // TODO 顶点着色未实现
 	    constructor(a, b, c, color = new Color(), materialIndex = 0) {
 	        this.a = a;
 	        this.b = b;
@@ -1970,6 +2132,7 @@
 
 	        this.vertices = []; // 顶点
 	        this.faces = [];    // 面
+	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
 	    }
 
 	    applyMatrix(matrix) {
@@ -2034,10 +2197,18 @@
 	        let scope = this;
 	        let indices = geometry.index !== null ? geometry.index.array : undefined;
 	        let attributes = geometry.attributes;
+
 	        let positions = attributes.position.array;
+	        let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
+
+	        let tempUVs = [];
 
 	        for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
 	            scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+
+	            if (uvs !== undefined) {
+	                tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
+	            }
 	        }
 
 	        if (indices !== undefined) {
@@ -2053,6 +2224,10 @@
 	        function addFace(a, b, c, materialIndex) {
 	            let face = new Face3(a, b, c, materialIndex);
 	            scope.faces.push(face);
+
+	            if (uvs !== undefined) {
+	                scope.faceVertexUvs[0].push([tempUVs[a].clone(), tempUVs[b].clone(), tempUVs[c].clone()]);
+	            }
 	        }
 	    }
 
@@ -2430,7 +2605,7 @@
 	}
 
 	const REVISION = '1';
-	// 法向量
+	// 面法向量
 	let FrontSide = 0;
 	let BackSide = 1;
 	let DoubleSide = 2;
@@ -2445,158 +2620,8 @@
 	let SubtractiveBlending = 3;
 	let MultiplyBlending = 4;
 	let CustomBlending = 5;
-
-	class Vector2 {
-	    constructor(x = 0, y = 0) {
-	        this.isVector2 = true;
-	        this.x = x;
-	        this.y = y;
-	    }
-
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
-
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y);
-	    }
-
-	    set(x, y) {
-	        this.x = x;
-	        this.y = y;
-
-	        return this;
-	    }
-
-	    /**
-	     * 左加向量
-	     * @param v
-	     * @returns {Vector3}
-	     */
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        return this;
-	    }
-
-	    /**
-	     * 左加标量
-	     * @param s
-	     * @returns {Vector3}
-	     */
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        return this;
-	    }
-
-	    /**
-	     * 两向量相加
-	     * @param a
-	     * @param b
-	     * @returns {Vector3}
-	     */
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        return this;
-	    }
-
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        return this;
-	    }
-
-	    subScalar(s) {
-	        this.x -= s;
-	        this.y -= s;
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        return this;
-	    }
-
-	    multiply(v) {
-	        this.x *= v.x;
-	        this.y *= v.y;
-	        return this;
-	    }
-
-	    multiplyScalar(scalar) {
-	        this.x *= scalar;
-	        this.y *= scalar;
-	        return this;
-	    }
-
-	    divide(v) {
-	        this.x /= v.x;
-	        this.y /= v.y;
-	        return this;
-	    }
-
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
-	    negate() {
-	        this.x = -this.x;
-	        this.y = -this.y;
-
-	        return this;
-	    }
-
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y;
-	    }
-
-	    cross(v) {
-	        return this.x * v.y - this.y * v.x;
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y;
-	    }
-
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y);
-	    }
-
-	    lerp(v, alpha) {
-	        this.x += (v.x - this.x) * alpha;
-	        this.y += (v.y - this.y) * alpha;
-
-	        return this;
-	    }
-
-	    lerpVectors(v1, v2, alpha) {
-	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
-	    }
-
-	    min(v) {
-	        this.x = Math.min(this.x, v.x);
-	        this.y = Math.min(this.y, v.y);
-
-	        return this;
-	    }
-
-	    max(v) {
-	        this.x = Math.max(this.x, v.x);
-	        this.y = Math.max(this.y, v.y);
-
-	        return this;
-	    }
-
-	    equals(v) {
-	        return ((v.x === this.x) && (v.y === this.y));
-	    }
-	}
+	// 纹理映射
+	let UVMapping = 300;
 
 	class Vector4 {
 	    constructor(x = 0, y = 0, z = 0, w = 1) {
@@ -2867,12 +2892,13 @@
 
 	let textureId = 0;
 
-	class Texture extends EventDispatcher{
+	class Texture extends EventDispatcher {
 	    constructor(image) {
 	        super();
 	        this.id = textureId++;
 	        this.uuid = _Math.generateUUID();
 	        this.image = image;
+	        this.mapping = UVMapping;   // 纹理映射
 
 	        this.offset = new Vector2(0, 0);
 	        this.repeat = new Vector2(1, 1);
@@ -2957,9 +2983,9 @@
 	        this.isMeshBasicMaterial = true;
 	        this.type = 'MeshBasicMaterial';
 
-	        this.map = null;
+	        this.map = null;    // 颜色贴图
 
-	        this.wireframe = false;
+	        this.wireframe = false; // 渲染为线框
 	        this.wireframeLinewidth = 1;
 	        this.wireframeLinecap = 'round';
 	        this.wireframeLinejoin = 'round';
@@ -2988,33 +3014,6 @@
 	        this.program = function () {};
 
 	        this.setValues(parameters);
-	    }
-	}
-
-	// 面
-	class Face4 {
-	    constructor(a, b, c, d) {
-	        this.a = a; // 顶点序号
-	        this.b = b;
-	        this.c = c;
-	        this.d = d;
-
-	        this.color = new Color(); // 单面颜色
-	    }
-
-	    clone() {
-	        return new this.constructor().copy(this);
-	    }
-
-	    copy(source) {
-	        this.a = source.a;
-	        this.b = source.b;
-	        this.c = source.c;
-	        this.d = source.d;
-
-	        this.color.copy(source.color);
-
-	        return this;
 	    }
 	}
 
@@ -3618,11 +3617,15 @@
 	    constructor() {
 	        this.object = null;
 	        this.material = null;
+
+	        this.uvs = [];
 	    }
 
 	    setObject(value) {
 	        this.object = value;
 	        this.material = value.material;
+
+	        this.uvs.length = 0;
 	    }
 
 	    // 检查所有渲染对象和子对象
@@ -3727,17 +3730,17 @@
 	            // _face.normalModel.fromArray(normals, a * 3);
 	            // _face.normalModel.applyMatrix3(normalMatrix).normalize();
 
-	            // for (let i = 0; i < 3; i++) {
-	            //
-	            //     let normal = _face.vertexNormalsModel[i];
-	            //     normal.fromArray(normals, arguments[i] * 3);
-	            //     normal.applyMatrix3(normalMatrix).normalize();
-	            //
-	            //     let uv = _face.uvs[i];
-	            //     uv.fromArray(uvs, arguments[i] * 2);
-	            //
-	            // }
-	            //
+	            for (let i = 0; i < 3; i++) {
+
+	                // let normal = _face.vertexNormalsModel[i];
+	                // normal.fromArray(normals, arguments[i] * 3);
+	                // normal.applyMatrix3(normalMatrix).normalize();
+
+	                let uv = _face.uvs[i];
+	                uv.fromArray(this.uvs, arguments[i] * 2);
+
+	            }
+
 	            // _face.vertexNormalsLength = 3;
 
 	            _face.material = object.material;
@@ -3758,6 +3761,10 @@
 
 	    checkBackfaceCulling(v1, v2, v3) {
 	        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
+	    }
+
+	    pushUv(x, y) {
+	        this.uvs.push(x, y);
 	    }
 	}
 
@@ -3803,6 +3810,13 @@
 	                        renderList.pushVertex(positions[i], positions[i + 1], positions[i + 2]);
 	                    }
 
+	                    if (attributes.uv !== undefined) {
+	                        let uvs = attributes.uv.array;
+	                        for (let i = 0, l = uvs.length; i < l; i += 2) {
+	                            renderList.pushUv(uvs[i], uvs[i + 1]);
+	                        }
+	                    }
+
 	                    if (geometry.index !== null) {
 	                        let indices = geometry.index.array;
 
@@ -3830,6 +3844,7 @@
 	                else if (geometry.isGeometry === true) {
 	                    let vertices = geometry.vertices;
 	                    let faces = geometry.faces;
+	                    let faceVertexUvs = geometry.faceVertexUvs[0];
 
 	                    let material = object.material;
 	                    let isMultiMaterial = Array.isArray(material);
@@ -3860,13 +3875,21 @@
 
 	                        _face = getNextFaceInPool();
 
+	                        _face.v1.copy(v1);
+	                        _face.v2.copy(v2);
+	                        _face.v3.copy(v3);
+
+	                        let vertexUvs = faceVertexUvs[f];
+	                        if (vertexUvs !== undefined) {
+	                            for (let u = 0; u < 3; u++) {
+	                                _face.uvs[u].copy(vertexUvs[u]);
+	                            }
+	                        }
+
 	                        _face.id = object.id;
 	                        _face.color = face.color;
 	                        _face.material = material;
 
-	                        _face.v1.copy(v1);
-	                        _face.v2.copy(v2);
-	                        _face.v3.copy(v3);
 	                        _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
 	                        _face.renderOrder = object.renderOrder;
 
@@ -3921,6 +3944,7 @@
 
 	        this.color = new MeshBasicMaterial();
 	        this.material = null;
+	        this.uvs = [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()];
 
 	        this.z = 0;
 	        this.renderOrder = 0;
@@ -4086,7 +4110,7 @@
 	let _canvasWidth, _canvasHeight,
 	    _canvasWidthHalf, _canvasHeightHalf;
 
-	let _patterns = {};
+	let _patterns = {}, _uvs;
 	let _v1, _v2, _v3,
 	    _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
 	let _clipBox$1 = new Box2(),
@@ -4186,7 +4210,7 @@
 	                _elemBox.setFromPoints([_v1.positionScreen, _v2.positionScreen, _v3.positionScreen]);
 
 	                if (_clipBox$1.intersectsBox(_elemBox) === true) {
-	                    this.renderFace3(_v1, _v2, _v3, element, element.material);
+	                    this.renderFace3(_v1, _v2, _v3, 0, 1, 2, element, element.material);
 	                }
 	            }
 	            else if (element instanceof RenderableSprite) {
@@ -4233,32 +4257,6 @@
 	        }
 	    }
 
-	    renderFace3(v1, v2, v3, element, material) {
-	        this.setOpacity(material.opacity);
-	        this.setBlending(material.blending);
-
-	        _v1x = v1.positionScreen.x, _v1y = v1.positionScreen.y;
-	        _v2x = v2.positionScreen.x, _v2y = v2.positionScreen.y;
-	        _v3x = v3.positionScreen.x, _v3y = v3.positionScreen.y;
-
-	        this.drawTriangle(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y);
-	        if (material.isMeshBasicMaterial) {
-	            if (material.map != null) {
-	                console.log("暂未实现");
-	            }
-	            else {
-	                _color.copy(material.color);
-	                if (material.vertexColors === FaceColors) {
-	                    _color.multiply(element.color);
-	                }
-
-	                material.wireframe === true
-	                    ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
-	                    : this.fillPath(_color);
-	            }
-	        }
-	    }
-
 	    drawTriangle(x0, y0, x1, y1, x2, y2) {
 	        _context.beginPath();
 	        _context.moveTo(x0, y0);
@@ -4280,6 +4278,36 @@
 	    fillPath(color) {
 	        this.setFillStyle(color.getStyle());
 	        _context.fill();
+	    }
+
+	    renderFace3(v1, v2, v3, uv1, uv2, uv3, element, material) {
+	        this.setOpacity(material.opacity);
+	        this.setBlending(material.blending);
+
+	        _v1x = v1.positionScreen.x, _v1y = v1.positionScreen.y;
+	        _v2x = v2.positionScreen.x, _v2y = v2.positionScreen.y;
+	        _v3x = v3.positionScreen.x, _v3y = v3.positionScreen.y;
+
+	        this.drawTriangle(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y);
+	        if (material.isMeshBasicMaterial) {
+	            if (material.map !== null) {
+	                // uv贴图
+	                if (material.map.mapping === THREE.UVMapping) {
+	                    _uvs = element.uvs;
+	                    this.patternPath(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y, _uvs[uv1].x, _uvs[uv1].y, _uvs[uv2].x, _uvs[uv2].y, _uvs[uv3].x, _uvs[uv3].y, material.map);
+	                }
+	            }
+	            else {
+	                _color.copy(material.color);
+	                if (material.vertexColors === FaceColors) {
+	                    _color.multiply(element.color);
+	                }
+
+	                material.wireframe === true
+	                    ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
+	                    : this.fillPath(_color);
+	            }
+	        }
 	    }
 
 	    renderSprite(element, material) {
@@ -4357,12 +4385,6 @@
 	            };
 	        }
 	        let image = texture.image;
-	        if (image.complete === false) {
-	            return {
-	                canvas: undefined,
-	                version: 0
-	            };
-	        }
 	        let canvas = document.createElement('canvas');
 	        canvas.width = image.width * (1);
 	        canvas.height = image.height * (1);
@@ -4395,6 +4417,77 @@
 	            canvas: pattern,
 	            version: texture.version
 	        };
+	    }
+
+	    patternPath(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, texture) {
+
+	        var pattern = _patterns[texture.id];
+
+	        if (pattern === undefined || pattern.version !== texture.version) {
+
+	            pattern = this.textureToPattern(texture);
+	            _patterns[texture.id] = pattern;
+
+	        }
+
+	        if (pattern.canvas !== undefined) {
+
+	            this.setFillStyle(pattern.canvas);
+
+	        } else {
+
+	            this.setFillStyle('rgba( 0, 0, 0, 1)');
+	            _context.fill();
+	            return;
+
+	        }
+
+	        // http://extremelysatisfactorytotalitarianism.com/blog/?p=2120
+
+	        var a, b, c, d, e, f, det, idet,
+	            offsetX = texture.offset.x / texture.repeat.x,
+	            offsetY = texture.offset.y / texture.repeat.y,
+	            width = texture.image.width * texture.repeat.x,
+	            height = texture.image.height * texture.repeat.y;
+
+	        u0 = (u0 + offsetX) * width;
+	        v0 = (v0 + offsetY) * height;
+
+	        u1 = (u1 + offsetX) * width;
+	        v1 = (v1 + offsetY) * height;
+
+	        u2 = (u2 + offsetX) * width;
+	        v2 = (v2 + offsetY) * height;
+
+	        x1 -= x0;
+	        y1 -= y0;
+	        x2 -= x0;
+	        y2 -= y0;
+
+	        u1 -= u0;
+	        v1 -= v0;
+	        u2 -= u0;
+	        v2 -= v0;
+
+	        det = u1 * v2 - u2 * v1;
+
+	        if (det === 0) return;
+
+	        idet = 1 / det;
+
+	        a = (v2 * x1 - v1 * x2) * idet;
+	        b = (v2 * y1 - v1 * y2) * idet;
+	        c = (u1 * x2 - u2 * x1) * idet;
+	        d = (u1 * y2 - u2 * y1) * idet;
+
+	        e = x0 - a * u0 - c * v0;
+	        f = y0 - b * u0 - d * v0;
+
+	        _context.save();
+	        _context.transform(a, b, c, d, e, f);
+	        _context.fill();
+	        _context.restore();
+
 	    }
 
 	    // Hide anti-alias gaps
@@ -4477,7 +4570,6 @@
 	exports.SpriteMaterial = SpriteMaterial;
 	exports.SpriteCanvasMaterial = SpriteCanvasMaterial;
 	exports.Face3 = Face3;
-	exports.Face4 = Face4;
 	exports.Group = Group;
 	exports.Mesh = Mesh;
 	exports.Sprite = Sprite;
@@ -4508,6 +4600,7 @@
 	exports.SubtractiveBlending = SubtractiveBlending;
 	exports.MultiplyBlending = MultiplyBlending;
 	exports.CustomBlending = CustomBlending;
+	exports.UVMapping = UVMapping;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

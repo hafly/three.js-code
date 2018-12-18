@@ -1,5 +1,5 @@
 export const REVISION = '1';
-// 法向量
+// 面法向量
 export let FrontSide = 0;
 export let BackSide = 1;
 export let DoubleSide = 2;
@@ -14,3 +14,5 @@ export let AdditiveBlending = 2;
 export let SubtractiveBlending = 3;
 export let MultiplyBlending = 4;
 export let CustomBlending = 5;
+// 纹理映射
+export let UVMapping = 300;

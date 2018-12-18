@@ -148,6 +148,15 @@ class Vector2 {
     equals(v) {
         return ((v.x === this.x) && (v.y === this.y));
     }
+
+    fromArray(array, offset) {
+        if (offset === undefined) offset = 0;
+
+        this.x = array[offset];
+        this.y = array[offset + 1];
+
+        return this;
+    }
 }
 
 export {Vector2};

@@ -3,7 +3,7 @@
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>three.js canvas - geometry - sphere</title>
+    <title>three.js canvas - geometry - earth</title>
     <style>
         html, body {
             width: 100%;
@@ -44,19 +44,58 @@
         camera.position.z = 500;
 
         scene = new THREE.Scene();
+        scene.background = new THREE.Color(0xffffff);
 
         group = new THREE.Group();
         scene.add(group);
 
-        var geometry = new THREE.SphereGeometry(200);
-        var material = new THREE.MeshBasicMaterial({map: null, color: 0x156289});
+        // earth
+        var image = new Image();
+        image.src = 'textures/land_ocean_ice_cloud_2048.jpg';
+        image.onload = function () {
+            var texture = new THREE.Texture(image);
+            texture.needsUpdate = true;
+            var geometry = new THREE.SphereGeometry(200, 20, 20);
+
+            var material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
+            var mesh = new THREE.Mesh(geometry, material);
+            group.add(mesh);
+        }
+
+        // shadow
+        var canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+
+        var context = canvas.getContext('2d');
+        var gradient = context.createRadialGradient(
+            canvas.width / 2,
+            canvas.height / 2,
+            0,
+            canvas.width / 2,
+            canvas.height / 2,
+            canvas.width / 2
+        );
+        gradient.addColorStop(0.1, 'rgba(210,210,210,1)');
+        gradient.addColorStop(1, 'rgba(255,255,255,1)');
+
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        var texture = new THREE.CanvasTexture(canvas);
+
+        var geometry = new THREE.PlaneBufferGeometry(300, 300, 3, 3);
+        var material = new THREE.MeshBasicMaterial({map: texture, overdraw: 0.5});
+
         var mesh = new THREE.Mesh(geometry, material);
+        mesh.position.y = -250;
+        mesh.rotation.x = -Math.PI / 2;
         group.add(mesh);
 
+        // renderer
         renderer = new THREE.CanvasRenderer();
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setClearColor(0x000000, 1);
         container.appendChild(renderer.domElement);
 
         stats = new Stats();

@@ -8,7 +8,7 @@ let _canvas, _context;
 let _canvasWidth, _canvasHeight,
     _canvasWidthHalf, _canvasHeightHalf;
 
-let _patterns = {};
+let _patterns = {}, _uvs;
 let _v1, _v2, _v3,
     _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
 let _clipBox = new Box2(),
@@ -108,7 +108,7 @@ class CanvasRenderer extends Renderer {
                 _elemBox.setFromPoints([_v1.positionScreen, _v2.positionScreen, _v3.positionScreen]);
 
                 if (_clipBox.intersectsBox(_elemBox) === true) {
-                    this.renderFace3(_v1, _v2, _v3, element, element.material);
+                    this.renderFace3(_v1, _v2, _v3, 0, 1, 2, element, element.material);
                 }
             }
             else if (element instanceof RenderableSprite) {
@@ -155,32 +155,6 @@ class CanvasRenderer extends Renderer {
         }
     }
 
-    renderFace3(v1, v2, v3, element, material) {
-        this.setOpacity(material.opacity);
-        this.setBlending(material.blending);
-
-        _v1x = v1.positionScreen.x, _v1y = v1.positionScreen.y;
-        _v2x = v2.positionScreen.x, _v2y = v2.positionScreen.y;
-        _v3x = v3.positionScreen.x, _v3y = v3.positionScreen.y;
-
-        this.drawTriangle(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y);
-        if (material.isMeshBasicMaterial) {
-            if (material.map != null) {
-                console.log("暂未实现");
-            }
-            else {
-                _color.copy(material.color);
-                if (material.vertexColors === FaceColors) {
-                    _color.multiply(element.color);
-                }
-
-                material.wireframe === true
-                    ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
-                    : this.fillPath(_color);
-            }
-        }
-    }
-
     drawTriangle(x0, y0, x1, y1, x2, y2) {
         _context.beginPath();
         _context.moveTo(x0, y0);
@@ -202,6 +176,36 @@ class CanvasRenderer extends Renderer {
     fillPath(color) {
         this.setFillStyle(color.getStyle());
         _context.fill();
+    }
+
+    renderFace3(v1, v2, v3, uv1, uv2, uv3, element, material) {
+        this.setOpacity(material.opacity);
+        this.setBlending(material.blending);
+
+        _v1x = v1.positionScreen.x, _v1y = v1.positionScreen.y;
+        _v2x = v2.positionScreen.x, _v2y = v2.positionScreen.y;
+        _v3x = v3.positionScreen.x, _v3y = v3.positionScreen.y;
+
+        this.drawTriangle(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y);
+        if (material.isMeshBasicMaterial) {
+            if (material.map !== null) {
+                // uv贴图
+                if (material.map.mapping === THREE.UVMapping) {
+                    _uvs = element.uvs;
+                    this.patternPath(_v1x, _v1y, _v2x, _v2y, _v3x, _v3y, _uvs[uv1].x, _uvs[uv1].y, _uvs[uv2].x, _uvs[uv2].y, _uvs[uv3].x, _uvs[uv3].y, material.map);
+                }
+            }
+            else {
+                _color.copy(material.color);
+                if (material.vertexColors === FaceColors) {
+                    _color.multiply(element.color);
+                }
+
+                material.wireframe === true
+                    ? this.strokePath(_color, material.wireframeLinewidth, material.wireframeLinecap, material.wireframeLinejoin)
+                    : this.fillPath(_color);
+            }
+        }
     }
 
     renderSprite(element, material) {
@@ -279,12 +283,14 @@ class CanvasRenderer extends Renderer {
             };
         }
         let image = texture.image;
-        if (image.complete === false) {
-            return {
-                canvas: undefined,
-                version: 0
-            };
-        }
+
+        // TODO 图片动态加载未实现
+        // if (image.complete === false) {
+        //     return {
+        //         canvas: undefined,
+        //         version: 0
+        //     };
+        // }
         // let repeatX = texture.wrapS === RepeatWrapping || texture.wrapS === MirroredRepeatWrapping;
         // let repeatY = texture.wrapT === RepeatWrapping || texture.wrapT === MirroredRepeatWrapping;
         // let mirrorX = texture.wrapS === MirroredRepeatWrapping;
@@ -324,6 +330,77 @@ class CanvasRenderer extends Renderer {
             canvas: pattern,
             version: texture.version
         };
+    }
+
+    patternPath(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, texture) {
+
+        var pattern = _patterns[texture.id];
+
+        if (pattern === undefined || pattern.version !== texture.version) {
+
+            pattern = this.textureToPattern(texture);
+            _patterns[texture.id] = pattern;
+
+        }
+
+        if (pattern.canvas !== undefined) {
+
+            this.setFillStyle(pattern.canvas);
+
+        } else {
+
+            this.setFillStyle('rgba( 0, 0, 0, 1)');
+            _context.fill();
+            return;
+
+        }
+
+        // http://extremelysatisfactorytotalitarianism.com/blog/?p=2120
+
+        var a, b, c, d, e, f, det, idet,
+            offsetX = texture.offset.x / texture.repeat.x,
+            offsetY = texture.offset.y / texture.repeat.y,
+            width = texture.image.width * texture.repeat.x,
+            height = texture.image.height * texture.repeat.y;
+
+        u0 = (u0 + offsetX) * width;
+        v0 = (v0 + offsetY) * height;
+
+        u1 = (u1 + offsetX) * width;
+        v1 = (v1 + offsetY) * height;
+
+        u2 = (u2 + offsetX) * width;
+        v2 = (v2 + offsetY) * height;
+
+        x1 -= x0;
+        y1 -= y0;
+        x2 -= x0;
+        y2 -= y0;
+
+        u1 -= u0;
+        v1 -= v0;
+        u2 -= u0;
+        v2 -= v0;
+
+        det = u1 * v2 - u2 * v1;
+
+        if (det === 0) return;
+
+        idet = 1 / det;
+
+        a = (v2 * x1 - v1 * x2) * idet;
+        b = (v2 * y1 - v1 * y2) * idet;
+        c = (u1 * x2 - u2 * x1) * idet;
+        d = (u1 * y2 - u2 * y1) * idet;
+
+        e = x0 - a * u0 - c * v0;
+        f = y0 - b * u0 - d * v0;
+
+        _context.save();
+        _context.transform(a, b, c, d, e, f);
+        _context.fill();
+        _context.restore();
+
     }
 
     // Hide anti-alias gaps

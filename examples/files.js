@@ -1,5 +1,7 @@
 var files = {
 	"canvas": [
+        "canvas_geometry_box",
+        "canvas_geometry_earth",
 		"canvas_geometry_cube",
         "canvas_geometry_plane",
         "canvas_geometry_sphere",

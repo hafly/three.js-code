@@ -30,11 +30,16 @@ class RenderList {
     constructor() {
         this.object = null;
         this.material = null;
+
+        this.uvs = [];
     }
 
+    // 设置对象（BufferGeometry支持）
     setObject(value) {
         this.object = value;
         this.material = value.material;
+
+        this.uvs.length = 0;
     }
 
     // 检查所有渲染对象和子对象
@@ -139,23 +144,28 @@ class RenderList {
             // _face.normalModel.fromArray(normals, a * 3);
             // _face.normalModel.applyMatrix3(normalMatrix).normalize();
 
-            // for (let i = 0; i < 3; i++) {
-            //
-            //     let normal = _face.vertexNormalsModel[i];
-            //     normal.fromArray(normals, arguments[i] * 3);
-            //     normal.applyMatrix3(normalMatrix).normalize();
-            //
-            //     let uv = _face.uvs[i];
-            //     uv.fromArray(uvs, arguments[i] * 2);
-            //
-            // }
-            //
+            for (let i = 0; i < 3; i++) {
+
+                // let normal = _face.vertexNormalsModel[i];
+                // normal.fromArray(normals, arguments[i] * 3);
+                // normal.applyMatrix3(normalMatrix).normalize();
+
+                let uv = _face.uvs[i];
+                uv.fromArray(this.uvs, arguments[i] * 2);
+
+            }
+
             // _face.vertexNormalsLength = 3;
 
             _face.material = object.material;
 
             _renderData.elements.push(_face);
         }
+    }
+
+    // 添加 uv 点
+    pushUv(x, y) {
+        this.uvs.push(x, y);
     }
 
     checkTriangleVisibility(v1, v2, v3) {
@@ -215,6 +225,13 @@ class Projector {
                         renderList.pushVertex(positions[i], positions[i + 1], positions[i + 2]);
                     }
 
+                    if (attributes.uv !== undefined) {
+                        let uvs = attributes.uv.array;
+                        for (let i = 0, l = uvs.length; i < l; i += 2) {
+                            renderList.pushUv(uvs[i], uvs[i + 1]);
+                        }
+                    }
+
                     if (geometry.index !== null) {
                         let indices = geometry.index.array;
 
@@ -242,6 +259,7 @@ class Projector {
                 else if (geometry.isGeometry === true) {
                     let vertices = geometry.vertices;
                     let faces = geometry.faces;
+                    let faceVertexUvs = geometry.faceVertexUvs[0];
 
                     let material = object.material;
                     let isMultiMaterial = Array.isArray(material);
@@ -272,13 +290,21 @@ class Projector {
 
                         _face = getNextFaceInPool();
 
+                        _face.v1.copy(v1);
+                        _face.v2.copy(v2);
+                        _face.v3.copy(v3);
+
+                        let vertexUvs = faceVertexUvs[f];
+                        if (vertexUvs !== undefined) {
+                            for (let u = 0; u < 3; u++) {
+                                _face.uvs[u].copy(vertexUvs[u]);
+                            }
+                        }
+
                         _face.id = object.id;
                         _face.color = face.color;
                         _face.material = material;
 
-                        _face.v1.copy(v1);
-                        _face.v2.copy(v2);
-                        _face.v3.copy(v3);
                         _face.z = (v1.positionScreen.z + v2.positionScreen.z + v3.positionScreen.z) / 3;
                         _face.renderOrder = object.renderOrder;
 
@@ -333,6 +359,7 @@ class RenderableFace {
 
         this.color = new MeshBasicMaterial();
         this.material = null;
+        this.uvs = [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()];
 
         this.z = 0;
         this.renderOrder = 0;
