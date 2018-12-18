@@ -2288,7 +2288,7 @@
 
 	// 立方体
 	class BoxGeometry extends Geometry {
-	    constructor(width = 1, height = 1, depth = 1, widthSegments = 1, heightSegments = 1, depthSegments = 1) {
+	    constructor(width, height, depth, widthSegments, heightSegments, depthSegments) {
 	        super();
 	        this.type = 'BoxGeometry';
 
@@ -2430,6 +2430,10 @@
 	}
 
 	const REVISION = '1';
+	// 法向量
+	let FrontSide = 0;
+	let BackSide = 1;
+	let DoubleSide = 2;
 	// 作色点或面
 	let NoColors = 0;
 	let FaceColors = 1;
@@ -2906,9 +2910,10 @@
 	    constructor() {
 	        this.isMaterial = true;
 	        this.color = new Color(0xffffff);
-	        this.vertexColors = THREE.NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
+	        this.vertexColors = NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
 
-	        this.blending = THREE.NormalBlending;
+	        this.blending = NormalBlending;
+	        this.side = FrontSide;
 	        this.opacity = 1;
 	        this.transparent = false;
 
@@ -2979,7 +2984,7 @@
 	    constructor(parameters) {
 	        super();
 	        this.isSpriteCanvasMaterial = true;
-	        this.color = new THREE.Color(0xffffff);
+	        this.color = new Color(0xffffff);
 	        this.program = function () {};
 
 	        this.setValues(parameters);
@@ -3042,7 +3047,7 @@
 	}
 
 	class PlaneGeometry extends Geometry {
-	    constructor(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
+	    constructor(width, height, widthSegments, heightSegments) {
 	        super();
 	        this.type = 'PlaneGeometry';
 
@@ -3124,6 +3129,423 @@
 	        this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
 	        this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
 	        this.addAttribute('uv', new Float32BufferAttribute(uvs, 2));
+	    }
+	}
+
+	class SphereGeometry extends Geometry {
+	    constructor(radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength) {
+	        super();
+	        this.type = 'SphereGeometry';
+
+	        this.parameters = {
+	            radius: radius,
+	            widthSegments: widthSegments,
+	            heightSegments: heightSegments,
+	            phiStart: phiStart,
+	            phiLength: phiLength,
+	            thetaStart: thetaStart,
+	            thetaLength: thetaLength
+	        };
+
+	        this.fromBufferGeometry(new SphereBufferGeometry(radius, widthSegments, heightSegments, phiStart, phiLength, thetaStart, thetaLength));
+	        this.mergeVertices();
+	    }
+	}
+
+	class SphereBufferGeometry extends BufferGeometry {
+	    constructor(radius = 1, widthSegments, heightSegments, phiStart = 0, phiLength = Math.PI * 2, thetaStart = 0, thetaLength = Math.PI) {
+	        super();
+	        this.type = 'SphereBufferGeometry';
+
+	        widthSegments = Math.max(3, Math.floor(widthSegments) || 8);
+	        heightSegments = Math.max(2, Math.floor(heightSegments) || 6);
+
+	        this.parameters = {
+	            radius: radius,
+	            widthSegments: widthSegments,
+	            heightSegments: heightSegments,
+	            phiStart: phiStart,
+	            phiLength: phiLength,
+	            thetaStart: thetaStart,
+	            thetaLength: thetaLength
+	        };
+
+	        var thetaEnd = thetaStart + thetaLength;
+
+	        var ix, iy;
+
+	        var index = 0;
+	        var grid = [];
+
+	        var vertex = new Vector3();
+	        var normal = new Vector3();
+
+	        // buffers
+
+	        var indices = [];
+	        var vertices = [];
+	        var normals = [];
+	        var uvs = [];
+
+	        // generate vertices, normals and uvs
+	        for (iy = 0; iy <= heightSegments; iy++) {
+	            var verticesRow = [];
+	            var v = iy / heightSegments;
+
+	            for (ix = 0; ix <= widthSegments; ix++) {
+	                var u = ix / widthSegments;
+
+	                // vertex
+	                vertex.x = -radius * Math.cos(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
+	                vertex.y = radius * Math.cos(thetaStart + v * thetaLength);
+	                vertex.z = radius * Math.sin(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
+
+	                vertices.push(vertex.x, vertex.y, vertex.z);
+
+	                // normal
+	                normal.set(vertex.x, vertex.y, vertex.z).normalize();
+	                normals.push(normal.x, normal.y, normal.z);
+
+	                // uv
+	                uvs.push(u, 1 - v);
+
+	                verticesRow.push(index++);
+	            }
+
+	            grid.push(verticesRow);
+	        }
+
+	        // indices
+	        for (iy = 0; iy < heightSegments; iy++) {
+	            for (ix = 0; ix < widthSegments; ix++) {
+	                var a = grid[iy][ix + 1];
+	                var b = grid[iy][ix];
+	                var c = grid[iy + 1][ix];
+	                var d = grid[iy + 1][ix + 1];
+
+	                if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
+	                if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
+	            }
+	        }
+
+	        // build geometry
+	        this.setIndex(indices);
+	        this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
+	        this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
+	        this.addAttribute('uv', new Float32BufferAttribute(uvs, 2));
+	    }
+	}
+
+	class CylinderGeometry extends Geometry {
+	    constructor(radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength) {
+	        super();
+	        this.type = 'CylinderGeometry';
+
+	        this.parameters = {
+	            radiusTop: radiusTop,
+	            radiusBottom: radiusBottom,
+	            height: height,
+	            radialSegments: radialSegments,
+	            heightSegments: heightSegments,
+	            openEnded: openEnded,
+	            thetaStart: thetaStart,
+	            thetaLength: thetaLength
+	        };
+
+	        this.fromBufferGeometry(new CylinderBufferGeometry(radiusTop, radiusBottom, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength));
+	        this.mergeVertices();
+	    }
+	}
+
+	class CylinderBufferGeometry extends BufferGeometry {
+	    constructor(radiusTop = 1, radiusBottom = 1, height = 1, radialSegments = 8, heightSegments = 1, openEnded = false, thetaStart = 0, thetaLength = Math.PI * 2) {
+	        super();
+	        this.type = 'CylinderBufferGeometry';
+
+	        this.parameters = {
+	            radiusTop: radiusTop,
+	            radiusBottom: radiusBottom,
+	            height: height,
+	            radialSegments: radialSegments,
+	            heightSegments: heightSegments,
+	            openEnded: openEnded,
+	            thetaStart: thetaStart,
+	            thetaLength: thetaLength
+	        };
+
+	        var scope = this;
+	        // buffers
+
+	        var indices = [];
+	        var vertices = [];
+	        var normals = [];
+	        var uvs = [];
+
+	        // helper variables
+
+	        var index = 0;
+	        var indexArray = [];
+	        var halfHeight = height / 2;
+	        var groupStart = 0;
+
+	        // generate geometry
+
+	        generateTorso();
+
+	        if (openEnded === false) {
+
+	            if (radiusTop > 0) generateCap(true);
+	            if (radiusBottom > 0) generateCap(false);
+
+	        }
+
+	        // build geometry
+
+	        this.setIndex(indices);
+	        this.addAttribute('position', new Float32BufferAttribute(vertices, 3));
+	        this.addAttribute('normal', new Float32BufferAttribute(normals, 3));
+	        this.addAttribute('uv', new Float32BufferAttribute(uvs, 2));
+
+	        function generateTorso() {
+
+	            var x, y;
+	            var normal = new Vector3();
+	            var vertex = new Vector3();
+
+	            var groupCount = 0;
+
+	            // this will be used to calculate the normal
+	            var slope = (radiusBottom - radiusTop) / height;
+
+	            // generate vertices, normals and uvs
+
+	            for (y = 0; y <= heightSegments; y++) {
+
+	                var indexRow = [];
+
+	                var v = y / heightSegments;
+
+	                // calculate the radius of the current row
+
+	                var radius = v * (radiusBottom - radiusTop) + radiusTop;
+
+	                for (x = 0; x <= radialSegments; x++) {
+
+	                    var u = x / radialSegments;
+
+	                    var theta = u * thetaLength + thetaStart;
+
+	                    var sinTheta = Math.sin(theta);
+	                    var cosTheta = Math.cos(theta);
+
+	                    // vertex
+
+	                    vertex.x = radius * sinTheta;
+	                    vertex.y = -v * height + halfHeight;
+	                    vertex.z = radius * cosTheta;
+	                    vertices.push(vertex.x, vertex.y, vertex.z);
+
+	                    // normal
+
+	                    normal.set(sinTheta, slope, cosTheta).normalize();
+	                    normals.push(normal.x, normal.y, normal.z);
+
+	                    // uv
+
+	                    uvs.push(u, 1 - v);
+
+	                    // save index of vertex in respective row
+
+	                    indexRow.push(index++);
+
+	                }
+
+	                // now save vertices of the row in our index array
+
+	                indexArray.push(indexRow);
+
+	            }
+
+	            // generate indices
+
+	            for (x = 0; x < radialSegments; x++) {
+
+	                for (y = 0; y < heightSegments; y++) {
+
+	                    // we use the index array to access the correct indices
+
+	                    var a = indexArray[y][x];
+	                    var b = indexArray[y + 1][x];
+	                    var c = indexArray[y + 1][x + 1];
+	                    var d = indexArray[y][x + 1];
+
+	                    // faces
+
+	                    indices.push(a, b, d);
+	                    indices.push(b, c, d);
+
+	                    // update group counter
+
+	                    groupCount += 6;
+
+	                }
+
+	            }
+
+	            // add a group to the geometry. this will ensure multi material support
+
+	            scope.addGroup(groupStart, groupCount, 0);
+
+	            // calculate new start value for groups
+
+	            groupStart += groupCount;
+
+	        }
+
+	        function generateCap(top) {
+
+	            var x, centerIndexStart, centerIndexEnd;
+
+	            var uv = new Vector2();
+	            var vertex = new Vector3();
+
+	            var groupCount = 0;
+
+	            var radius = (top === true) ? radiusTop : radiusBottom;
+	            var sign = (top === true) ? 1 : -1;
+
+	            // save the index of the first center vertex
+	            centerIndexStart = index;
+
+	            // first we generate the center vertex data of the cap.
+	            // because the geometry needs one set of uvs per face,
+	            // we must generate a center vertex per face/segment
+
+	            for (x = 1; x <= radialSegments; x++) {
+
+	                // vertex
+
+	                vertices.push(0, halfHeight * sign, 0);
+
+	                // normal
+
+	                normals.push(0, sign, 0);
+
+	                // uv
+
+	                uvs.push(0.5, 0.5);
+
+	                // increase index
+
+	                index++;
+
+	            }
+
+	            // save the index of the last center vertex
+
+	            centerIndexEnd = index;
+
+	            // now we generate the surrounding vertices, normals and uvs
+
+	            for (x = 0; x <= radialSegments; x++) {
+
+	                var u = x / radialSegments;
+	                var theta = u * thetaLength + thetaStart;
+
+	                var cosTheta = Math.cos(theta);
+	                var sinTheta = Math.sin(theta);
+
+	                // vertex
+
+	                vertex.x = radius * sinTheta;
+	                vertex.y = halfHeight * sign;
+	                vertex.z = radius * cosTheta;
+	                vertices.push(vertex.x, vertex.y, vertex.z);
+
+	                // normal
+
+	                normals.push(0, sign, 0);
+
+	                // uv
+
+	                uv.x = (cosTheta * 0.5) + 0.5;
+	                uv.y = (sinTheta * 0.5 * sign) + 0.5;
+	                uvs.push(uv.x, uv.y);
+
+	                // increase index
+
+	                index++;
+
+	            }
+
+	            // generate indices
+
+	            for (x = 0; x < radialSegments; x++) {
+
+	                var c = centerIndexStart + x;
+	                var i = centerIndexEnd + x;
+
+	                if (top === true) {
+
+	                    // face top
+
+	                    indices.push(i, i + 1, c);
+
+	                } else {
+
+	                    // face bottom
+
+	                    indices.push(i + 1, i, c);
+
+	                }
+
+	                groupCount += 3;
+
+	            }
+
+	            // add a group to the geometry. this will ensure multi material support
+
+	            scope.addGroup(groupStart, groupCount, top === true ? 1 : 2);
+
+	            // calculate new start value for groups
+
+	            groupStart += groupCount;
+
+	        }
+	    }
+	}
+
+	class ConeGeometry extends CylinderGeometry {
+	    constructor(radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength) {
+	        super(0, radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength);
+	        this.type = 'ConeGeometry';
+
+	        this.parameters = {
+	            radius: radius,
+	            height: height,
+	            radialSegments: radialSegments,
+	            heightSegments: heightSegments,
+	            openEnded: openEnded,
+	            thetaStart: thetaStart,
+	            thetaLength: thetaLength
+	        };
+	    }
+	}
+
+	class ConeBufferGeometry extends CylinderBufferGeometry {
+	    constructor(radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength) {
+	        super(0, radius, height, radialSegments, heightSegments, openEnded, thetaStart, thetaLength);
+	        this.type = 'ConeBufferGeometry';
+
+	        this.parameters = {
+	            radius: radius,
+	            height: height,
+	            radialSegments: radialSegments,
+	            heightSegments: heightSegments,
+	            openEnded: openEnded,
+	            thetaStart: thetaStart,
+	            thetaLength: thetaLength
+	        };
 	    }
 	}
 
@@ -3283,14 +3705,14 @@
 	    // 添加三角面（BufferGeometry支持）
 	    pushTriangle(a, b, c) {
 	        let object = this.object;
+	        let material = this.material;
 	        let v1 = _vertexPool[a];
 	        let v2 = _vertexPool[b];
 	        let v3 = _vertexPool[c];
 
 	        if (this.checkTriangleVisibility(v1, v2, v3) === false) return;
 
-	        if (this.checkBackfaceCulling(v1, v2, v3) === true) {
-
+	        if (material.side === DoubleSide || this.checkBackfaceCulling(v1, v2, v3) === true) {
 	            _face = getNextFaceInPool();
 
 	            _face.id = object.id;
@@ -3321,7 +3743,6 @@
 	            _face.material = object.material;
 
 	            _renderData.elements.push(_face);
-
 	        }
 	    }
 
@@ -3406,7 +3827,7 @@
 	                    }
 	                }
 	                // Geometry
-	                else if (geometry.Geometry) {
+	                else if (geometry.isGeometry === true) {
 	                    let vertices = geometry.vertices;
 	                    let faces = geometry.faces;
 
@@ -3431,7 +3852,11 @@
 
 	                        if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
 	                        // 过滤面
-	                        if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
+	                        let visible = renderList.checkBackfaceCulling(v1, v2, v3);
+	                        if (material.side !== DoubleSide) {
+	                            if (material.side === FrontSide && visible === false) continue;
+	                            if (material.side === BackSide && visible === true) continue;
+	                        }
 
 	                        _face = getNextFaceInPool();
 
@@ -3582,8 +4007,6 @@
 	        this.renderList = [];
 	        this.width = 0;
 	        this.height = 0;
-	        this.widthHalf = 0;
-	        this.heightHalf = 0;
 	    }
 	}
 
@@ -3659,6 +4082,10 @@
 	    }
 	}
 
+	let _canvas, _context;
+	let _canvasWidth, _canvasHeight,
+	    _canvasWidthHalf, _canvasHeightHalf;
+
 	let _patterns = {};
 	let _v1, _v2, _v3,
 	    _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
@@ -3667,17 +4094,22 @@
 	    _elemBox = new Box2();
 	let _color = new Color();
 
-	class CanvasRenderer extends Renderer {
-	    constructor() {
-	        super();
-	        this.domElement = document.createElement("canvas");
-	        this.domElement.style.position = "absolute";
-	        this.context = this.domElement.getContext("2d");
+	let _clearColor, _clearAlpha;
 
-	        this.canvasWidth = 0;
-	        this.canvasHeight = 0;
-	        this.canvasWidthHalf = 0;
-	        this.canvasHeightHalf = 0;
+	class CanvasRenderer extends Renderer {
+	    constructor(parameters = {}) {
+	        super();
+	        this.domElement = _canvas = parameters.canvas !== undefined ? parameters.canvas : document.createElement('canvas');
+	        _canvas.style.position = "absolute";
+	        _context = _canvas.getContext("2d");
+
+	        _clearColor = new Color(0x000000);
+	        _clearAlpha = parameters.alpha === true ? 0 : 1;
+
+	        this.width = _canvasWidth = 0;
+	        this.height = _canvasHeight = 0;
+	        _canvasWidthHalf = 0;
+	        _canvasHeightHalf = 0;
 
 	        this.pixelRatio = 1;
 
@@ -3691,20 +4123,20 @@
 	    }
 
 	    setSize(width, height) {
-	        this.domElement.width = width;
-	        this.domElement.height = height;
+	        _canvas.width = width;
+	        _canvas.height = height;
 
-	        this.canvasWidth = width;
-	        this.canvasHeight = height;
+	        _canvasWidth = width;
+	        _canvasHeight = height;
 
-	        this.canvasWidthHalf = Math.floor(this.canvasWidth / 2);
-	        this.canvasHeightHalf = Math.floor(this.canvasHeight / 2);
+	        _canvasWidthHalf = Math.floor(_canvasWidth / 2);
+	        _canvasHeightHalf = Math.floor(_canvasHeight / 2);
 
-	        _clipBox$1.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
-	        _clipBox$1.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
+	        _clipBox$1.min.set(-_canvasWidthHalf, -_canvasHeightHalf);
+	        _clipBox$1.max.set(_canvasWidthHalf, _canvasHeightHalf);
 
-	        _clearBox.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
-	        _clearBox.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
+	        _clearBox.min.set(-_canvasWidthHalf, -_canvasHeightHalf);
+	        _clearBox.max.set(_canvasWidthHalf, _canvasHeightHalf);
 	    }
 
 	    render(scene, camera) {
@@ -3714,18 +4146,18 @@
 	        let background = scene.background;
 	        if (background && background.isColor) {
 	            this.setOpacity(1);
-	            this.setBlending(THREE.NormalBlending);
+	            this.setBlending(NormalBlending);
 	            this.setFillStyle(background.getStyle());
-	            this.context.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+	            _context.fillRect(0, 0, _canvasWidth, _canvasHeight);
 
 	        } else if (this.autoClear === true) {
 	            this.clear();
 	        }
 
 	        // 通过缩放翻转画布上下方向
-	        this.context.setTransform(1, 0, 0, -1, 0, this.canvasHeight);
+	        _context.setTransform(1, 0, 0, -1, 0, _canvasHeight);
 	        // 以画布中心为原点
-	        this.context.translate(this.canvasWidthHalf, this.canvasHeightHalf);
+	        _context.translate(_canvasWidthHalf, _canvasHeightHalf);
 
 	        let projector = new Projector();
 	        let _renderData = projector.projectScene(scene, camera, this.sortObjects, this.sortElements);
@@ -3741,9 +4173,9 @@
 	                _v2 = element.v2;
 	                _v3 = element.v3;
 
-	                _v1.positionScreen.x *= this.canvasWidthHalf, _v1.positionScreen.y *= this.canvasHeightHalf;
-	                _v2.positionScreen.x *= this.canvasWidthHalf, _v2.positionScreen.y *= this.canvasHeightHalf;
-	                _v3.positionScreen.x *= this.canvasWidthHalf, _v3.positionScreen.y *= this.canvasHeightHalf;
+	                _v1.positionScreen.x *= _canvasWidthHalf, _v1.positionScreen.y *= _canvasHeightHalf;
+	                _v2.positionScreen.x *= _canvasWidthHalf, _v2.positionScreen.y *= _canvasHeightHalf;
+	                _v3.positionScreen.x *= _canvasWidthHalf, _v3.positionScreen.y *= _canvasHeightHalf;
 
 	                if (material.overdraw > 0) {
 	                    this.expand(_v1.positionScreen, _v2.positionScreen, material.overdraw);
@@ -3764,18 +4196,38 @@
 	            _clearBox.union(_elemBox);
 	        }
 
-	        this.context.setTransform(1, 0, 0, 1, 0, 0);
+	        _context.setTransform(1, 0, 0, 1, 0, 0);
+	    }
+
+	    setClearColor(color, alpha = 1) {
+	        _clearColor.set(color);
+	        _clearAlpha = alpha;
+
+	        _clearBox.min.set(-_canvasWidthHalf, -_canvasHeightHalf);
+	        _clearBox.max.set(_canvasWidthHalf, _canvasHeightHalf);
 	    }
 
 	    clear() {
 	        if (_clearBox.isEmpty() === false) {
-	            _clearBox.intersect(_clipBox$1).expandByScalar(2);
+	            _clearBox.intersect(_clipBox$1).expandByScalar(4);
 
-	            _clearBox.min.x = _clearBox.min.x + this.canvasWidthHalf;
-	            _clearBox.min.y = -_clearBox.min.y + this.canvasHeightHalf;		// higher y value !
-	            _clearBox.max.x = _clearBox.max.x + this.canvasWidthHalf;
-	            _clearBox.max.y = -_clearBox.max.y + this.canvasHeightHalf;		// lower y value !
-	            this.context.clearRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+	            _clearBox.min.x = _clearBox.min.x + _canvasWidthHalf;
+	            _clearBox.min.y = -_clearBox.min.y + _canvasHeightHalf;		// higher y value !
+	            _clearBox.max.x = _clearBox.max.x + _canvasWidthHalf;
+	            _clearBox.max.y = -_clearBox.max.y + _canvasHeightHalf;		// lower y value !
+
+
+	            if (_clearAlpha < 1) {
+	                _context.clearRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+	            }
+
+	            if (_clearAlpha > 0) {
+	                this.setOpacity(1);
+	                this.setBlending(NormalBlending);
+	                this.setFillStyle('rgba(' + Math.floor(_clearColor.r * 255) + ',' + Math.floor(_clearColor.g * 255) + ',' + Math.floor(_clearColor.b * 255) + ',' + _clearAlpha + ')');
+
+	                _context.fillRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+	            }
 
 	            _clearBox.makeEmpty();
 	        }
@@ -3796,7 +4248,7 @@
 	            }
 	            else {
 	                _color.copy(material.color);
-	                if (material.vertexColors === THREE.FaceColors) {
+	                if (material.vertexColors === FaceColors) {
 	                    _color.multiply(element.color);
 	                }
 
@@ -3808,11 +4260,11 @@
 	    }
 
 	    drawTriangle(x0, y0, x1, y1, x2, y2) {
-	        this.context.beginPath();
-	        this.context.moveTo(x0, y0);
-	        this.context.lineTo(x1, y1);
-	        this.context.lineTo(x2, y2);
-	        this.context.closePath();
+	        _context.beginPath();
+	        _context.moveTo(x0, y0);
+	        _context.lineTo(x1, y1);
+	        _context.lineTo(x2, y2);
+	        _context.closePath();
 	    }
 
 	    strokePath(color, linewidth, linecap, linejoin) {
@@ -3820,24 +4272,23 @@
 	        this.setLineCap(linecap);
 	        this.setLineJoin(linejoin);
 	        this.setStrokeStyle(color.getStyle());
-	        this.context.stroke();
+	        _context.stroke();
 
 	        _elemBox.expandByScalar(linewidth * 2);
 	    }
 
 	    fillPath(color) {
 	        this.setFillStyle(color.getStyle());
-	        this.context.fill();
+	        _context.fill();
 	    }
 
 	    renderSprite(element, material) {
 	        this.setOpacity(material.opacity);
 	        this.setBlending(material.blending);
-	        let _context = this.context;
-	        element.x *= this.canvasWidthHalf;
-	        element.y *= this.canvasHeightHalf;
-	        let scaleX = element.scale.x * this.canvasWidthHalf;
-	        let scaleY = element.scale.y * this.canvasHeightHalf;
+	        element.x *= _canvasWidthHalf;
+	        element.y *= _canvasHeightHalf;
+	        let scaleX = element.scale.x * _canvasWidthHalf;
+	        let scaleY = element.scale.y * _canvasHeightHalf;
 
 	        let dist = Math.sqrt(scaleX * scaleX + scaleY * scaleY); // allow for rotated sprite
 	        _elemBox.min.set(element.x - dist, element.y - dist);
@@ -3938,7 +4389,7 @@
 	        // } else if (repeatY === true) {
 	        //     repeat = 'repeat-y';
 	        // }
-	        let pattern = this.context.createPattern(canvas, repeat);
+	        let pattern = _context.createPattern(canvas, repeat);
 	        if (texture.onUpdate) texture.onUpdate(texture);
 	        return {
 	            canvas: pattern,
@@ -3964,46 +4415,46 @@
 	    }
 
 	    setOpacity(value) {
-	        this.context.globalAlpha = value;
+	        _context.globalAlpha = value;
 	    }
 
 	    // canvas混合模式
 	    setBlending(value) {
-	        if (value === THREE.NormalBlending) {
-	            this.context.globalCompositeOperation = 'source-over';
-	        } else if (value === THREE.AdditiveBlending) {
-	            this.context.globalCompositeOperation = 'lighter';
-	        } else if (value === THREE.SubtractiveBlending) {
-	            this.context.globalCompositeOperation = 'darker';
-	        } else if (value === THREE.MultiplyBlending) {
-	            this.context.globalCompositeOperation = 'multiply';
+	        if (value === NormalBlending) {
+	            _context.globalCompositeOperation = 'source-over';
+	        } else if (value === AdditiveBlending) {
+	            _context.globalCompositeOperation = 'lighter';
+	        } else if (value === SubtractiveBlending) {
+	            _context.globalCompositeOperation = 'darker';
+	        } else if (value === MultiplyBlending) {
+	            _context.globalCompositeOperation = 'multiply';
 	        }
 	    }
 
 	    setFillStyle(value) {
-	        this.context.fillStyle = value;
+	        _context.fillStyle = value;
 	    }
 
 	    setStrokeStyle(value) {
-	        this.context.strokeStyle = value;
+	        _context.strokeStyle = value;
 	    }
 
 	    setLineWidth(value) {
-	        this.context.lineWidth = value;
+	        _context.lineWidth = value;
 	    }
 
 	    // "butt", "round", "square"
 	    setLineCap(value) {
-	        this.context.lineCap = value;
+	        _context.lineCap = value;
 	    }
 
 	    // "butt", "round", "square"
 	    setLineJoin(value) {
-	        this.context.lineJoin = value;
+	        _context.lineJoin = value;
 	    }
 
 	    setLineDash(value) {
-	        this.context.setLineDash = value;
+	        _context.setLineDash = value;
 	    }
 	}
 
@@ -4034,11 +4485,20 @@
 	exports.BoxBufferGeometry = BoxBufferGeometry;
 	exports.PlaneGeometry = PlaneGeometry;
 	exports.PlaneBufferGeometry = PlaneBufferGeometry;
+	exports.SphereGeometry = SphereGeometry;
+	exports.SphereBufferGeometry = SphereBufferGeometry;
+	exports.CylinderGeometry = CylinderGeometry;
+	exports.CylinderBufferGeometry = CylinderBufferGeometry;
+	exports.ConeGeometry = ConeGeometry;
+	exports.ConeBufferGeometry = ConeBufferGeometry;
 	exports.RenderableObject = RenderableObject;
 	exports.RenderableFace = RenderableFace;
 	exports.Projector = Projector;
 	exports.CanvasRenderer = CanvasRenderer;
 	exports.REVISION = REVISION;
+	exports.FrontSide = FrontSide;
+	exports.BackSide = BackSide;
+	exports.DoubleSide = DoubleSide;
 	exports.NoColors = NoColors;
 	exports.FaceColors = FaceColors;
 	exports.VertexColors = VertexColors;

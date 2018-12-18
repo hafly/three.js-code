@@ -1,22 +1,19 @@
 ## three.js源码学习
 
-这个版本是three.js的超级简化版本，只有CanvasRenderer
+学习three.js源码，在理解代码的基础上重新实现，目前只写了CanvasRenderer
 
 ### 已实现功能
 
-1.Face3实现  
-2.Buffer 数据缓存  
-3.添加Box盒子模型检查  
-4.解决canvas y轴颠倒  
-5.多面材质bug修复  
+1.添加常见集合体  
+2.添加面法向量  
 
 ### 准备实现功能
 
-1.添加常见几何体模型  
+1.添加平面几何体模型  
 2.VU贴图  
 
 ### Change Log
 
-2018/12/17 - r2
+2018/12/18 - r3
 
 [releases](https://github.com/hafly/three.js-test/releases)

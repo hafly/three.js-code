@@ -1,11 +1,11 @@
 import {Geometry} from "../core/Geometry";
 import {BufferGeometry} from "../core/BufferGeometry";
-import {Vector3} from "../math/Vector3";
 import {Float32BufferAttribute} from '../core/BufferAttribute.js';
+import {Vector3} from "../math/Vector3";
 
 // 立方体
 class BoxGeometry extends Geometry {
-    constructor(width = 1, height = 1, depth = 1, widthSegments = 1, heightSegments = 1, depthSegments = 1) {
+    constructor(width, height, depth, widthSegments, heightSegments, depthSegments) {
         super();
         this.type = 'BoxGeometry';
 

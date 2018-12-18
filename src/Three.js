@@ -26,5 +26,8 @@ export {Mesh} from "./objects/Mesh";
 export {Sprite} from "./objects/Sprite";
 export {BoxGeometry, BoxBufferGeometry} from "./geometries/BoxGeometry";
 export {PlaneGeometry, PlaneBufferGeometry} from "./geometries/PlaneGeometry";
+export {SphereGeometry, SphereBufferGeometry} from "./geometries/SphereGeometry";
+export {CylinderGeometry, CylinderBufferGeometry} from "./geometries/CylinderGeometry";
+export {ConeGeometry, ConeBufferGeometry} from "./geometries/ConeGeometry";
 export {RenderableObject, RenderableFace, Projector} from "./renderers/Projector";
 export {CanvasRenderer} from "./renderers/CanvasRenderer";

@@ -2,6 +2,11 @@ import {Renderer} from "./Renderer";
 import {Projector, RenderableFace, RenderableSprite} from "./Projector";
 import {Box2} from "../math/Box2";
 import {Color} from "../math/Color";
+import {NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, FaceColors} from "../constants";
+
+let _canvas, _context;
+let _canvasWidth, _canvasHeight,
+    _canvasWidthHalf, _canvasHeightHalf;
 
 let _patterns = {};
 let _v1, _v2, _v3,
@@ -11,17 +16,22 @@ let _clipBox = new Box2(),
     _elemBox = new Box2();
 let _color = new Color();
 
-class CanvasRenderer extends Renderer {
-    constructor() {
-        super();
-        this.domElement = document.createElement("canvas");
-        this.domElement.style.position = "absolute";
-        this.context = this.domElement.getContext("2d");
+let _clearColor, _clearAlpha;
 
-        this.canvasWidth = 0;
-        this.canvasHeight = 0;
-        this.canvasWidthHalf = 0;
-        this.canvasHeightHalf = 0;
+class CanvasRenderer extends Renderer {
+    constructor(parameters = {}) {
+        super();
+        this.domElement = _canvas = parameters.canvas !== undefined ? parameters.canvas : document.createElement('canvas');
+        _canvas.style.position = "absolute";
+        _context = _canvas.getContext("2d");
+
+        _clearColor = new Color(0x000000);
+        _clearAlpha = parameters.alpha === true ? 0 : 1;
+
+        this.width = _canvasWidth = 0;
+        this.height = _canvasHeight = 0;
+        _canvasWidthHalf = 0;
+        _canvasHeightHalf = 0;
 
         this.pixelRatio = 1;
 
@@ -35,20 +45,20 @@ class CanvasRenderer extends Renderer {
     }
 
     setSize(width, height) {
-        this.domElement.width = width;
-        this.domElement.height = height;
+        _canvas.width = width;
+        _canvas.height = height;
 
-        this.canvasWidth = width;
-        this.canvasHeight = height;
+        _canvasWidth = width;
+        _canvasHeight = height;
 
-        this.canvasWidthHalf = Math.floor(this.canvasWidth / 2);
-        this.canvasHeightHalf = Math.floor(this.canvasHeight / 2);
+        _canvasWidthHalf = Math.floor(_canvasWidth / 2);
+        _canvasHeightHalf = Math.floor(_canvasHeight / 2);
 
-        _clipBox.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
-        _clipBox.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
+        _clipBox.min.set(-_canvasWidthHalf, -_canvasHeightHalf);
+        _clipBox.max.set(_canvasWidthHalf, _canvasHeightHalf);
 
-        _clearBox.min.set(-this.canvasWidthHalf, -this.canvasHeightHalf);
-        _clearBox.max.set(this.canvasWidthHalf, this.canvasHeightHalf);
+        _clearBox.min.set(-_canvasWidthHalf, -_canvasHeightHalf);
+        _clearBox.max.set(_canvasWidthHalf, _canvasHeightHalf);
     }
 
     render(scene, camera) {
@@ -58,18 +68,18 @@ class CanvasRenderer extends Renderer {
         let background = scene.background;
         if (background && background.isColor) {
             this.setOpacity(1);
-            this.setBlending(THREE.NormalBlending);
+            this.setBlending(NormalBlending);
             this.setFillStyle(background.getStyle());
-            this.context.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+            _context.fillRect(0, 0, _canvasWidth, _canvasHeight);
 
         } else if (this.autoClear === true) {
             this.clear();
         }
 
         // 通过缩放翻转画布上下方向
-        this.context.setTransform(1, 0, 0, -1, 0, this.canvasHeight);
+        _context.setTransform(1, 0, 0, -1, 0, _canvasHeight);
         // 以画布中心为原点
-        this.context.translate(this.canvasWidthHalf, this.canvasHeightHalf);
+        _context.translate(_canvasWidthHalf, _canvasHeightHalf);
 
         let projector = new Projector();
         let _renderData = projector.projectScene(scene, camera, this.sortObjects, this.sortElements);
@@ -85,9 +95,9 @@ class CanvasRenderer extends Renderer {
                 _v2 = element.v2;
                 _v3 = element.v3;
 
-                _v1.positionScreen.x *= this.canvasWidthHalf, _v1.positionScreen.y *= this.canvasHeightHalf;
-                _v2.positionScreen.x *= this.canvasWidthHalf, _v2.positionScreen.y *= this.canvasHeightHalf;
-                _v3.positionScreen.x *= this.canvasWidthHalf, _v3.positionScreen.y *= this.canvasHeightHalf;
+                _v1.positionScreen.x *= _canvasWidthHalf, _v1.positionScreen.y *= _canvasHeightHalf;
+                _v2.positionScreen.x *= _canvasWidthHalf, _v2.positionScreen.y *= _canvasHeightHalf;
+                _v3.positionScreen.x *= _canvasWidthHalf, _v3.positionScreen.y *= _canvasHeightHalf;
 
                 if (material.overdraw > 0) {
                     this.expand(_v1.positionScreen, _v2.positionScreen, material.overdraw);
@@ -108,18 +118,38 @@ class CanvasRenderer extends Renderer {
             _clearBox.union(_elemBox);
         }
 
-        this.context.setTransform(1, 0, 0, 1, 0, 0);
+        _context.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    setClearColor(color, alpha = 1) {
+        _clearColor.set(color);
+        _clearAlpha = alpha;
+
+        _clearBox.min.set(-_canvasWidthHalf, -_canvasHeightHalf);
+        _clearBox.max.set(_canvasWidthHalf, _canvasHeightHalf);
     }
 
     clear() {
         if (_clearBox.isEmpty() === false) {
-            _clearBox.intersect(_clipBox).expandByScalar(2);
+            _clearBox.intersect(_clipBox).expandByScalar(4);
 
-            _clearBox.min.x = _clearBox.min.x + this.canvasWidthHalf;
-            _clearBox.min.y = -_clearBox.min.y + this.canvasHeightHalf;		// higher y value !
-            _clearBox.max.x = _clearBox.max.x + this.canvasWidthHalf;
-            _clearBox.max.y = -_clearBox.max.y + this.canvasHeightHalf;		// lower y value !
-            this.context.clearRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+            _clearBox.min.x = _clearBox.min.x + _canvasWidthHalf;
+            _clearBox.min.y = -_clearBox.min.y + _canvasHeightHalf;		// higher y value !
+            _clearBox.max.x = _clearBox.max.x + _canvasWidthHalf;
+            _clearBox.max.y = -_clearBox.max.y + _canvasHeightHalf;		// lower y value !
+
+
+            if (_clearAlpha < 1) {
+                _context.clearRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+            }
+
+            if (_clearAlpha > 0) {
+                this.setOpacity(1);
+                this.setBlending(NormalBlending);
+                this.setFillStyle('rgba(' + Math.floor(_clearColor.r * 255) + ',' + Math.floor(_clearColor.g * 255) + ',' + Math.floor(_clearColor.b * 255) + ',' + _clearAlpha + ')');
+
+                _context.fillRect(_clearBox.min.x | 0, _clearBox.max.y | 0, (_clearBox.max.x - _clearBox.min.x) | 0, (_clearBox.min.y - _clearBox.max.y) | 0);
+            }
 
             _clearBox.makeEmpty();
         }
@@ -140,7 +170,7 @@ class CanvasRenderer extends Renderer {
             }
             else {
                 _color.copy(material.color);
-                if (material.vertexColors === THREE.FaceColors) {
+                if (material.vertexColors === FaceColors) {
                     _color.multiply(element.color);
                 }
 
@@ -152,11 +182,11 @@ class CanvasRenderer extends Renderer {
     }
 
     drawTriangle(x0, y0, x1, y1, x2, y2) {
-        this.context.beginPath();
-        this.context.moveTo(x0, y0);
-        this.context.lineTo(x1, y1);
-        this.context.lineTo(x2, y2);
-        this.context.closePath();
+        _context.beginPath();
+        _context.moveTo(x0, y0);
+        _context.lineTo(x1, y1);
+        _context.lineTo(x2, y2);
+        _context.closePath();
     }
 
     strokePath(color, linewidth, linecap, linejoin) {
@@ -164,24 +194,23 @@ class CanvasRenderer extends Renderer {
         this.setLineCap(linecap);
         this.setLineJoin(linejoin);
         this.setStrokeStyle(color.getStyle());
-        this.context.stroke();
+        _context.stroke();
 
         _elemBox.expandByScalar(linewidth * 2);
     }
 
     fillPath(color) {
         this.setFillStyle(color.getStyle());
-        this.context.fill();
+        _context.fill();
     }
 
     renderSprite(element, material) {
         this.setOpacity(material.opacity);
         this.setBlending(material.blending);
-        let _context = this.context;
-        element.x *= this.canvasWidthHalf;
-        element.y *= this.canvasHeightHalf;
-        let scaleX = element.scale.x * this.canvasWidthHalf;
-        let scaleY = element.scale.y * this.canvasHeightHalf;
+        element.x *= _canvasWidthHalf;
+        element.y *= _canvasHeightHalf;
+        let scaleX = element.scale.x * _canvasWidthHalf;
+        let scaleY = element.scale.y * _canvasHeightHalf;
 
         let dist = Math.sqrt(scaleX * scaleX + scaleY * scaleY); // allow for rotated sprite
         _elemBox.min.set(element.x - dist, element.y - dist);
@@ -289,7 +318,7 @@ class CanvasRenderer extends Renderer {
         // } else if (repeatY === true) {
         //     repeat = 'repeat-y';
         // }
-        let pattern = this.context.createPattern(canvas, repeat);
+        let pattern = _context.createPattern(canvas, repeat);
         if (texture.onUpdate) texture.onUpdate(texture);
         return {
             canvas: pattern,
@@ -315,46 +344,46 @@ class CanvasRenderer extends Renderer {
     }
 
     setOpacity(value) {
-        this.context.globalAlpha = value;
+        _context.globalAlpha = value;
     }
 
     // canvas混合模式
     setBlending(value) {
-        if (value === THREE.NormalBlending) {
-            this.context.globalCompositeOperation = 'source-over';
-        } else if (value === THREE.AdditiveBlending) {
-            this.context.globalCompositeOperation = 'lighter';
-        } else if (value === THREE.SubtractiveBlending) {
-            this.context.globalCompositeOperation = 'darker';
-        } else if (value === THREE.MultiplyBlending) {
-            this.context.globalCompositeOperation = 'multiply';
+        if (value === NormalBlending) {
+            _context.globalCompositeOperation = 'source-over';
+        } else if (value === AdditiveBlending) {
+            _context.globalCompositeOperation = 'lighter';
+        } else if (value === SubtractiveBlending) {
+            _context.globalCompositeOperation = 'darker';
+        } else if (value === MultiplyBlending) {
+            _context.globalCompositeOperation = 'multiply';
         }
     }
 
     setFillStyle(value) {
-        this.context.fillStyle = value;
+        _context.fillStyle = value;
     }
 
     setStrokeStyle(value) {
-        this.context.strokeStyle = value;
+        _context.strokeStyle = value;
     }
 
     setLineWidth(value) {
-        this.context.lineWidth = value;
+        _context.lineWidth = value;
     }
 
     // "butt", "round", "square"
     setLineCap(value) {
-        this.context.lineCap = value;
+        _context.lineCap = value;
     }
 
     // "butt", "round", "square"
     setLineJoin(value) {
-        this.context.lineJoin = value;
+        _context.lineJoin = value;
     }
 
     setLineDash(value) {
-        this.context.setLineDash = value;
+        _context.setLineDash = value;
     }
 }
 

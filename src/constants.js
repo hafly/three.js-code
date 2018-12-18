@@ -1,4 +1,8 @@
 export const REVISION = '1';
+// 法向量
+export let FrontSide = 0;
+export let BackSide = 1;
+export let DoubleSide = 2;
 // 作色点或面
 export let NoColors = 0;
 export let FaceColors = 1;

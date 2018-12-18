@@ -1,12 +1,14 @@
 import {Color} from "../math/Color";
+import {NoColors, NormalBlending, FrontSide} from "../constants";
 
 class Material {
     constructor() {
         this.isMaterial = true;
         this.color = new Color(0xffffff);
-        this.vertexColors = THREE.NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
+        this.vertexColors = NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
 
-        this.blending = THREE.NormalBlending;
+        this.blending = NormalBlending;
+        this.side = FrontSide;
         this.opacity = 1;
         this.transparent = false;
 

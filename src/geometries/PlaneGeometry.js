@@ -3,7 +3,7 @@ import {BufferGeometry} from "../core/BufferGeometry";
 import {Float32BufferAttribute} from '../core/BufferAttribute.js';
 
 class PlaneGeometry extends Geometry {
-    constructor(width = 1, height = 1, widthSegments = 1, heightSegments = 1) {
+    constructor(width, height, widthSegments, heightSegments) {
         super();
         this.type = 'PlaneGeometry';
 

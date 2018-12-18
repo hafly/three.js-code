@@ -4,6 +4,7 @@ import {Vector4} from "../math/Vector4";
 import {Matrix4} from "../math/Matrix4";
 import {Box3} from "../math/Box3";
 import {MeshBasicMaterial} from "../materials/MeshBasicMaterial";
+import {FrontSide, BackSide, DoubleSide,} from "../constants";
 
 // 存储对象池
 let _object, _face, _vertex, _sprite,
@@ -116,14 +117,14 @@ class RenderList {
     // 添加三角面（BufferGeometry支持）
     pushTriangle(a, b, c) {
         let object = this.object;
+        let material = this.material;
         let v1 = _vertexPool[a];
         let v2 = _vertexPool[b];
         let v3 = _vertexPool[c];
 
         if (this.checkTriangleVisibility(v1, v2, v3) === false) return;
 
-        if (this.checkBackfaceCulling(v1, v2, v3) === true) {
-
+        if (material.side === DoubleSide || this.checkBackfaceCulling(v1, v2, v3) === true) {
             _face = getNextFaceInPool();
 
             _face.id = object.id;
@@ -154,7 +155,6 @@ class RenderList {
             _face.material = object.material;
 
             _renderData.elements.push(_face);
-
         }
     }
 
@@ -239,7 +239,7 @@ class Projector {
                     }
                 }
                 // Geometry
-                else if (geometry.Geometry) {
+                else if (geometry.isGeometry === true) {
                     let vertices = geometry.vertices;
                     let faces = geometry.faces;
 
@@ -264,7 +264,11 @@ class Projector {
 
                         if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
                         // 过滤面
-                        if (renderList.checkBackfaceCulling(v1, v2, v3) === false) continue;
+                        let visible = renderList.checkBackfaceCulling(v1, v2, v3);
+                        if (material.side !== DoubleSide) {
+                            if (material.side === FrontSide && visible === false) continue;
+                            if (material.side === BackSide && visible === true) continue;
+                        }
 
                         _face = getNextFaceInPool();
 
