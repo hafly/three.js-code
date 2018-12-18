@@ -334,7 +334,7 @@ class CanvasRenderer extends Renderer {
 
     patternPath(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, texture) {
 
-        var pattern = _patterns[texture.id];
+        let pattern = _patterns[texture.id];
 
         if (pattern === undefined || pattern.version !== texture.version) {
 
@@ -357,7 +357,7 @@ class CanvasRenderer extends Renderer {
 
         // http://extremelysatisfactorytotalitarianism.com/blog/?p=2120
 
-        var a, b, c, d, e, f, det, idet,
+        let a, b, c, d, e, f, det, idet,
             offsetX = texture.offset.x / texture.repeat.x,
             offsetY = texture.offset.y / texture.repeat.y,
             width = texture.image.width * texture.repeat.x,

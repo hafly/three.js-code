@@ -4,6 +4,28 @@
 	(factory((global.THREE = {})));
 }(this, (function (exports) { 'use strict';
 
+	const REVISION = '1';
+	// 面法向量
+	let FrontSide = 0;
+	let BackSide = 1;
+	let DoubleSide = 2;
+	// 作色点或面
+	let NoColors = 0;
+	let FaceColors = 1;
+	let VertexColors = 2;
+	// canvas混合模式
+	let NoBlending = 0;
+	let NormalBlending = 1;
+	let AdditiveBlending = 2;
+	let SubtractiveBlending = 3;
+	let MultiplyBlending = 4;
+	let CustomBlending = 5;
+	// 纹理映射
+	let UVMapping = 300;
+
+	let RGBFormat = 1022;
+	let RGBAFormat = 1023;
+
 	let lut = [];
 	for (let i = 0; i < 256; i++) {
 	    lut[i] = (i < 16 ? '0' : '') + (i).toString(16);
@@ -92,288 +114,61 @@
 	    }
 	};
 
-	class Vector2 {
-	    constructor(x = 0, y = 0) {
-	        this.isVector2 = true;
-	        this.x = x;
-	        this.y = y;
-	    }
+	class EventDispatcher {
+	    addEventListener(type, listener) {
+	        if (this._listeners === undefined) this._listeners = {};
 
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
+	        let listeners = this._listeners;
 
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y);
-	    }
-
-	    set(x, y) {
-	        this.x = x;
-	        this.y = y;
-
-	        return this;
-	    }
-
-	    /**
-	     * 左加向量
-	     * @param v
-	     * @returns {Vector3}
-	     */
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        return this;
-	    }
-
-	    /**
-	     * 左加标量
-	     * @param s
-	     * @returns {Vector3}
-	     */
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        return this;
-	    }
-
-	    /**
-	     * 两向量相加
-	     * @param a
-	     * @param b
-	     * @returns {Vector3}
-	     */
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        return this;
-	    }
-
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        return this;
-	    }
-
-	    subScalar(s) {
-	        this.x -= s;
-	        this.y -= s;
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        return this;
-	    }
-
-	    multiply(v) {
-	        this.x *= v.x;
-	        this.y *= v.y;
-	        return this;
-	    }
-
-	    multiplyScalar(scalar) {
-	        this.x *= scalar;
-	        this.y *= scalar;
-	        return this;
-	    }
-
-	    divide(v) {
-	        this.x /= v.x;
-	        this.y /= v.y;
-	        return this;
-	    }
-
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
-	    negate() {
-	        this.x = -this.x;
-	        this.y = -this.y;
-
-	        return this;
-	    }
-
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y;
-	    }
-
-	    cross(v) {
-	        return this.x * v.y - this.y * v.x;
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y;
-	    }
-
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y);
-	    }
-
-	    lerp(v, alpha) {
-	        this.x += (v.x - this.x) * alpha;
-	        this.y += (v.y - this.y) * alpha;
-
-	        return this;
-	    }
-
-	    lerpVectors(v1, v2, alpha) {
-	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
-	    }
-
-	    min(v) {
-	        this.x = Math.min(this.x, v.x);
-	        this.y = Math.min(this.y, v.y);
-
-	        return this;
-	    }
-
-	    max(v) {
-	        this.x = Math.max(this.x, v.x);
-	        this.y = Math.max(this.y, v.y);
-
-	        return this;
-	    }
-
-	    equals(v) {
-	        return ((v.x === this.x) && (v.y === this.y));
-	    }
-
-	    fromArray(array, offset) {
-	        if (offset === undefined) offset = 0;
-
-	        this.x = array[offset];
-	        this.y = array[offset + 1];
-
-	        return this;
-	    }
-	}
-
-	class Matrix3 {
-	    constructor(){
-	        this.elements = [
-	            1, 0, 0,
-	            0, 1, 0,
-	            0, 0, 1
-	       ];
-	    }
-
-	    set(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
-	        let te = this.elements;
-
-	        te[0] = n11; te[1] = n21; te[2] = n31;
-	        te[3] = n12; te[4] = n22; te[5] = n32;
-	        te[6] = n13; te[7] = n23; te[8] = n33;
-
-	        return this;
-	    }
-
-	    identity() {
-	        this.set(
-	            1, 0, 0,
-	            0, 1, 0,
-	            0, 0, 1
-	        );
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor().fromArray( this.elements );
-	    }
-
-	    copy(m) {
-	        let te = this.elements;
-	        let me = m.elements;
-
-	        te[0] = me[0]; te[1] = me[1]; te[2] = me[2];
-	        te[3] = me[3]; te[4] = me[4]; te[5] = me[5];
-	        te[6] = me[6]; te[7] = me[7]; te[8] = me[8];
-
-	        return this;
-	    }
-
-	    setFromMatrix4(m) {
-	        let me = m.elements;
-	        this.set(
-	            me[0], me[4], me[8],
-	            me[1], me[5], me[9],
-	            me[2], me[6], me[10]
-	        );
-	        return this;
-	    }
-
-	    getInverse(matrix, throwOnDegenerate) {
-	        if ( matrix && matrix.isMatrix4 ) {
-
-	            console.error( "THREE.Matrix3: .getInverse() no longer takes a Matrix4 argument." );
-
+	        if (listeners[type] === undefined) {
+	            listeners[type] = [];
 	        }
 
-	        let me = matrix.elements,
-	            te = this.elements,
+	        if (listeners[type].indexOf(listener) === -1) {
+	            listeners[type].push(listener);
+	        }
+	    }
 
-	            n11 = me[0], n21 = me[1], n31 = me[2],
-	            n12 = me[3], n22 = me[4], n32 = me[5],
-	            n13 = me[6], n23 = me[7], n33 = me[8],
+	    hasEventListener(type, listener) {
+	        if (this._listeners === undefined) return false;
 
-	            t11 = n33 * n22 - n32 * n23,
-	            t12 = n32 * n13 - n33 * n12,
-	            t13 = n23 * n12 - n22 * n13,
+	        let listeners = this._listeners;
 
-	            det = n11 * t11 + n21 * t12 + n31 * t13;
+	        return listeners[type] !== undefined && listeners[type].indexOf(listener) !== -1;
+	    }
 
-	        if ( det === 0 ) {
+	    removeEventListener(type, listener) {
+	        if (this._listeners === undefined) return;
 
-	            let msg = "THREE.Matrix3: .getInverse() can't invert matrix, determinant is 0";
+	        let listeners = this._listeners;
+	        let listenerArray = listeners[type];
 
-	            if ( throwOnDegenerate === true ) {
+	        if (listenerArray !== undefined) {
+	            let index = listenerArray.indexOf(listener);
 
-	                throw new Error( msg );
-
-	            } else {
-
-	                console.warn( msg );
-
+	            if (index !== -1) {
+	                listenerArray.splice(index, 1);
 	            }
 
-	            return this.identity();
-
 	        }
-
-	        let detInv = 1 / det;
-
-	        te[0] = t11 * detInv;
-	        te[1] = ( n31 * n23 - n33 * n21 ) * detInv;
-	        te[2] = ( n32 * n21 - n31 * n22 ) * detInv;
-
-	        te[3] = t12 * detInv;
-	        te[4] = ( n33 * n11 - n31 * n13 ) * detInv;
-	        te[5] = ( n31 * n12 - n32 * n11 ) * detInv;
-
-	        te[6] = t13 * detInv;
-	        te[7] = ( n21 * n13 - n23 * n11 ) * detInv;
-	        te[8] = ( n22 * n11 - n21 * n12 ) * detInv;
-
-	        return this;
-
 	    }
 
-	    transpose() {
-	        let tmp, m = this.elements;
+	    dispatchEvent(event) {
+	        if (this._listeners === undefined) return;
 
-	        tmp = m[1]; m[1] = m[3]; m[3] = tmp;
-	        tmp = m[2]; m[2] = m[6]; m[6] = tmp;
-	        tmp = m[5]; m[5] = m[7]; m[7] = tmp;
+	        let listeners = this._listeners;
+	        let listenerArray = listeners[event.type];
 
-	        return this;
-	    }
+	        if (listenerArray !== undefined) {
 
-	    getNormalMatrix(matrix4) {
-	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
+	            event.target = this;
+
+	            let array = listenerArray.slice(0);
+
+	            for (let i = 0, l = array.length; i < l; i++) {
+	                array[i].call(this, event);
+	            }
+	        }
 	    }
 	}
 
@@ -1149,64 +944,6 @@
 	    }
 	}
 
-	class EventDispatcher {
-	    addEventListener(type, listener) {
-	        if (this._listeners === undefined) this._listeners = {};
-
-	        let listeners = this._listeners;
-
-	        if (listeners[type] === undefined) {
-	            listeners[type] = [];
-	        }
-
-	        if (listeners[type].indexOf(listener) === -1) {
-	            listeners[type].push(listener);
-	        }
-	    }
-
-	    hasEventListener(type, listener) {
-	        if (this._listeners === undefined) return false;
-
-	        let listeners = this._listeners;
-
-	        return listeners[type] !== undefined && listeners[type].indexOf(listener) !== -1;
-	    }
-
-	    removeEventListener(type, listener) {
-	        if (this._listeners === undefined) return;
-
-	        let listeners = this._listeners;
-	        let listenerArray = listeners[type];
-
-	        if (listenerArray !== undefined) {
-	            let index = listenerArray.indexOf(listener);
-
-	            if (index !== -1) {
-	                listenerArray.splice(index, 1);
-	            }
-
-	        }
-	    }
-
-	    dispatchEvent(event) {
-	        if (this._listeners === undefined) return;
-
-	        let listeners = this._listeners;
-	        let listenerArray = listeners[event.type];
-
-	        if (listenerArray !== undefined) {
-
-	            event.target = this;
-
-	            let array = listenerArray.slice(0);
-
-	            for (let i = 0, l = array.length; i < l; i++) {
-	                array[i].call(this, event);
-	            }
-	        }
-	    }
-	}
-
 	let matrix = new Matrix4$1();
 
 	class Euler {
@@ -1831,6 +1568,437 @@
 	Object3D.DefaultUp = new Vector3(0, 1, 0);
 	Object3D.DefaultMatrixAutoUpdate = true;
 
+	class Vector2 {
+	    constructor(x = 0, y = 0) {
+	        this.isVector2 = true;
+	        this.x = x;
+	        this.y = y;
+	    }
+
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.x, this.y);
+	    }
+
+	    set(x, y) {
+	        this.x = x;
+	        this.y = y;
+
+	        return this;
+	    }
+
+	    /**
+	     * 左加向量
+	     * @param v
+	     * @returns {Vector3}
+	     */
+	    add(v) {
+	        this.x += v.x;
+	        this.y += v.y;
+	        return this;
+	    }
+
+	    /**
+	     * 左加标量
+	     * @param s
+	     * @returns {Vector3}
+	     */
+	    addScalar(s) {
+	        this.x += s;
+	        this.y += s;
+	        return this;
+	    }
+
+	    /**
+	     * 两向量相加
+	     * @param a
+	     * @param b
+	     * @returns {Vector3}
+	     */
+	    addVectors(a, b) {
+	        this.x = a.x + b.x;
+	        this.y = a.y + b.y;
+	        return this;
+	    }
+
+	    sub(v) {
+	        this.x -= v.x;
+	        this.y -= v.y;
+	        return this;
+	    }
+
+	    subScalar(s) {
+	        this.x -= s;
+	        this.y -= s;
+	        return this;
+	    }
+
+	    subVectors(a, b) {
+	        this.x = a.x - b.x;
+	        this.y = a.y - b.y;
+	        return this;
+	    }
+
+	    multiply(v) {
+	        this.x *= v.x;
+	        this.y *= v.y;
+	        return this;
+	    }
+
+	    multiplyScalar(scalar) {
+	        this.x *= scalar;
+	        this.y *= scalar;
+	        return this;
+	    }
+
+	    divide(v) {
+	        this.x /= v.x;
+	        this.y /= v.y;
+	        return this;
+	    }
+
+	    divideScalar(scalar) {
+	        return this.multiplyScalar(1 / scalar);
+	    }
+
+	    negate() {
+	        this.x = -this.x;
+	        this.y = -this.y;
+
+	        return this;
+	    }
+
+	    dot(v) {
+	        return this.x * v.x + this.y * v.y;
+	    }
+
+	    cross(v) {
+	        return this.x * v.y - this.y * v.x;
+	    }
+
+	    lengthSq() {
+	        return this.x * this.x + this.y * this.y;
+	    }
+
+	    length() {
+	        return Math.sqrt(this.x * this.x + this.y * this.y);
+	    }
+
+	    lerp(v, alpha) {
+	        this.x += (v.x - this.x) * alpha;
+	        this.y += (v.y - this.y) * alpha;
+
+	        return this;
+	    }
+
+	    lerpVectors(v1, v2, alpha) {
+	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+	    }
+
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+
+	        return this;
+	    }
+
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+
+	        return this;
+	    }
+
+	    equals(v) {
+	        return ((v.x === this.x) && (v.y === this.y));
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this.x = array[offset];
+	        this.y = array[offset + 1];
+
+	        return this;
+	    }
+	}
+
+	class Vector4 {
+	    constructor(x = 0, y = 0, z = 0, w = 1) {
+	        this.isVector4 = true;
+	        this.x = x;
+	        this.y = y;
+	        this.z = z;
+	        this.w = w;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.x, this.y, this.z, this.w);
+	    }
+
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+	        this.z = v.z;
+	        this.w = (v.w !== undefined) ? v.w : 1;
+
+	        return this;
+	    }
+
+	    set(x, y, z, w) {
+	        this.x = x;
+	        this.y = y;
+	        this.z = z;
+	        this.w = w;
+
+	        return this;
+	    }
+
+	    setScalar(scalar) {
+	        this.x = scalar;
+	        this.y = scalar;
+	        this.z = scalar;
+	        this.w = scalar;
+
+	        return this;
+	    }
+
+	    add(v) {
+	        this.x += v.x;
+	        this.y += v.y;
+	        this.z += v.z;
+	        this.w += v.w;
+
+	        return this;
+	    }
+
+	    addScalar(s) {
+	        this.x += s;
+	        this.y += s;
+	        this.z += s;
+	        this.w += s;
+
+	        return this;
+	    }
+
+	    addVectors(a, b) {
+	        this.x = a.x + b.x;
+	        this.y = a.y + b.y;
+	        this.z = a.z + b.z;
+	        this.w = a.w + b.w;
+
+	        return this;
+	    }
+
+	    sub(v) {
+	        this.x -= v.x;
+	        this.y -= v.y;
+	        this.z -= v.z;
+	        this.w -= v.w;
+
+	        return this;
+	    }
+
+	    subScalar(s) {
+	        this.x -= s;
+	        this.y -= s;
+	        this.z -= s;
+	        this.w -= s;
+
+	        return this;
+	    }
+
+	    subVectors(a, b) {
+	        this.x = a.x - b.x;
+	        this.y = a.y - b.y;
+	        this.z = a.z - b.z;
+	        this.w = a.w - b.w;
+
+	        return this;
+	    }
+
+	    multiplyScalar(scalar) {
+	        if (isFinite(scalar)) {
+	            this.x *= scalar;
+	            this.y *= scalar;
+	            this.z *= scalar;
+	            this.w *= scalar;
+	        } else {
+	            this.x = 0;
+	            this.y = 0;
+	            this.z = 0;
+	            this.w = 0;
+	        }
+	        return this;
+	    }
+
+	    divideScalar(scalar) {
+	        return this.multiplyScalar(1 / scalar);
+	    }
+
+	    applyMatrix4(m) {
+	        let x = this.x, y = this.y, z = this.z, w = this.w;
+	        let e = m.elements;
+
+	        this.x = e[0] * x + e[4] * y + e[8] * z + e[12] * w;
+	        this.y = e[1] * x + e[5] * y + e[9] * z + e[13] * w;
+	        this.z = e[2] * x + e[6] * y + e[10] * z + e[14] * w;
+	        this.w = e[3] * x + e[7] * y + e[11] * z + e[15] * w;
+
+	        return this;
+	    }
+
+	    normalize() {
+	        return this.divideScalar(this.length());
+	    }
+
+	    lengthSq() {
+	        return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
+	    }
+
+	    length() {
+	        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
+	    }
+
+	    dot(v) {
+	        return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
+	    }
+
+	    equals(v) {
+	        return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z) && (v.w === this.w));
+	    }
+	}
+
+	class Matrix3 {
+	    constructor(){
+	        this.elements = [
+	            1, 0, 0,
+	            0, 1, 0,
+	            0, 0, 1
+	       ];
+	    }
+
+	    set(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
+	        let te = this.elements;
+
+	        te[0] = n11; te[1] = n21; te[2] = n31;
+	        te[3] = n12; te[4] = n22; te[5] = n32;
+	        te[6] = n13; te[7] = n23; te[8] = n33;
+
+	        return this;
+	    }
+
+	    identity() {
+	        this.set(
+	            1, 0, 0,
+	            0, 1, 0,
+	            0, 0, 1
+	        );
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor().fromArray( this.elements );
+	    }
+
+	    copy(m) {
+	        let te = this.elements;
+	        let me = m.elements;
+
+	        te[0] = me[0]; te[1] = me[1]; te[2] = me[2];
+	        te[3] = me[3]; te[4] = me[4]; te[5] = me[5];
+	        te[6] = me[6]; te[7] = me[7]; te[8] = me[8];
+
+	        return this;
+	    }
+
+	    setFromMatrix4(m) {
+	        let me = m.elements;
+	        this.set(
+	            me[0], me[4], me[8],
+	            me[1], me[5], me[9],
+	            me[2], me[6], me[10]
+	        );
+	        return this;
+	    }
+
+	    getInverse(matrix, throwOnDegenerate) {
+	        if ( matrix && matrix.isMatrix4 ) {
+
+	            console.error( "THREE.Matrix3: .getInverse() no longer takes a Matrix4 argument." );
+
+	        }
+
+	        let me = matrix.elements,
+	            te = this.elements,
+
+	            n11 = me[0], n21 = me[1], n31 = me[2],
+	            n12 = me[3], n22 = me[4], n32 = me[5],
+	            n13 = me[6], n23 = me[7], n33 = me[8],
+
+	            t11 = n33 * n22 - n32 * n23,
+	            t12 = n32 * n13 - n33 * n12,
+	            t13 = n23 * n12 - n22 * n13,
+
+	            det = n11 * t11 + n21 * t12 + n31 * t13;
+
+	        if ( det === 0 ) {
+
+	            let msg = "THREE.Matrix3: .getInverse() can't invert matrix, determinant is 0";
+
+	            if ( throwOnDegenerate === true ) {
+
+	                throw new Error( msg );
+
+	            } else {
+
+	                console.warn( msg );
+
+	            }
+
+	            return this.identity();
+
+	        }
+
+	        let detInv = 1 / det;
+
+	        te[0] = t11 * detInv;
+	        te[1] = ( n31 * n23 - n33 * n21 ) * detInv;
+	        te[2] = ( n32 * n21 - n31 * n22 ) * detInv;
+
+	        te[3] = t12 * detInv;
+	        te[4] = ( n33 * n11 - n31 * n13 ) * detInv;
+	        te[5] = ( n31 * n12 - n32 * n11 ) * detInv;
+
+	        te[6] = t13 * detInv;
+	        te[7] = ( n21 * n13 - n23 * n11 ) * detInv;
+	        te[8] = ( n22 * n11 - n21 * n12 ) * detInv;
+
+	        return this;
+
+	    }
+
+	    transpose() {
+	        let tmp, m = this.elements;
+
+	        tmp = m[1]; m[1] = m[3]; m[3] = tmp;
+	        tmp = m[2]; m[2] = m[6]; m[6] = tmp;
+	        tmp = m[5]; m[5] = m[7]; m[7] = tmp;
+
+	        return this;
+	    }
+
+	    getNormalMatrix(matrix4) {
+	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
+	    }
+	}
+
 	const ColorKeywords={'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFFF,'aquamarine':0x7FFFD4,'azure':0xF0FFFF,'beige':0xF5F5DC,'bisque':0xFFE4C4,'black':0x000000,'blanchedalmond':0xFFEBCD,'blue':0x0000FF,'blueviolet':0x8A2BE2,'brown':0xA52A2A,'burlywood':0xDEB887,'cadetblue':0x5F9EA0,'chartreuse':0x7FFF00,'chocolate':0xD2691E,'coral':0xFF7F50,'cornflowerblue':0x6495ED,'cornsilk':0xFFF8DC,'crimson':0xDC143C,'cyan':0x00FFFF,'darkblue':0x00008B,'darkcyan':0x008B8B,'darkgoldenrod':0xB8860B,'darkgray':0xA9A9A9,'darkgreen':0x006400,'darkgrey':0xA9A9A9,'darkkhaki':0xBDB76B,'darkmagenta':0x8B008B,'darkolivegreen':0x556B2F,'darkorange':0xFF8C00,'darkorchid':0x9932CC,'darkred':0x8B0000,'darksalmon':0xE9967A,'darkseagreen':0x8FBC8F,'darkslateblue':0x483D8B,'darkslategray':0x2F4F4F,'darkslategrey':0x2F4F4F,'darkturquoise':0x00CED1,'darkviolet':0x9400D3,'deeppink':0xFF1493,'deepskyblue':0x00BFFF,'dimgray':0x696969,'dimgrey':0x696969,'dodgerblue':0x1E90FF,'firebrick':0xB22222,'floralwhite':0xFFFAF0,'forestgreen':0x228B22,'fuchsia':0xFF00FF,'gainsboro':0xDCDCDC,'ghostwhite':0xF8F8FF,'gold':0xFFD700,'goldenrod':0xDAA520,'gray':0x808080,'green':0x008000,'greenyellow':0xADFF2F,'grey':0x808080,'honeydew':0xF0FFF0,'hotpink':0xFF69B4,'indianred':0xCD5C5C,'indigo':0x4B0082,'ivory':0xFFFFF0,'khaki':0xF0E68C,'lavender':0xE6E6FA,'lavenderblush':0xFFF0F5,'lawngreen':0x7CFC00,'lemonchiffon':0xFFFACD,'lightblue':0xADD8E6,'lightcoral':0xF08080,'lightcyan':0xE0FFFF,'lightgoldenrodyellow':0xFAFAD2,'lightgray':0xD3D3D3,'lightgreen':0x90EE90,'lightgrey':0xD3D3D3,'lightpink':0xFFB6C1,'lightsalmon':0xFFA07A,'lightseagreen':0x20B2AA,'lightskyblue':0x87CEFA,'lightslategray':0x778899,'lightslategrey':0x778899,'lightsteelblue':0xB0C4DE,'lightyellow':0xFFFFE0,'lime':0x00FF00,'limegreen':0x32CD32,'linen':0xFAF0E6,'magenta':0xFF00FF,'maroon':0x800000,'mediumaquamarine':0x66CDAA,'mediumblue':0x0000CD,'mediumorchid':0xBA55D3,'mediumpurple':0x9370DB,'mediumseagreen':0x3CB371,'mediumslateblue':0x7B68EE,'mediumspringgreen':0x00FA9A,'mediumturquoise':0x48D1CC,'mediumvioletred':0xC71585,'midnightblue':0x191970,'mintcream':0xF5FFFA,'mistyrose':0xFFE4E1,'moccasin':0xFFE4B5,'navajowhite':0xFFDEAD,'navy':0x000080,'oldlace':0xFDF5E6,'olive':0x808000,'olivedrab':0x6B8E23,'orange':0xFFA500,'orangered':0xFF4500,'orchid':0xDA70D6,'palegoldenrod':0xEEE8AA,'palegreen':0x98FB98,'paleturquoise':0xAFEEEE,'palevioletred':0xDB7093,'papayawhip':0xFFEFD5,'peachpuff':0xFFDAB9,'peru':0xCD853F,'pink':0xFFC0CB,'plum':0xDDA0DD,'powderblue':0xB0E0E6,'purple':0x800080,'rebeccapurple':0x663399,'red':0xFF0000,'rosybrown':0xBC8F8F,'royalblue':0x4169E1,'saddlebrown':0x8B4513,'salmon':0xFA8072,'sandybrown':0xF4A460,'seagreen':0x2E8B57,'seashell':0xFFF5EE,'sienna':0xA0522D,'silver':0xC0C0C0,'skyblue':0x87CEEB,'slateblue':0x6A5ACD,'slategray':0x708090,'slategrey':0x708090,'snow':0xFFFAFA,'springgreen':0x00FF7F,'steelblue':0x4682B4,'tan':0xD2B48C,'teal':0x008080,'thistle':0xD8BFD8,'tomato':0xFF6347,'turquoise':0x40E0D0,'violet':0xEE82EE,'wheat':0xF5DEB3,'white':0xFFFFFF,'whitesmoke':0xF5F5F5,'yellow':0xFFFF00,'yellowgreen':0x9ACD32};
 
 	/**
@@ -2089,6 +2257,254 @@
 	    }
 	}
 
+	class Camera extends Object3D {
+	    constructor() {
+	        super();
+	        this.isCamera = true;
+
+	        // 投影矩阵
+	        this.projectionMatrix = new Matrix4$1();
+	        // 投影矩阵逆矩阵
+	        this.projectionMatrixInverse = new Matrix4$1();
+
+	        // matrixWorld逆矩阵
+	        this.matrixWorldInverse = new Matrix4$1();
+	    }
+
+	    // 重写父类
+	    updateMatrixWorld(force) {
+	        if (this.matrixAutoUpdate) this.updateMatrix();
+	        if (this.matrixWorldNeedsUpdate || force) {
+	            if (this.parent === null) {
+	                this.matrixWorld.copy(this.matrix);
+	            } else {
+	                this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
+	            }
+	            this.matrixWorldNeedsUpdate = false;
+	            force = true;
+	        }
+
+	        // update children
+
+	        let children = this.children;
+	        for (let i = 0, l = children.length; i < l; i++) {
+	            children[i].updateMatrixWorld(force);
+	        }
+
+	        // 更新逆矩阵
+	        this.matrixWorldInverse.getInverse( this.matrixWorld );
+	    }
+	}
+
+	class PerspectiveCamera extends Camera {
+	    constructor(fov = 50, aspect = 1, near = 0.1, far = 2000) {
+	        super();
+	        this.type = 'PerspectiveCamera';
+	        this.fov = fov;
+	        this.zoom = 1;
+
+	        this.near = near;
+	        this.far = far;
+
+	        this.aspect = aspect;
+	        this.view = null;
+
+	        this.updateProjectionMatrix();
+	    }
+
+	    // 更新相机投影矩阵
+	    updateProjectionMatrix() {
+	        let near = this.near,
+	            top = near * Math.tan(_Math.DEG2RAD * 0.5 * this.fov) / this.zoom,
+	            height = 2 * top,
+	            width = this.aspect * height,
+	            left = -width / 2;
+
+	        this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.far);
+	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
+	    }
+	}
+
+	class OrthographicCamera extends Camera {
+	    constructor(left, right, top, bottom, near = 0.1, far = 2000) {
+	        super();
+	        this.type = 'OrthographicCamera';
+	        this.zoom = 1;
+	        this.view = null;
+
+	        this.left = left;
+	        this.right = right;
+	        this.top = top;
+	        this.bottom = bottom;
+
+	        this.near = near;
+	        this.far = far;
+
+	        this.updateProjectionMatrix();
+	    }
+
+	    updateProjectionMatrix() {
+	        let dx = (this.right - this.left) / (2 * this.zoom);
+	        let dy = (this.top - this.bottom) / (2 * this.zoom);
+	        let cx = (this.right + this.left) / 2;
+	        let cy = (this.top + this.bottom) / 2;
+
+	        let left = cx - dx;
+	        let right = cx + dx;
+	        let top = cy + dy;
+	        let bottom = cy - dy;
+
+	        if (this.view !== null && this.view.enabled) {
+	            let zoomW = this.zoom / (this.view.width / this.view.fullWidth);
+	            let zoomH = this.zoom / (this.view.height / this.view.fullHeight);
+	            let scaleW = (this.right - this.left) / this.view.width;
+	            let scaleH = (this.top - this.bottom) / this.view.height;
+
+	            left += scaleW * (this.view.offsetX / zoomW);
+	            right = left + scaleW * (this.view.width / zoomW);
+	            top -= scaleH * (this.view.offsetY / zoomH);
+	            bottom = top - scaleH * (this.view.height / zoomH);
+	        }
+
+	        this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far);
+	    }
+	}
+
+	class Scene extends Object3D {
+	    constructor() {
+	        super();
+	        this.autoUpdate = true;
+	        this.background = null;
+	    }
+	}
+
+	let textureId = 0;
+
+	class Texture extends EventDispatcher {
+	    constructor(image = undefined) {
+	        super();
+	        this.id = textureId++;
+	        this.uuid = _Math.generateUUID();
+	        this.image = image;
+	        this.mapping = UVMapping;   // 纹理映射
+
+	        this.offset = new Vector2(0, 0);
+	        this.repeat = new Vector2(1, 1);
+	        this.center = new Vector2(0, 0);
+	        this.rotation = 0;
+
+	        this.matrixAutoUpdate = true;
+	        this.matrix = new Matrix3();
+
+	        this.version = 0;
+	        this.onUpdate = null;
+	    }
+
+	    clone() {
+	        return new this.constructor().copy(this);
+	    }
+
+	    dispose() {
+	        this.dispatchEvent({type: 'dispose'});
+	    }
+
+	    set needsUpdate(value) {
+	        if (value === true) this.version++;
+	    }
+	}
+
+	class CanvasTexture extends Texture {
+	    constructor(image) {
+	        super(image);
+	        this.needsUpdate = true;
+	    }
+	}
+
+	class Material {
+	    constructor() {
+	        this.isMaterial = true;
+	        this.color = new Color(0xffffff);
+	        this.vertexColors = NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
+
+	        this.blending = NormalBlending;
+	        this.side = FrontSide;
+	        this.opacity = 1;
+	        this.transparent = false;
+
+	        this.overdraw = 0; // Overdrawn pixels (typically between 0 and 1) for fixing antialiasing gaps in CanvasRenderer
+	        this.visible = true;
+
+	        this.needsUpdate = true;
+	    }
+
+	    setValues(values) {
+	        if (values === undefined) return;
+	        for (let key in values) {
+	            let newValue = values[key];
+	            if (newValue === undefined) {
+	                console.warn("THREE.Material: '" + key + "' parameter is undefined.");
+	                continue;
+	            }
+	            let currentValue = this[key];
+	            if (currentValue === undefined) {
+	                console.warn("THREE." + this.type + ": '" + key + "' is not a property of this material.");
+	                continue;
+	            }
+
+	            if (currentValue && currentValue.isColor) {
+	                currentValue.set(newValue);
+	            }
+	            else if (key === 'overdraw') {
+	                // ensure overdraw is backwards-compatible with legacy boolean type
+	                this[key] = Number(newValue);
+	            }
+	            else {
+	                this[key] = newValue;
+	            }
+	        }
+	    }
+	}
+
+	class MeshBasicMaterial extends Material {
+	    constructor(parameters) {
+	        super();
+	        this.isMeshBasicMaterial = true;
+	        this.type = 'MeshBasicMaterial';
+
+	        this.map = null;    // 颜色贴图
+
+	        this.wireframe = false; // 渲染为线框
+	        this.wireframeLinewidth = 1;
+	        this.wireframeLinecap = 'round';
+	        this.wireframeLinejoin = 'round';
+
+	        this.setValues(parameters);
+	    }
+	}
+
+	class SpriteMaterial extends Material {
+	    constructor(parameters) {
+	        super();
+	        this.isSpriteMaterial = true;
+	        this.rotation = 0;
+	        this.color = new Color(0xffffff);
+	        this.map = null;
+
+	        this.setValues(parameters);
+	    }
+	}
+
+	class SpriteCanvasMaterial extends Material {
+	    constructor(parameters) {
+	        super();
+	        this.isSpriteCanvasMaterial = true;
+	        this.color = new Color(0xffffff);
+	        this.program = function () {};
+
+	        this.setValues(parameters);
+	    }
+	}
+
 	/**
 	 * 三角面片
 	 */
@@ -2115,6 +2531,34 @@
 	        this.materialIndex = source.materialIndex;
 
 	        return this;
+	    }
+	}
+
+	class Group extends Object3D {
+	    constructor() {
+	        super();
+	        this.isGroup = true;
+	    }
+	}
+
+	class Mesh extends Object3D {
+	    constructor(geometry, material) {
+	        super();
+	        this.isMesh = true;
+	        this.geometry = geometry;
+	        this.material = material;
+	    }
+	}
+
+	class Sprite extends Object3D {
+	    constructor(material) {
+	        super();
+	        this.isSprite = true;
+	        this.material = material;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.material).copy(this);
 	    }
 	}
 
@@ -2294,8 +2738,8 @@
 
 	function arrayMax(array) {
 	    if (array.length === 0) return -Infinity;
-	    var max = array[0];
-	    for (var i = 1, l = array.length; i < l; ++i) {
+	    let max = array[0];
+	    for (let i = 1, l = array.length; i < l; ++i) {
 	        if (array[i] > max) max = array[i];
 	    }
 	    return max;
@@ -2601,447 +3045,6 @@
 	            // update total number of vertices
 	            numberOfVertices += vertexCounter;
 	        }
-	    }
-	}
-
-	const REVISION = '1';
-	// 面法向量
-	let FrontSide = 0;
-	let BackSide = 1;
-	let DoubleSide = 2;
-	// 作色点或面
-	let NoColors = 0;
-	let FaceColors = 1;
-	let VertexColors = 2;
-	// canvas混合模式
-	let NoBlending = 0;
-	let NormalBlending = 1;
-	let AdditiveBlending = 2;
-	let SubtractiveBlending = 3;
-	let MultiplyBlending = 4;
-	let CustomBlending = 5;
-	// 纹理映射
-	let UVMapping = 300;
-
-	class Vector4 {
-	    constructor(x = 0, y = 0, z = 0, w = 1) {
-	        this.isVector4 = true;
-	        this.x = x;
-	        this.y = y;
-	        this.z = z;
-	        this.w = w;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y, this.z, this.w);
-	    }
-
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
-	        this.z = v.z;
-	        this.w = (v.w !== undefined) ? v.w : 1;
-
-	        return this;
-	    }
-
-	    set(x, y, z, w) {
-	        this.x = x;
-	        this.y = y;
-	        this.z = z;
-	        this.w = w;
-
-	        return this;
-	    }
-
-	    setScalar(scalar) {
-	        this.x = scalar;
-	        this.y = scalar;
-	        this.z = scalar;
-	        this.w = scalar;
-
-	        return this;
-	    }
-
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        this.z += v.z;
-	        this.w += v.w;
-
-	        return this;
-	    }
-
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        this.z += s;
-	        this.w += s;
-
-	        return this;
-	    }
-
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        this.z = a.z + b.z;
-	        this.w = a.w + b.w;
-
-	        return this;
-	    }
-
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        this.z -= v.z;
-	        this.w -= v.w;
-
-	        return this;
-	    }
-
-	    subScalar(s) {
-	        this.x -= s;
-	        this.y -= s;
-	        this.z -= s;
-	        this.w -= s;
-
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        this.z = a.z - b.z;
-	        this.w = a.w - b.w;
-
-	        return this;
-	    }
-
-	    multiplyScalar(scalar) {
-	        if (isFinite(scalar)) {
-	            this.x *= scalar;
-	            this.y *= scalar;
-	            this.z *= scalar;
-	            this.w *= scalar;
-	        } else {
-	            this.x = 0;
-	            this.y = 0;
-	            this.z = 0;
-	            this.w = 0;
-	        }
-	        return this;
-	    }
-
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
-	    applyMatrix4(m) {
-	        let x = this.x, y = this.y, z = this.z, w = this.w;
-	        let e = m.elements;
-
-	        this.x = e[0] * x + e[4] * y + e[8] * z + e[12] * w;
-	        this.y = e[1] * x + e[5] * y + e[9] * z + e[13] * w;
-	        this.z = e[2] * x + e[6] * y + e[10] * z + e[14] * w;
-	        this.w = e[3] * x + e[7] * y + e[11] * z + e[15] * w;
-
-	        return this;
-	    }
-
-	    normalize() {
-	        return this.divideScalar(this.length());
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
-	    }
-
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
-	    }
-
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
-	    }
-
-	    equals(v) {
-	        return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z) && (v.w === this.w));
-	    }
-	}
-
-	class Camera extends Object3D {
-	    constructor() {
-	        super();
-	        this.isCamera = true;
-
-	        // 投影矩阵
-	        this.projectionMatrix = new Matrix4$1();
-	        // 投影矩阵逆矩阵
-	        this.projectionMatrixInverse = new Matrix4$1();
-
-	        // matrixWorld逆矩阵
-	        this.matrixWorldInverse = new Matrix4$1();
-	    }
-
-	    // 重写父类
-	    updateMatrixWorld(force) {
-	        if (this.matrixAutoUpdate) this.updateMatrix();
-	        if (this.matrixWorldNeedsUpdate || force) {
-	            if (this.parent === null) {
-	                this.matrixWorld.copy(this.matrix);
-	            } else {
-	                this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
-	            }
-	            this.matrixWorldNeedsUpdate = false;
-	            force = true;
-	        }
-
-	        // update children
-
-	        let children = this.children;
-	        for (let i = 0, l = children.length; i < l; i++) {
-	            children[i].updateMatrixWorld(force);
-	        }
-
-	        // 更新逆矩阵
-	        this.matrixWorldInverse.getInverse( this.matrixWorld );
-	    }
-	}
-
-	class PerspectiveCamera extends Camera {
-	    constructor(fov = 50, aspect = 1, near = 0.1, far = 2000) {
-	        super();
-	        this.type = 'PerspectiveCamera';
-	        this.fov = fov;
-	        this.zoom = 1;
-
-	        this.near = near;
-	        this.far = far;
-
-	        this.aspect = aspect;
-	        this.view = null;
-
-	        this.updateProjectionMatrix();
-	    }
-
-	    // 更新相机投影矩阵
-	    updateProjectionMatrix() {
-	        let near = this.near,
-	            top = near * Math.tan(_Math.DEG2RAD * 0.5 * this.fov) / this.zoom,
-	            height = 2 * top,
-	            width = this.aspect * height,
-	            left = -width / 2;
-
-	        this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.far);
-	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
-	    }
-	}
-
-	class OrthographicCamera extends Camera {
-	    constructor(left, right, top, bottom, near = 0.1, far = 2000) {
-	        super();
-	        this.type = 'OrthographicCamera';
-	        this.zoom = 1;
-	        this.view = null;
-
-	        this.left = left;
-	        this.right = right;
-	        this.top = top;
-	        this.bottom = bottom;
-
-	        this.near = near;
-	        this.far = far;
-
-	        this.updateProjectionMatrix();
-	    }
-
-	    updateProjectionMatrix() {
-	        let dx = (this.right - this.left) / (2 * this.zoom);
-	        let dy = (this.top - this.bottom) / (2 * this.zoom);
-	        let cx = (this.right + this.left) / 2;
-	        let cy = (this.top + this.bottom) / 2;
-
-	        let left = cx - dx;
-	        let right = cx + dx;
-	        let top = cy + dy;
-	        let bottom = cy - dy;
-
-	        if (this.view !== null && this.view.enabled) {
-	            let zoomW = this.zoom / (this.view.width / this.view.fullWidth);
-	            let zoomH = this.zoom / (this.view.height / this.view.fullHeight);
-	            let scaleW = (this.right - this.left) / this.view.width;
-	            let scaleH = (this.top - this.bottom) / this.view.height;
-
-	            left += scaleW * (this.view.offsetX / zoomW);
-	            right = left + scaleW * (this.view.width / zoomW);
-	            top -= scaleH * (this.view.offsetY / zoomH);
-	            bottom = top - scaleH * (this.view.height / zoomH);
-	        }
-
-	        this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far);
-	    }
-	}
-
-	class Scene extends Object3D {
-	    constructor() {
-	        super();
-	        this.autoUpdate = true;
-	        this.background = null;
-	    }
-	}
-
-	let textureId = 0;
-
-	class Texture extends EventDispatcher {
-	    constructor(image) {
-	        super();
-	        this.id = textureId++;
-	        this.uuid = _Math.generateUUID();
-	        this.image = image;
-	        this.mapping = UVMapping;   // 纹理映射
-
-	        this.offset = new Vector2(0, 0);
-	        this.repeat = new Vector2(1, 1);
-	        this.center = new Vector2(0, 0);
-	        this.rotation = 0;
-
-	        this.matrixAutoUpdate = true;
-	        this.matrix = new Matrix3();
-
-	        this.version = 0;
-	        this.onUpdate = null;
-	    }
-
-	    clone() {
-	        return new this.constructor().copy(this);
-	    }
-
-	    dispose() {
-	        this.dispatchEvent({type: 'dispose'});
-	    }
-
-	    set needsUpdate(value) {
-	        if (value === true) this.version++;
-	    }
-	}
-
-	class CanvasTexture extends Texture {
-	    constructor(image) {
-	        super(image);
-	        this.needsUpdate = true;
-	    }
-	}
-
-	class Material {
-	    constructor() {
-	        this.isMaterial = true;
-	        this.color = new Color(0xffffff);
-	        this.vertexColors = NoColors; // THREE.NoColors=1, THREE.VertexColors=2, THREE.FaceColors=3
-
-	        this.blending = NormalBlending;
-	        this.side = FrontSide;
-	        this.opacity = 1;
-	        this.transparent = false;
-
-	        this.overdraw = 0; // Overdrawn pixels (typically between 0 and 1) for fixing antialiasing gaps in CanvasRenderer
-	        this.visible = true;
-
-	        this.needsUpdate = true;
-	    }
-
-	    setValues(values) {
-	        if (values === undefined) return;
-	        for (let key in values) {
-	            let newValue = values[key];
-	            if (newValue === undefined) {
-	                console.warn("THREE.Material: '" + key + "' parameter is undefined.");
-	                continue;
-	            }
-	            let currentValue = this[key];
-	            if (currentValue === undefined) {
-	                console.warn("THREE." + this.type + ": '" + key + "' is not a property of this material.");
-	                continue;
-	            }
-
-	            if (currentValue && currentValue.isColor) {
-	                currentValue.set(newValue);
-	            }
-	            else if (key === 'overdraw') {
-	                // ensure overdraw is backwards-compatible with legacy boolean type
-	                this[key] = Number(newValue);
-	            }
-	            else {
-	                this[key] = newValue;
-	            }
-	        }
-	    }
-	}
-
-	class MeshBasicMaterial extends Material {
-	    constructor(parameters) {
-	        super();
-	        this.isMeshBasicMaterial = true;
-	        this.type = 'MeshBasicMaterial';
-
-	        this.map = null;    // 颜色贴图
-
-	        this.wireframe = false; // 渲染为线框
-	        this.wireframeLinewidth = 1;
-	        this.wireframeLinecap = 'round';
-	        this.wireframeLinejoin = 'round';
-
-	        this.setValues(parameters);
-	    }
-	}
-
-	class SpriteMaterial extends Material {
-	    constructor(parameters) {
-	        super();
-	        this.isSpriteMaterial = true;
-	        this.rotation = 0;
-	        this.color = new Color(0xffffff);
-	        this.map = null;
-
-	        this.setValues(parameters);
-	    }
-	}
-
-	class SpriteCanvasMaterial extends Material {
-	    constructor(parameters) {
-	        super();
-	        this.isSpriteCanvasMaterial = true;
-	        this.color = new Color(0xffffff);
-	        this.program = function () {};
-
-	        this.setValues(parameters);
-	    }
-	}
-
-	class Group extends Object3D {
-	    constructor() {
-	        super();
-	        this.isGroup = true;
-	    }
-	}
-
-	class Mesh extends Object3D {
-	    constructor(geometry, material) {
-	        super();
-	        this.isMesh = true;
-	        this.geometry = geometry;
-	        this.material = material;
-	    }
-	}
-
-	class Sprite extends Object3D {
-	    constructor(material) {
-	        super();
-	        this.isSprite = true;
-	        this.material = material;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.material).copy(this);
 	    }
 	}
 
@@ -3621,6 +3624,7 @@
 	        this.uvs = [];
 	    }
 
+	    // 设置对象（BufferGeometry支持）
 	    setObject(value) {
 	        this.object = value;
 	        this.material = value.material;
@@ -3749,6 +3753,11 @@
 	        }
 	    }
 
+	    // 添加 uv 点
+	    pushUv(x, y) {
+	        this.uvs.push(x, y);
+	    }
+
 	    checkTriangleVisibility(v1, v2, v3) {
 	        if (v1.visible === true || v2.visible === true || v3.visible === true) return true;
 
@@ -3761,10 +3770,6 @@
 
 	    checkBackfaceCulling(v1, v2, v3) {
 	        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
-	    }
-
-	    pushUv(x, y) {
-	        this.uvs.push(x, y);
 	    }
 	}
 
@@ -4421,7 +4426,7 @@
 
 	    patternPath(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, texture) {
 
-	        var pattern = _patterns[texture.id];
+	        let pattern = _patterns[texture.id];
 
 	        if (pattern === undefined || pattern.version !== texture.version) {
 
@@ -4444,7 +4449,7 @@
 
 	        // http://extremelysatisfactorytotalitarianism.com/blog/?p=2120
 
-	        var a, b, c, d, e, f, det, idet,
+	        let a, b, c, d, e, f, det, idet,
 	            offsetX = texture.offset.x / texture.repeat.x,
 	            offsetY = texture.offset.y / texture.repeat.y,
 	            width = texture.image.width * texture.repeat.x,
@@ -4551,6 +4556,40 @@
 	    }
 	}
 
+	class ImageLoader {
+	    load(url, onLoad) {
+	        let image = new Image();
+	        image.addEventListener('load', function () {
+	            if (onLoad !== undefined) {
+	                onLoad(this);
+	            }
+	        }, false);
+	        image.src = url;
+	        return image;
+	    }
+	}
+
+	class TextureLoader {
+	    load(url, onLoad) {
+	        let texture = new Texture();
+
+	        let loader = new ImageLoader();
+	        loader.load(url, function (image) {
+	            texture.image = image;
+	            texture.needsUpdate = true;
+	            // JPEGs can't have an alpha channel, so memory can be saved by storing them as RGB.
+	            let isJPEG = url.search(/\.(jpg|jpeg)$/) > 0 || url.search(/^data\:image\/jpeg/) === 0;
+	            texture.format = isJPEG ? RGBFormat : RGBAFormat;
+
+	            if (onLoad !== undefined) {
+	                onLoad(texture);
+	            }
+	        });
+
+	        return texture;
+	    }
+	}
+
 	exports.Math = _Math;
 	exports.Object3D = Object3D;
 	exports.Euler = Euler;
@@ -4587,6 +4626,7 @@
 	exports.RenderableFace = RenderableFace;
 	exports.Projector = Projector;
 	exports.CanvasRenderer = CanvasRenderer;
+	exports.TextureLoader = TextureLoader;
 	exports.REVISION = REVISION;
 	exports.FrontSide = FrontSide;
 	exports.BackSide = BackSide;
@@ -4601,6 +4641,8 @@
 	exports.MultiplyBlending = MultiplyBlending;
 	exports.CustomBlending = CustomBlending;
 	exports.UVMapping = UVMapping;
+	exports.RGBFormat = RGBFormat;
+	exports.RGBAFormat = RGBAFormat;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

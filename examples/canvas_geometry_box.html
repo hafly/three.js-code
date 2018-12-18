@@ -41,18 +41,15 @@
         scene = new THREE.Scene();
 
         // box
-        var geometry = new THREE.BoxBufferGeometry(200, 200, 200);
-        mesh = new THREE.Mesh(geometry,new THREE.MeshBasicMaterial());
-        scene.add(mesh);
+        var texture = new THREE.TextureLoader().load( 'textures/crate.gif' );
 
-        var image = new Image();
-        image.src = 'textures/crate.gif';
-        image.onload = function () {
-            var texture = new THREE.Texture(image);
-            texture.needsUpdate = true;
-            var material = new THREE.MeshBasicMaterial({map: texture});
-            mesh.material = material;
-        }
+        var geometry = new THREE.BoxBufferGeometry( 200, 200, 200 );
+        var material = new THREE.MeshBasicMaterial( { map: texture } );
+
+        mesh = new THREE.Mesh( geometry, material );
+        scene.add( mesh );
+
+
 
         // renderer
         renderer = new THREE.CanvasRenderer();

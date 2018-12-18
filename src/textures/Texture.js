@@ -7,7 +7,7 @@ import {UVMapping} from "../constants";
 let textureId = 0;
 
 class Texture extends EventDispatcher {
-    constructor(image) {
+    constructor(image = undefined) {
         super();
         this.id = textureId++;
         this.uuid = _Math.generateUUID();

@@ -16,3 +16,6 @@ export let MultiplyBlending = 4;
 export let CustomBlending = 5;
 // 纹理映射
 export let UVMapping = 300;
+
+export let RGBFormat = 1022;
+export let RGBAFormat = 1023;

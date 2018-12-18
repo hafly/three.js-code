@@ -1,5 +1,3 @@
-import {BoxGeometry} from "./geometries/BoxGeometry";
-
 export * from "./constants.js";
 export {_Math as Math} from "./math/Math";
 export {Object3D} from "./core/Object3D";
@@ -30,3 +28,4 @@ export {CylinderGeometry, CylinderBufferGeometry} from "./geometries/CylinderGeo
 export {ConeGeometry, ConeBufferGeometry} from "./geometries/ConeGeometry";
 export {RenderableObject, RenderableFace, Projector} from "./renderers/Projector";
 export {CanvasRenderer} from "./renderers/CanvasRenderer";
+export {TextureLoader} from "./loaders/TextureLoader";
