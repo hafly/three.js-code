@@ -5,16 +5,16 @@
 
 ### 已实现功能
 
-1.UV贴图  
-2.图片加载器  
+1.顶点作色  
+2.线条渲染  
 
 ### 准备实现功能
 
 1.添加平面几何体模型  
-2.顶点作色  
+
 
 ### Change Log
 
-2018/12/18 - r4
+2018/12/19 - r5
 
 [releases](https://github.com/hafly/three.js-test/releases)
