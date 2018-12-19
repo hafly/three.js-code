@@ -1563,6 +1563,42 @@
 	            children[i].traverseVisible(callback);
 	        }
 	    }
+
+	    clone(recursive) {
+	        return new this.constructor().copy(this, recursive);
+	    }
+
+	    copy(source, recursive) {
+	        if (recursive === undefined) recursive = true;
+
+	        this.name = source.name;
+
+	        this.up.copy(source.up);
+
+	        this.position.copy(source.position);
+	        this.quaternion.copy(source.quaternion);
+	        this.scale.copy(source.scale);
+
+	        this.matrix.copy(source.matrix);
+	        this.matrixWorld.copy(source.matrixWorld);
+
+	        this.matrixAutoUpdate = source.matrixAutoUpdate;
+	        this.matrixWorldNeedsUpdate = source.matrixWorldNeedsUpdate;
+
+	        this.visible = source.visible;
+	        this.renderOrder = source.renderOrder;
+
+	        this.userData = JSON.parse(JSON.stringify(source.userData));
+
+	        if (recursive === true) {
+	            for (let i = 0; i < source.children.length; i++) {
+	                let child = source.children[i];
+	                this.add(child.clone());
+	            }
+	        }
+
+	        return this;
+	    }
 	}
 
 	Object3D.DefaultUp = new Vector3(0, 1, 0);
@@ -1868,6 +1904,15 @@
 
 	    dot(v) {
 	        return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
+	    }
+
+	    lerp(v, alpha) {
+	        this.x += (v.x - this.x) * alpha;
+	        this.y += (v.y - this.y) * alpha;
+	        this.z += (v.z - this.z) * alpha;
+	        this.w += (v.w - this.w) * alpha;
+
+	        return this;
 	    }
 
 	    equals(v) {
@@ -2505,6 +2550,22 @@
 	    }
 	}
 
+	class LineBasicMaterial extends Material {
+	    constructor(parameters) {
+	        super();
+	        this.isLineBasicMaterial = true;
+	        this.type = 'LineBasicMaterial';
+
+	        this.color = new Color(0xffffff);
+
+	        this.linewidth = 1;
+	        this.linecap = 'round';
+	        this.linejoin = 'round';
+
+	        this.setValues(parameters);
+	    }
+	}
+
 	/**
 	 * 三角面片
 	 */
@@ -2559,180 +2620,6 @@
 
 	    clone() {
 	        return new this.constructor(this.material).copy(this);
-	    }
-	}
-
-	/**
-	 * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）
-	 */
-
-	let geometryId = 0;// Geometry uses even numbers as Id
-	class Geometry {
-	    constructor() {
-	        this.id = geometryId += 2;
-	        this.uuid = _Math.generateUUID();
-	        this.type = 'Geometry';
-	        this.isGeometry = true;
-
-	        this.vertices = []; // 顶点
-	        this.faces = [];    // 面
-	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
-	    }
-
-	    applyMatrix(matrix) {
-	        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
-
-	        for (let i = 0; i < this.vertices.length; i++) {
-	            let vertex = this.vertices[i];
-	            vertex.applyMatrix4(matrix);
-	        }
-
-	        for (let i = 0; i < this.faces.length; i++) {
-	            let face = this.faces[i];
-	            // face.normal.applyMatrix3(normalMatrix).normalize();
-	        }
-
-	        return this;
-	    }
-
-	    rotateX(angle) {
-	        let m1 = new Matrix4$1();
-	        m1.makeRotationX(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateY(angle) {
-	        let m1 = new Matrix4$1();
-	        m1.makeRotationY(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateZ(angle) {
-	        let m1 = new Matrix4$1();
-	        m1.makeRotationZ(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    translate(x, y, z) {
-	        let m1 = new Matrix4$1();
-	        m1.makeTranslation(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    scale(x, y, z) {
-	        let m1 = new Matrix4$1();
-	        m1.makeScale(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    lookAt(vector) {
-	        let obj = new Object3D();
-	        obj.lookAt(vector);
-	        obj.updateMatrix();
-	        this.applyMatrix(obj.matrix);
-	    }
-
-	    fromBufferGeometry(geometry) {
-	        let scope = this;
-	        let indices = geometry.index !== null ? geometry.index.array : undefined;
-	        let attributes = geometry.attributes;
-
-	        let positions = attributes.position.array;
-	        let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
-
-	        let tempUVs = [];
-
-	        for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
-	            scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
-
-	            if (uvs !== undefined) {
-	                tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
-	            }
-	        }
-
-	        if (indices !== undefined) {
-	            for (let i = 0; i < indices.length; i += 3) {
-	                addFace(indices[i], indices[i + 1], indices[i + 2]);
-	            }
-	        } else {
-	            for (let i = 0; i < positions.length / 3; i += 3) {
-	                addFace(i, i + 1, i + 2);
-	            }
-	        }
-
-	        function addFace(a, b, c, materialIndex) {
-	            let face = new Face3(a, b, c, materialIndex);
-	            scope.faces.push(face);
-
-	            if (uvs !== undefined) {
-	                scope.faceVertexUvs[0].push([tempUVs[a].clone(), tempUVs[b].clone(), tempUVs[c].clone()]);
-	            }
-	        }
-	    }
-
-	    mergeVertices() {
-	        let verticesMap = {}; // Hashmap for looking up vertices by position coordinates (and making sure they are unique)
-	        let unique = [], changes = [];
-
-	        let v, key;
-	        let precisionPoints = 4; // number of decimal points, e.g. 4 for epsilon of 0.0001
-	        let precision = Math.pow(10, precisionPoints);
-	        let i, il, face;
-	        let indices;
-
-	        for (i = 0, il = this.vertices.length; i < il; i++) {
-	            v = this.vertices[i];
-	            key = Math.round(v.x * precision) + '_' + Math.round(v.y * precision) + '_' + Math.round(v.z * precision);
-
-	            if (verticesMap[key] === undefined) {
-	                verticesMap[key] = i;
-	                unique.push(this.vertices[i]);
-	                changes[i] = unique.length - 1;
-	            } else {
-	                //console.log('Duplicate vertex found. ', i, ' could be using ', verticesMap[key]);
-	                changes[i] = changes[verticesMap[key]];
-	            }
-	        }
-
-	        // if faces are completely degenerate after merging vertices, we
-	        // have to remove them from the geometry.
-	        let faceIndicesToRemove = [];
-
-	        for (i = 0, il = this.faces.length; i < il; i++) {
-
-	            face = this.faces[i];
-
-	            face.a = changes[face.a];
-	            face.b = changes[face.b];
-	            face.c = changes[face.c];
-
-	            indices = [face.a, face.b, face.c];
-
-	            // if any duplicate vertices are found in a Face3
-	            // we have to remove the face as nothing can be saved
-	            for (let n = 0; n < 3; n++) {
-	                if (indices[n] === indices[(n + 1) % 3]) {
-	                    faceIndicesToRemove.push(i);
-	                    break;
-	                }
-	            }
-	        }
-
-	        for (i = faceIndicesToRemove.length - 1; i >= 0; i--) {
-	            let idx = faceIndicesToRemove[i];
-
-	            this.faces.splice(idx, 1);
-	        }
-
-	        // Use unique set of vertices
-	        let diff = this.vertices.length - unique.length;
-	        this.vertices = unique;
-	        return diff;
 	    }
 	}
 
@@ -2902,6 +2789,196 @@
 	        obj.lookAt(vector);
 	        obj.updateMatrix();
 	        this.applyMatrix(obj.matrix);
+	    }
+	}
+
+	class Line extends Object3D {
+	    constructor(geometry = new BufferGeometry(), material = new LineBasicMaterial({color: 0x000000})) {
+	        super();
+	        this.isLine = true;
+	        this.type = 'Line';
+	        this.geometry = geometry;
+	        this.material = material;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.geometry, this.material).copy(this);
+	    }
+	}
+
+	/**
+	 * Geometry 是对 BufferGeometry 的用户友好替代。
+	 * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）比起 BufferGeometry 更容易读写，但是运行效率不如有类型的队列。
+	 * 对于大型工程或正式工程，推荐采用 BufferGeometry
+	 */
+	let geometryId = 0;// Geometry uses even numbers as Id
+	class Geometry {
+	    constructor() {
+	        this.id = geometryId += 2;
+	        this.uuid = _Math.generateUUID();
+	        this.type = 'Geometry';
+	        this.isGeometry = true;
+
+	        this.vertices = []; // 顶点
+	        this.colors=[];     // 顶点 colors 队列
+	        this.faces = [];    // 面
+	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
+	    }
+
+	    applyMatrix(matrix) {
+	        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
+
+	        for (let i = 0; i < this.vertices.length; i++) {
+	            let vertex = this.vertices[i];
+	            vertex.applyMatrix4(matrix);
+	        }
+
+	        for (let i = 0; i < this.faces.length; i++) {
+	            let face = this.faces[i];
+	            // face.normal.applyMatrix3(normalMatrix).normalize();
+	        }
+
+	        return this;
+	    }
+
+	    rotateX(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationX(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    rotateY(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationY(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    rotateZ(angle) {
+	        let m1 = new Matrix4$1();
+	        m1.makeRotationZ(angle);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    translate(x, y, z) {
+	        let m1 = new Matrix4$1();
+	        m1.makeTranslation(x, y, z);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    scale(x, y, z) {
+	        let m1 = new Matrix4$1();
+	        m1.makeScale(x, y, z);
+	        this.applyMatrix(m1);
+	        return this;
+	    }
+
+	    lookAt(vector) {
+	        let obj = new Object3D();
+	        obj.lookAt(vector);
+	        obj.updateMatrix();
+	        this.applyMatrix(obj.matrix);
+	    }
+
+	    fromBufferGeometry(geometry) {
+	        let scope = this;
+	        let indices = geometry.index !== null ? geometry.index.array : undefined;
+	        let attributes = geometry.attributes;
+
+	        let positions = attributes.position.array;
+	        let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
+
+	        let tempUVs = [];
+
+	        for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
+	            scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+
+	            if (uvs !== undefined) {
+	                tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
+	            }
+	        }
+
+	        if (indices !== undefined) {
+	            for (let i = 0; i < indices.length; i += 3) {
+	                addFace(indices[i], indices[i + 1], indices[i + 2]);
+	            }
+	        } else {
+	            for (let i = 0; i < positions.length / 3; i += 3) {
+	                addFace(i, i + 1, i + 2);
+	            }
+	        }
+
+	        function addFace(a, b, c, materialIndex) {
+	            let face = new Face3(a, b, c, materialIndex);
+	            scope.faces.push(face);
+
+	            if (uvs !== undefined) {
+	                scope.faceVertexUvs[0].push([tempUVs[a].clone(), tempUVs[b].clone(), tempUVs[c].clone()]);
+	            }
+	        }
+	    }
+
+	    mergeVertices() {
+	        let verticesMap = {}; // Hashmap for looking up vertices by position coordinates (and making sure they are unique)
+	        let unique = [], changes = [];
+
+	        let v, key;
+	        let precisionPoints = 4; // number of decimal points, e.g. 4 for epsilon of 0.0001
+	        let precision = Math.pow(10, precisionPoints);
+	        let i, il, face;
+	        let indices;
+
+	        for (i = 0, il = this.vertices.length; i < il; i++) {
+	            v = this.vertices[i];
+	            key = Math.round(v.x * precision) + '_' + Math.round(v.y * precision) + '_' + Math.round(v.z * precision);
+
+	            if (verticesMap[key] === undefined) {
+	                verticesMap[key] = i;
+	                unique.push(this.vertices[i]);
+	                changes[i] = unique.length - 1;
+	            } else {
+	                //console.log('Duplicate vertex found. ', i, ' could be using ', verticesMap[key]);
+	                changes[i] = changes[verticesMap[key]];
+	            }
+	        }
+
+	        // if faces are completely degenerate after merging vertices, we
+	        // have to remove them from the geometry.
+	        let faceIndicesToRemove = [];
+
+	        for (i = 0, il = this.faces.length; i < il; i++) {
+
+	            face = this.faces[i];
+
+	            face.a = changes[face.a];
+	            face.b = changes[face.b];
+	            face.c = changes[face.c];
+
+	            indices = [face.a, face.b, face.c];
+
+	            // if any duplicate vertices are found in a Face3
+	            // we have to remove the face as nothing can be saved
+	            for (let n = 0; n < 3; n++) {
+	                if (indices[n] === indices[(n + 1) % 3]) {
+	                    faceIndicesToRemove.push(i);
+	                    break;
+	                }
+	            }
+	        }
+
+	        for (i = faceIndicesToRemove.length - 1; i >= 0; i--) {
+	            let idx = faceIndicesToRemove[i];
+
+	            this.faces.splice(idx, 1);
+	        }
+
+	        // Use unique set of vertices
+	        let diff = this.vertices.length - unique.length;
+	        this.vertices = unique;
+	        return diff;
 	    }
 	}
 
@@ -3598,20 +3675,24 @@
 	}
 
 	// 存储对象池
-	let _object, _face, _vertex, _sprite,
-	    _objectPool = [], _facePool = [], _vertexPool = [], _spritePool = [],
-	    _objectCount = 0, _faceCount = 0, _vertexCount = 0, _spriteCount = 0;
+	let _object, _face, _vertex, _sprite, _line,
+	    _objectPool = [], _facePool = [], _vertexPool = [], _spritePool = [], _linePool = [],
+	    _objectCount = 0, _faceCount = 0, _vertexCount = 0, _spriteCount = 0, _lineCount = 0;
 
 	let _vector3 = new Vector3(),
 	    _vector4 = new Vector4(),
-	    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)),
-	    _boundingBox = new Box3();
+	    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)), // 修剪盒子
+	    _boundingBox = new Box3();  // 包围盒子
+
 	let _points3 = new Array(3);
 
 	let _viewMatrix = new Matrix4$1(),
 	    _viewProjectionMatrix = new Matrix4$1();
 
-	let _modelMatrix;
+	let _modelMatrix,
+	    _modelViewProjectionMatrix = new Matrix4$1();
+	let _clippedVertex1PositionScreen = new Vector4(),
+	    _clippedVertex2PositionScreen = new Vector4();
 
 	// 渲染对象
 	let _renderData = {objects: [], elements: []};
@@ -3636,7 +3717,7 @@
 	    projectObject(object) {
 	        let self = this;
 	        if (object.visible === false) return;
-	        if (object.isMesh) {
+	        if (object.isMesh || object.isLine) {
 	            self.pushObject(object);
 	        }
 	        else if (object.isSprite) {
@@ -3777,9 +3858,11 @@
 
 	class Projector {
 	    projectScene(scene, camera, sortObjects, sortElements) {
-	        let self = this;
 	        _objectCount = 0;
 	        _faceCount = 0;
+	        _spriteCount = 0;
+	        _lineCount = 0;
+
 	        _renderData.elements = [];
 	        _renderData.objects = [];
 
@@ -3788,7 +3871,7 @@
 	        renderList.projectObject(scene);
 
 	        if (sortObjects === true) {
-	            _renderData.objects.sort(self.painterSort);
+	            _renderData.objects.sort(this.painterSort);
 	        }
 
 	        let objects = _renderData.objects;
@@ -3801,7 +3884,7 @@
 	            _vertexCount = 0;
 	            _modelMatrix = object.matrixWorld;
 
-	            if (object.isMesh) {
+	            if (object.isMesh === true) {
 	                // BufferGeometry
 	                if (geometry.isBufferGeometry === true) {
 	                    let attributes = geometry.attributes;
@@ -3902,15 +3985,69 @@
 	                    }
 	                }
 	            }
-	            else if (object.isSprite) {
+	            else if (object.isSprite === true) {
 	                _vector4.set(_modelMatrix.elements[12], _modelMatrix.elements[13], _modelMatrix.elements[14], 1);
 	                _vector4.applyMatrix4(_viewProjectionMatrix);
 	                renderList.pushPoint(_vector4, object, camera);
 	            }
+	            else if (object.isLine === true) {
+	                if (geometry.isBufferGeometry === true) ;
+	                else if (geometry.isGeometry === true) {
+	                    let vertices = object.geometry.vertices;
+
+	                    if (vertices.length === 0) continue;
+
+	                    let v1 = getNextVertexInPool();
+	                    v1.positionScreen.copy(vertices[0]).applyMatrix4(_modelViewProjectionMatrix);
+
+	                    let step = 1;
+
+	                    for (let v = 1, vl = vertices.length; v < vl; v++) {
+	                        v1 = getNextVertexInPool();
+	                        v1.positionScreen.copy(vertices[v]).applyMatrix4(_modelViewProjectionMatrix);
+
+	                        if ((v + 1) % step > 0) continue;
+
+	                        let v2 = _vertexPool[_vertexCount - 2];
+
+	                        _clippedVertex1PositionScreen.copy(v1.positionScreen);
+	                        _clippedVertex2PositionScreen.copy(v2.positionScreen);
+
+	                        if (this.clipLine(_clippedVertex1PositionScreen, _clippedVertex2PositionScreen) === true) {
+
+	                            // Perform the perspective divide
+	                            _clippedVertex1PositionScreen.multiplyScalar(1 / _clippedVertex1PositionScreen.w);
+	                            _clippedVertex2PositionScreen.multiplyScalar(1 / _clippedVertex2PositionScreen.w);
+
+	                            _line = getNextLineInPool();
+
+	                            _line.id = object.id;
+	                            _line.v1.positionScreen.copy(_clippedVertex1PositionScreen);
+	                            _line.v2.positionScreen.copy(_clippedVertex2PositionScreen);
+
+	                            _line.z = Math.max(_clippedVertex1PositionScreen.z, _clippedVertex2PositionScreen.z);
+	                            _line.renderOrder = object.renderOrder;
+
+	                            _line.material = object.material;
+
+	                            if (object.material.vertexColors === VertexColors) {
+
+	                                _line.vertexColors[0].copy(object.geometry.colors[v]);
+	                                _line.vertexColors[1].copy(object.geometry.colors[v - 1]);
+
+	                            }
+
+	                            _renderData.elements.push(_line);
+
+	                        }
+
+	                    }
+	                }
+	            }
 	        }
 
 	        if (sortElements === true) {
-	            _renderData.elements.sort(self.painterSort);
+	            _renderData.elements.sort(this.painterSort);
 	        }
 	        return _renderData;
 	    }
@@ -3925,6 +4062,77 @@
 	        } else {
 	            return 0;
 	        }
+	    }
+
+	    clipLine(s1, s2) {
+
+	        let alpha1 = 0, alpha2 = 1,
+
+	            // Calculate the boundary coordinate of each vertex for the near and far clip planes,
+	            // Z = -1 and Z = +1, respectively.
+
+	            bc1near = s1.z + s1.w,
+	            bc2near = s2.z + s2.w,
+	            bc1far = -s1.z + s1.w,
+	            bc2far = -s2.z + s2.w;
+
+	        if (bc1near >= 0 && bc2near >= 0 && bc1far >= 0 && bc2far >= 0) {
+
+	            // Both vertices lie entirely within all clip planes.
+	            return true;
+
+	        } else if ((bc1near < 0 && bc2near < 0) || (bc1far < 0 && bc2far < 0)) {
+
+	            // Both vertices lie entirely outside one of the clip planes.
+	            return false;
+
+	        } else {
+
+	            // The line segment spans at least one clip plane.
+
+	            if (bc1near < 0) {
+
+	                // v1 lies outside the near plane, v2 inside
+	                alpha1 = Math.max(alpha1, bc1near / (bc1near - bc2near));
+
+	            } else if (bc2near < 0) {
+
+	                // v2 lies outside the near plane, v1 inside
+	                alpha2 = Math.min(alpha2, bc1near / (bc1near - bc2near));
+
+	            }
+
+	            if (bc1far < 0) {
+
+	                // v1 lies outside the far plane, v2 inside
+	                alpha1 = Math.max(alpha1, bc1far / (bc1far - bc2far));
+
+	            } else if (bc2far < 0) {
+
+	                // v2 lies outside the far plane, v2 inside
+	                alpha2 = Math.min(alpha2, bc1far / (bc1far - bc2far));
+
+	            }
+
+	            if (alpha2 < alpha1) {
+
+	                // The line segment spans two boundaries, but is outside both of them.
+	                // (This can't happen when we're only clipping against just near/far but good
+	                //  to leave the check here for future usage if other clip planes are added.)
+	                return false;
+
+	            } else {
+
+	                // Update the s1 and s2 vertices to match the clipped line segment.
+	                s1.lerp(s2, alpha1);
+	                s2.lerp(s1, 1 - alpha2);
+
+	                return true;
+
+	            }
+
+	        }
+
 	    }
 	}
 
@@ -3949,7 +4157,7 @@
 
 	        this.color = new MeshBasicMaterial();
 	        this.material = null;
-	        this.uvs = [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()];
+	        this.uvs = [new Vector2(), new Vector2(), new Vector2()];
 
 	        this.z = 0;
 	        this.renderOrder = 0;
@@ -3985,6 +4193,22 @@
 	        this.scale = new Vector2();
 
 	        this.material = null;
+	        this.renderOrder = 0;
+	    }
+	}
+
+	// 线
+	class RenderableLine {
+	    constructor() {
+	        this.id = 0;
+
+	        this.v1 = new RenderableVertex();
+	        this.v2 = new RenderableVertex();
+
+	        this.vertexColors = [new Color(), new Color()];
+	        this.material = null;
+
+	        this.z = 0;
 	        this.renderOrder = 0;
 	    }
 	}
@@ -4029,6 +4253,16 @@
 	        return sprite;
 	    }
 	    return _spritePool[_spriteCount++];
+	}
+
+	function getNextLineInPool() {
+	    if (_lineCount === _linePool.length) {
+	        let line = new RenderableLine();
+	        _linePool.push(line);
+	        _lineCount++;
+	        return line;
+	    }
+	    return _linePool[_lineCount++];
 	}
 
 	class Renderer {
@@ -4218,6 +4452,18 @@
 	                    this.renderFace3(_v1, _v2, _v3, 0, 1, 2, element, element.material);
 	                }
 	            }
+	            else if (element instanceof RenderableLine) {
+	                _v1 = element.v1, _v2 = element.v2;
+
+	                _v1.positionScreen.x *= _canvasWidthHalf, _v1.positionScreen.y *= _canvasHeightHalf;
+	                _v2.positionScreen.x *= _canvasWidthHalf, _v2.positionScreen.y *= _canvasHeightHalf;
+
+	                _elemBox.setFromPoints([_v1.positionScreen, _v2.positionScreen]);
+
+	                if (_clipBox$1.intersectsBox(_elemBox) === true) {
+	                    this.renderLine(_v1, _v2, element, material);
+	                }
+	            }
 	            else if (element instanceof RenderableSprite) {
 	                this.renderSprite(element, element.material);
 	            }
@@ -4379,6 +4625,58 @@
 	            _context.scale(scaleX, scaleY);
 	            material.program(_context);
 	            _context.restore();
+	        }
+	    }
+
+	    renderLine(v1, v2, element, material) {
+	        this.setOpacity(material.opacity);
+	        this.setBlending(material.blending);
+
+	        _context.beginPath();
+	        _context.moveTo(v1.positionScreen.x, v1.positionScreen.y);
+	        _context.lineTo(v2.positionScreen.x, v2.positionScreen.y);
+
+	        if (material.isLineBasicMaterial) {
+	            this.setLineWidth(material.linewidth);
+	            this.setLineCap(material.linecap);
+	            this.setLineJoin(material.linejoin);
+	            if (material.vertexColors !== VertexColors) {
+	                this.setStrokeStyle(material.color.getStyle());
+	            }
+	            // else {
+	            //     var colorStyle1 = element.vertexColors[0].getStyle();
+	            //     var colorStyle2 = element.vertexColors[1].getStyle();
+	            //
+	            //     if (colorStyle1 === colorStyle2) {
+	            //
+	            //         this.setStrokeStyle(colorStyle1);
+	            //
+	            //     } else {
+	            //
+	            //         try {
+	            //
+	            //             var grad = _context.createLinearGradient(
+	            //                 v1.positionScreen.x,
+	            //                 v1.positionScreen.y,
+	            //                 v2.positionScreen.x,
+	            //                 v2.positionScreen.y
+	            //             );
+	            //             grad.addColorStop(0, colorStyle1);
+	            //             grad.addColorStop(1, colorStyle2);
+	            //
+	            //         } catch (exception) {
+	            //
+	            //             grad = colorStyle1;
+	            //
+	            //         }
+	            //
+	            //         this.setStrokeStyle(grad);
+	            //
+	            //     }
+	            // }
+
+	            _context.stroke();
+	            _elemBox.expandByScalar(material.linewidth * 2);
 	        }
 	    }
 
@@ -4608,10 +4906,13 @@
 	exports.MeshBasicMaterial = MeshBasicMaterial;
 	exports.SpriteMaterial = SpriteMaterial;
 	exports.SpriteCanvasMaterial = SpriteCanvasMaterial;
+	exports.LineBasicMaterial = LineBasicMaterial;
 	exports.Face3 = Face3;
 	exports.Group = Group;
 	exports.Mesh = Mesh;
 	exports.Sprite = Sprite;
+	exports.Line = Line;
+	exports.Geometry = Geometry;
 	exports.BoxGeometry = BoxGeometry;
 	exports.BoxBufferGeometry = BoxBufferGeometry;
 	exports.PlaneGeometry = PlaneGeometry;

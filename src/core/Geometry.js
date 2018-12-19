@@ -7,9 +7,10 @@ import {Object3D} from "./Object3D";
 import {Face3} from "./Face3";
 
 /**
- * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）
+ * Geometry 是对 BufferGeometry 的用户友好替代。
+ * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）比起 BufferGeometry 更容易读写，但是运行效率不如有类型的队列。
+ * 对于大型工程或正式工程，推荐采用 BufferGeometry
  */
-
 let geometryId = 0;// Geometry uses even numbers as Id
 class Geometry {
     constructor() {
@@ -19,6 +20,7 @@ class Geometry {
         this.isGeometry = true;
 
         this.vertices = []; // 顶点
+        this.colors=[];     // 顶点 colors 队列
         this.faces = [];    // 面
         this.faceVertexUvs = [[]];  // 面的 UV 层的队列
     }

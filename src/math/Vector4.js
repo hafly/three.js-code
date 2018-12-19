@@ -139,6 +139,15 @@ class Vector4 {
         return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
     }
 
+    lerp(v, alpha) {
+        this.x += (v.x - this.x) * alpha;
+        this.y += (v.y - this.y) * alpha;
+        this.z += (v.z - this.z) * alpha;
+        this.w += (v.w - this.w) * alpha;
+
+        return this;
+    }
+
     equals(v) {
         return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z) && (v.w === this.w));
     }

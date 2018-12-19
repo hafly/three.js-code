@@ -1,8 +1,8 @@
 import {Renderer} from "./Renderer";
-import {Projector, RenderableFace, RenderableSprite} from "./Projector";
+import {Projector, RenderableFace, RenderableSprite, RenderableLine} from "./Projector";
 import {Box2} from "../math/Box2";
 import {Color} from "../math/Color";
-import {NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, FaceColors} from "../constants";
+import {NormalBlending, AdditiveBlending, SubtractiveBlending, MultiplyBlending, FaceColors, VertexColors} from "../constants";
 
 let _canvas, _context;
 let _canvasWidth, _canvasHeight,
@@ -109,6 +109,18 @@ class CanvasRenderer extends Renderer {
 
                 if (_clipBox.intersectsBox(_elemBox) === true) {
                     this.renderFace3(_v1, _v2, _v3, 0, 1, 2, element, element.material);
+                }
+            }
+            else if (element instanceof RenderableLine) {
+                _v1 = element.v1, _v2 = element.v2;
+
+                _v1.positionScreen.x *= _canvasWidthHalf, _v1.positionScreen.y *= _canvasHeightHalf;
+                _v2.positionScreen.x *= _canvasWidthHalf, _v2.positionScreen.y *= _canvasHeightHalf;
+
+                _elemBox.setFromPoints([_v1.positionScreen, _v2.positionScreen]);
+
+                if (_clipBox.intersectsBox(_elemBox) === true) {
+                    this.renderLine(_v1, _v2, element, material);
                 }
             }
             else if (element instanceof RenderableSprite) {
@@ -272,6 +284,58 @@ class CanvasRenderer extends Renderer {
             _context.scale(scaleX, scaleY);
             material.program(_context);
             _context.restore();
+        }
+    }
+
+    renderLine(v1, v2, element, material) {
+        this.setOpacity(material.opacity);
+        this.setBlending(material.blending);
+
+        _context.beginPath();
+        _context.moveTo(v1.positionScreen.x, v1.positionScreen.y);
+        _context.lineTo(v2.positionScreen.x, v2.positionScreen.y);
+
+        if (material.isLineBasicMaterial) {
+            this.setLineWidth(material.linewidth);
+            this.setLineCap(material.linecap);
+            this.setLineJoin(material.linejoin);
+            if (material.vertexColors !== VertexColors) {
+                this.setStrokeStyle(material.color.getStyle());
+            }
+            // else {
+            //     var colorStyle1 = element.vertexColors[0].getStyle();
+            //     var colorStyle2 = element.vertexColors[1].getStyle();
+            //
+            //     if (colorStyle1 === colorStyle2) {
+            //
+            //         this.setStrokeStyle(colorStyle1);
+            //
+            //     } else {
+            //
+            //         try {
+            //
+            //             var grad = _context.createLinearGradient(
+            //                 v1.positionScreen.x,
+            //                 v1.positionScreen.y,
+            //                 v2.positionScreen.x,
+            //                 v2.positionScreen.y
+            //             );
+            //             grad.addColorStop(0, colorStyle1);
+            //             grad.addColorStop(1, colorStyle2);
+            //
+            //         } catch (exception) {
+            //
+            //             grad = colorStyle1;
+            //
+            //         }
+            //
+            //         this.setStrokeStyle(grad);
+            //
+            //     }
+            // }
+
+            _context.stroke();
+            _elemBox.expandByScalar(material.linewidth * 2);
         }
     }
 

@@ -2,19 +2,21 @@ import {Vector2} from "../math/Vector2";
 import {Vector3} from "../math/Vector3";
 import {Vector4} from "../math/Vector4";
 import {Matrix4} from "../math/Matrix4";
+import {Color} from "../math/Color";
 import {Box3} from "../math/Box3";
 import {MeshBasicMaterial} from "../materials/MeshBasicMaterial";
-import {FrontSide, BackSide, DoubleSide,} from "../constants";
+import {FrontSide, BackSide, DoubleSide, VertexColors} from "../constants";
 
 // 存储对象池
-let _object, _face, _vertex, _sprite,
-    _objectPool = [], _facePool = [], _vertexPool = [], _spritePool = [],
-    _objectCount = 0, _faceCount = 0, _vertexCount = 0, _spriteCount = 0;
+let _object, _face, _vertex, _sprite, _line,
+    _objectPool = [], _facePool = [], _vertexPool = [], _spritePool = [], _linePool = [],
+    _objectCount = 0, _faceCount = 0, _vertexCount = 0, _spriteCount = 0, _lineCount = 0;
 
 let _vector3 = new Vector3(),
     _vector4 = new Vector4(),
-    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)),
-    _boundingBox = new Box3();
+    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)), // 修剪盒子
+    _boundingBox = new Box3();  // 包围盒子
+
 let _points3 = new Array(3);
 
 let _viewMatrix = new Matrix4(),
@@ -22,6 +24,8 @@ let _viewMatrix = new Matrix4(),
 
 let _modelMatrix,
     _modelViewProjectionMatrix = new Matrix4();
+let _clippedVertex1PositionScreen = new Vector4(),
+    _clippedVertex2PositionScreen = new Vector4();
 
 // 渲染对象
 let _renderData = {objects: [], elements: []};
@@ -31,7 +35,8 @@ class RenderList {
         this.object = null;
         this.material = null;
 
-        this.uvs = [];
+        this.colors = []; // 顶点 colors 队列
+        this.uvs = [];  // // 面的 UV 层的队列
     }
 
     // 设置对象（BufferGeometry支持）
@@ -39,6 +44,7 @@ class RenderList {
         this.object = value;
         this.material = value.material;
 
+        this.colors.length = 0;
         this.uvs.length = 0;
     }
 
@@ -46,7 +52,7 @@ class RenderList {
     projectObject(object) {
         let self = this;
         if (object.visible === false) return;
-        if (object.isMesh) {
+        if (object.isMesh || object.isLine) {
             self.pushObject(object);
         }
         else if (object.isSprite) {
@@ -187,9 +193,11 @@ let renderList = new RenderList();
 
 class Projector {
     projectScene(scene, camera, sortObjects, sortElements) {
-        let self = this;
         _objectCount = 0;
         _faceCount = 0;
+        _spriteCount = 0;
+        _lineCount = 0;
+
         _renderData.elements = [];
         _renderData.objects = [];
 
@@ -198,7 +206,7 @@ class Projector {
         renderList.projectObject(scene);
 
         if (sortObjects === true) {
-            _renderData.objects.sort(self.painterSort);
+            _renderData.objects.sort(this.painterSort);
         }
 
         let objects = _renderData.objects;
@@ -211,7 +219,7 @@ class Projector {
             _vertexCount = 0;
             _modelMatrix = object.matrixWorld;
 
-            if (object.isMesh) {
+            if (object.isMesh === true) {
                 // BufferGeometry
                 if (geometry.isBufferGeometry === true) {
                     let attributes = geometry.attributes;
@@ -312,15 +320,70 @@ class Projector {
                     }
                 }
             }
-            else if (object.isSprite) {
+            else if (object.isSprite === true) {
                 _vector4.set(_modelMatrix.elements[12], _modelMatrix.elements[13], _modelMatrix.elements[14], 1);
                 _vector4.applyMatrix4(_viewProjectionMatrix);
                 renderList.pushPoint(_vector4, object, camera);
             }
+            else if (object.isLine === true) {
+                if (geometry.isBufferGeometry === true) {
+                }
+                else if (geometry.isGeometry === true) {
+                    let vertices = object.geometry.vertices;
+
+                    if (vertices.length === 0) continue;
+
+                    let v1 = getNextVertexInPool();
+                    v1.positionScreen.copy(vertices[0]).applyMatrix4(_modelViewProjectionMatrix);
+
+                    let step = 1;
+
+                    for (let v = 1, vl = vertices.length; v < vl; v++) {
+                        v1 = getNextVertexInPool();
+                        v1.positionScreen.copy(vertices[v]).applyMatrix4(_modelViewProjectionMatrix);
+
+                        if ((v + 1) % step > 0) continue;
+
+                        let v2 = _vertexPool[_vertexCount - 2];
+
+                        _clippedVertex1PositionScreen.copy(v1.positionScreen);
+                        _clippedVertex2PositionScreen.copy(v2.positionScreen);
+
+                        if (this.clipLine(_clippedVertex1PositionScreen, _clippedVertex2PositionScreen) === true) {
+
+                            // Perform the perspective divide
+                            _clippedVertex1PositionScreen.multiplyScalar(1 / _clippedVertex1PositionScreen.w);
+                            _clippedVertex2PositionScreen.multiplyScalar(1 / _clippedVertex2PositionScreen.w);
+
+                            _line = getNextLineInPool();
+
+                            _line.id = object.id;
+                            _line.v1.positionScreen.copy(_clippedVertex1PositionScreen);
+                            _line.v2.positionScreen.copy(_clippedVertex2PositionScreen);
+
+                            _line.z = Math.max(_clippedVertex1PositionScreen.z, _clippedVertex2PositionScreen.z);
+                            _line.renderOrder = object.renderOrder;
+
+                            _line.material = object.material;
+
+                            if (object.material.vertexColors === VertexColors) {
+
+                                _line.vertexColors[0].copy(object.geometry.colors[v]);
+                                _line.vertexColors[1].copy(object.geometry.colors[v - 1]);
+
+                            }
+
+                            _renderData.elements.push(_line);
+
+                        }
+
+                    }
+                }
+            }
         }
 
         if (sortElements === true) {
-            _renderData.elements.sort(self.painterSort);
+            _renderData.elements.sort(this.painterSort);
         }
         return _renderData;
     }
@@ -335,6 +398,77 @@ class Projector {
         } else {
             return 0;
         }
+    }
+
+    clipLine(s1, s2) {
+
+        let alpha1 = 0, alpha2 = 1,
+
+            // Calculate the boundary coordinate of each vertex for the near and far clip planes,
+            // Z = -1 and Z = +1, respectively.
+
+            bc1near = s1.z + s1.w,
+            bc2near = s2.z + s2.w,
+            bc1far = -s1.z + s1.w,
+            bc2far = -s2.z + s2.w;
+
+        if (bc1near >= 0 && bc2near >= 0 && bc1far >= 0 && bc2far >= 0) {
+
+            // Both vertices lie entirely within all clip planes.
+            return true;
+
+        } else if ((bc1near < 0 && bc2near < 0) || (bc1far < 0 && bc2far < 0)) {
+
+            // Both vertices lie entirely outside one of the clip planes.
+            return false;
+
+        } else {
+
+            // The line segment spans at least one clip plane.
+
+            if (bc1near < 0) {
+
+                // v1 lies outside the near plane, v2 inside
+                alpha1 = Math.max(alpha1, bc1near / (bc1near - bc2near));
+
+            } else if (bc2near < 0) {
+
+                // v2 lies outside the near plane, v1 inside
+                alpha2 = Math.min(alpha2, bc1near / (bc1near - bc2near));
+
+            }
+
+            if (bc1far < 0) {
+
+                // v1 lies outside the far plane, v2 inside
+                alpha1 = Math.max(alpha1, bc1far / (bc1far - bc2far));
+
+            } else if (bc2far < 0) {
+
+                // v2 lies outside the far plane, v2 inside
+                alpha2 = Math.min(alpha2, bc1far / (bc1far - bc2far));
+
+            }
+
+            if (alpha2 < alpha1) {
+
+                // The line segment spans two boundaries, but is outside both of them.
+                // (This can't happen when we're only clipping against just near/far but good
+                //  to leave the check here for future usage if other clip planes are added.)
+                return false;
+
+            } else {
+
+                // Update the s1 and s2 vertices to match the clipped line segment.
+                s1.lerp(s2, alpha1);
+                s2.lerp(s1, 1 - alpha2);
+
+                return true;
+
+            }
+
+        }
+
     }
 }
 
@@ -359,7 +493,7 @@ class RenderableFace {
 
         this.color = new MeshBasicMaterial();
         this.material = null;
-        this.uvs = [new THREE.Vector2(), new THREE.Vector2(), new THREE.Vector2()];
+        this.uvs = [new Vector2(), new Vector2(), new Vector2()];
 
         this.z = 0;
         this.renderOrder = 0;
@@ -395,6 +529,22 @@ class RenderableSprite {
         this.scale = new Vector2();
 
         this.material = null;
+        this.renderOrder = 0;
+    }
+}
+
+// 线
+class RenderableLine {
+    constructor() {
+        this.id = 0;
+
+        this.v1 = new RenderableVertex();
+        this.v2 = new RenderableVertex();
+
+        this.vertexColors = [new Color(), new Color()];
+        this.material = null;
+
+        this.z = 0;
         this.renderOrder = 0;
     }
 }
@@ -441,4 +591,14 @@ function getNextSpriteInPool() {
     return _spritePool[_spriteCount++];
 }
 
-export {RenderableObject, RenderableFace, RenderableSprite, Projector};
+function getNextLineInPool() {
+    if (_lineCount === _linePool.length) {
+        let line = new RenderableLine();
+        _linePool.push(line);
+        _lineCount++;
+        return line;
+    }
+    return _linePool[_lineCount++];
+}
+
+export {RenderableObject, RenderableFace, RenderableSprite, RenderableLine, Projector};

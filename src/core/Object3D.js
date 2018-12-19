@@ -168,6 +168,42 @@ class Object3D extends EventDispatcher {
             children[i].traverseVisible(callback);
         }
     }
+
+    clone(recursive) {
+        return new this.constructor().copy(this, recursive);
+    }
+
+    copy(source, recursive) {
+        if (recursive === undefined) recursive = true;
+
+        this.name = source.name;
+
+        this.up.copy(source.up);
+
+        this.position.copy(source.position);
+        this.quaternion.copy(source.quaternion);
+        this.scale.copy(source.scale);
+
+        this.matrix.copy(source.matrix);
+        this.matrixWorld.copy(source.matrixWorld);
+
+        this.matrixAutoUpdate = source.matrixAutoUpdate;
+        this.matrixWorldNeedsUpdate = source.matrixWorldNeedsUpdate;
+
+        this.visible = source.visible;
+        this.renderOrder = source.renderOrder;
+
+        this.userData = JSON.parse(JSON.stringify(source.userData));
+
+        if (recursive === true) {
+            for (let i = 0; i < source.children.length; i++) {
+                let child = source.children[i];
+                this.add(child.clone());
+            }
+        }
+
+        return this;
+    }
 }
 
 Object3D.DefaultUp = new Vector3(0, 1, 0);

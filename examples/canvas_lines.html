@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+   
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <title>three.js canvas - line</title>
+    <style>
+        html, body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+    <script src="../build/three.js"></script>
+    <script src="js/libs/stats.min.js"></script>
+</head>
+   
+<body>
+   
+<script  type="text/javascript">
+    // 老三样 场景scene，相机camera，渲染器render
+    var scene = new THREE.Scene();
+    // 相机
+    var camera = new THREE.PerspectiveCamera(45, 1, 1, 1000);
+    camera.position.set(0, 0, 100);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    // 渲染器
+    var renderer = new THREE.CanvasRenderer();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+
+    //显示在窗体
+    document.body.appendChild(renderer.domElement);
+
+
+    //定义材质THREE.LineBasicMaterial . MeshBasicMaterial...都可以
+    var material = new THREE.LineBasicMaterial({color: 0x0000ff});
+    // 空几何体，里面没有点的信息,不想BoxGeometry已经有一系列点，组成方形了。
+    var geometry = new THREE.Geometry();
+    // 给空白几何体添加点信息，这里写3个点，geometry会把这些点自动组合成线，面。
+    geometry.vertices.push(new THREE.Vector3(-10, 0, 0));
+    geometry.vertices.push(new THREE.Vector3(0, 10, 0));
+    geometry.vertices.push(new THREE.Vector3(0, 5, 0));
+    //线构造
+    var line = new THREE.Line(geometry, material);
+    // 加入到场景中
+    scene.add(line);
+    // 渲染
+    renderer.render(scene, camera);
+
+</script>
+   
+</body>
+</html>
