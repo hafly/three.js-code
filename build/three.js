@@ -1604,6 +1604,264 @@
 	Object3D.DefaultUp = new Vector3(0, 1, 0);
 	Object3D.DefaultMatrixAutoUpdate = true;
 
+	const ColorKeywords={'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFFF,'aquamarine':0x7FFFD4,'azure':0xF0FFFF,'beige':0xF5F5DC,'bisque':0xFFE4C4,'black':0x000000,'blanchedalmond':0xFFEBCD,'blue':0x0000FF,'blueviolet':0x8A2BE2,'brown':0xA52A2A,'burlywood':0xDEB887,'cadetblue':0x5F9EA0,'chartreuse':0x7FFF00,'chocolate':0xD2691E,'coral':0xFF7F50,'cornflowerblue':0x6495ED,'cornsilk':0xFFF8DC,'crimson':0xDC143C,'cyan':0x00FFFF,'darkblue':0x00008B,'darkcyan':0x008B8B,'darkgoldenrod':0xB8860B,'darkgray':0xA9A9A9,'darkgreen':0x006400,'darkgrey':0xA9A9A9,'darkkhaki':0xBDB76B,'darkmagenta':0x8B008B,'darkolivegreen':0x556B2F,'darkorange':0xFF8C00,'darkorchid':0x9932CC,'darkred':0x8B0000,'darksalmon':0xE9967A,'darkseagreen':0x8FBC8F,'darkslateblue':0x483D8B,'darkslategray':0x2F4F4F,'darkslategrey':0x2F4F4F,'darkturquoise':0x00CED1,'darkviolet':0x9400D3,'deeppink':0xFF1493,'deepskyblue':0x00BFFF,'dimgray':0x696969,'dimgrey':0x696969,'dodgerblue':0x1E90FF,'firebrick':0xB22222,'floralwhite':0xFFFAF0,'forestgreen':0x228B22,'fuchsia':0xFF00FF,'gainsboro':0xDCDCDC,'ghostwhite':0xF8F8FF,'gold':0xFFD700,'goldenrod':0xDAA520,'gray':0x808080,'green':0x008000,'greenyellow':0xADFF2F,'grey':0x808080,'honeydew':0xF0FFF0,'hotpink':0xFF69B4,'indianred':0xCD5C5C,'indigo':0x4B0082,'ivory':0xFFFFF0,'khaki':0xF0E68C,'lavender':0xE6E6FA,'lavenderblush':0xFFF0F5,'lawngreen':0x7CFC00,'lemonchiffon':0xFFFACD,'lightblue':0xADD8E6,'lightcoral':0xF08080,'lightcyan':0xE0FFFF,'lightgoldenrodyellow':0xFAFAD2,'lightgray':0xD3D3D3,'lightgreen':0x90EE90,'lightgrey':0xD3D3D3,'lightpink':0xFFB6C1,'lightsalmon':0xFFA07A,'lightseagreen':0x20B2AA,'lightskyblue':0x87CEFA,'lightslategray':0x778899,'lightslategrey':0x778899,'lightsteelblue':0xB0C4DE,'lightyellow':0xFFFFE0,'lime':0x00FF00,'limegreen':0x32CD32,'linen':0xFAF0E6,'magenta':0xFF00FF,'maroon':0x800000,'mediumaquamarine':0x66CDAA,'mediumblue':0x0000CD,'mediumorchid':0xBA55D3,'mediumpurple':0x9370DB,'mediumseagreen':0x3CB371,'mediumslateblue':0x7B68EE,'mediumspringgreen':0x00FA9A,'mediumturquoise':0x48D1CC,'mediumvioletred':0xC71585,'midnightblue':0x191970,'mintcream':0xF5FFFA,'mistyrose':0xFFE4E1,'moccasin':0xFFE4B5,'navajowhite':0xFFDEAD,'navy':0x000080,'oldlace':0xFDF5E6,'olive':0x808000,'olivedrab':0x6B8E23,'orange':0xFFA500,'orangered':0xFF4500,'orchid':0xDA70D6,'palegoldenrod':0xEEE8AA,'palegreen':0x98FB98,'paleturquoise':0xAFEEEE,'palevioletred':0xDB7093,'papayawhip':0xFFEFD5,'peachpuff':0xFFDAB9,'peru':0xCD853F,'pink':0xFFC0CB,'plum':0xDDA0DD,'powderblue':0xB0E0E6,'purple':0x800080,'rebeccapurple':0x663399,'red':0xFF0000,'rosybrown':0xBC8F8F,'royalblue':0x4169E1,'saddlebrown':0x8B4513,'salmon':0xFA8072,'sandybrown':0xF4A460,'seagreen':0x2E8B57,'seashell':0xFFF5EE,'sienna':0xA0522D,'silver':0xC0C0C0,'skyblue':0x87CEEB,'slateblue':0x6A5ACD,'slategray':0x708090,'slategrey':0x708090,'snow':0xFFFAFA,'springgreen':0x00FF7F,'steelblue':0x4682B4,'tan':0xD2B48C,'teal':0x008080,'thistle':0xD8BFD8,'tomato':0xFF6347,'turquoise':0x40E0D0,'violet':0xEE82EE,'wheat':0xF5DEB3,'white':0xFFFFFF,'whitesmoke':0xF5F5F5,'yellow':0xFFFF00,'yellowgreen':0x9ACD32};
+
+	/**
+	 * 颜色可以用以下任意一种方式初始化
+	 * let color = new THREE.Color();
+	 * let color = new THREE.Color(0xff0000);
+	 * let color = new THREE.Color("rgb(255, 0, 0)");
+	 * let color = new THREE.Color("rgb(100%, 0%, 0%)");
+	 * let color = new THREE.Color("skyblue");
+	 * let color = new THREE.Color("hsl(0, 100%, 50%)");
+	 * let color = new THREE.Color(1, 0, 0);
+	 */
+
+	class Color {
+	    constructor(r, g, b) {
+	        this.isColor = true;
+	        this.r = 1;
+	        this.g = 1;
+	        this.b = 1;
+	        if (g === undefined && b === undefined) {
+	            return this.set(r);
+	        }
+
+	        return this.setRGB(r, g, b);
+	    }
+
+	    clone() {
+	        return new this.constructor(this.r, this.g, this.b);
+	    }
+
+	    copy(color) {
+	        this.r = color.r;
+	        this.g = color.g;
+	        this.b = color.b;
+	        return this;
+	    }
+
+	    set(value) {
+	        if (value && value.isColor) {
+	            this.copy(value);
+	        } else if (typeof value === 'number') {
+	            this.setHex(value);
+	        } else if (typeof value === 'string') {
+	            this.setStyle(value);
+	        }
+
+	        return this;
+	    }
+
+	    setHex(hex) {
+	        hex = Math.floor(hex);
+
+	        this.r = (hex >> 16 & 255) / 255;
+	        this.g = (hex >> 8 & 255) / 255;
+	        this.b = (hex & 255) / 255;
+
+	        return this;
+	    }
+
+	    setRGB(r, g, b) {
+	        this.r = r;
+	        this.g = g;
+	        this.b = b;
+
+	        return this;
+	    }
+
+	    setHSL(h, s, l) {
+	        // h,s,l ranges are in 0.0 - 1.0
+	        h = _Math.euclideanModulo(h, 1);
+	        s = _Math.clamp(s, 0, 1);
+	        l = _Math.clamp(l, 0, 1);
+
+	        if (s === 0) {
+	            this.r = this.g = this.b = l;
+	        } else {
+	            let p = l <= 0.5 ? l * (1 + s) : l + s - (l * s);
+	            let q = (2 * l) - p;
+
+	            this.r = this._hue2rgb(q, p, h + 1 / 3);
+	            this.g = this._hue2rgb(q, p, h);
+	            this.b = this._hue2rgb(q, p, h - 1 / 3);
+
+	        }
+	        return this;
+	    }
+
+	    setStyle(style) {
+	        let m;
+	        if (m = /^((?:rgb|hsl)a?)\(\s*([^\)]*)\)/.exec(style)) {
+	            // rgb / hsl
+	            let color;
+	            let name = m[1];
+	            let components = m[2];
+
+	            switch (name) {
+	                case 'rgb':
+	                case 'rgba':
+	                    if (color = /^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec(components)) {
+	                        // rgb(255,0,0) rgba(255,0,0,0.5)
+	                        this.r = Math.min(255, parseInt(color[1], 10)) / 255;
+	                        this.g = Math.min(255, parseInt(color[2], 10)) / 255;
+	                        this.b = Math.min(255, parseInt(color[3], 10)) / 255;
+	                        this._handleAlpha(style);
+	                        return this;
+	                    }
+	                    if (color = /^(\d+)\%\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec(components)) {
+	                        // rgb(100%,0%,0%) rgba(100%,0%,0%,0.5)
+	                        this.r = Math.min(100, parseInt(color[1], 10)) / 100;
+	                        this.g = Math.min(100, parseInt(color[2], 10)) / 100;
+	                        this.b = Math.min(100, parseInt(color[3], 10)) / 100;
+
+	                        this._handleAlpha(style);
+	                        return this;
+	                    }
+	                    break;
+	                case 'hsl':
+	                case 'hsla':
+	                    if (color = /^([0-9]*\.?[0-9]+)\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec(components)) {
+	                        // hsl(120,50%,50%) hsla(120,50%,50%,0.5)
+	                        let h = parseFloat(color[1]) / 360;
+	                        let s = parseInt(color[2], 10) / 100;
+	                        let l = parseInt(color[3], 10) / 100;
+
+	                        this._handleAlpha(color[5]);
+
+	                        return this.setHSL(h, s, l);
+	                    }
+	                    break;
+	            }
+	        } else if (m = /^\#([A-Fa-f0-9]+)$/.exec(style)) {
+	            // hex color
+	            let hex = m[1];
+	            let size = hex.length;
+
+	            if (size === 3) {
+	                // #ff0
+	                this.r = parseInt(hex.charAt(0) + hex.charAt(0), 16) / 255;
+	                this.g = parseInt(hex.charAt(1) + hex.charAt(1), 16) / 255;
+	                this.b = parseInt(hex.charAt(2) + hex.charAt(2), 16) / 255;
+
+	                return this;
+	            } else if (size === 6) {
+	                // #ff0000
+	                this.r = parseInt(hex.charAt(0) + hex.charAt(1), 16) / 255;
+	                this.g = parseInt(hex.charAt(2) + hex.charAt(3), 16) / 255;
+	                this.b = parseInt(hex.charAt(4) + hex.charAt(5), 16) / 255;
+
+	                return this;
+	            }
+	        }
+
+	        if (style && style.length > 0) {
+	            let hex = ColorKeywords[style];
+	            if (hex !== undefined) {
+	                this.setHex(hex);
+	            } else {
+	                console.warn('XCANVAS.Color: Unknown color ' + style);
+	            }
+	        }
+	        return this;
+	    }
+
+	    getHex() {
+	        return (this.r * 255) << 16 ^ (this.g * 255) << 8 ^ (this.b * 255) << 0;
+	    }
+
+	    getHexString() {
+	        return ('000000' + this.getHex().toString(16)).slice(-6);
+	    }
+
+	    getHSL(target) {
+	        // h,s,l ranges are in 0.0 - 1.0
+	        if (target === undefined) {
+	            console.warn('XCANVAS.Color: .getHSL() target is now required');
+	            target = {
+	                h: 0,
+	                s: 0,
+	                l: 0
+	            };
+	        }
+	        let r = this.r,
+	            g = this.g,
+	            b = this.b;
+	        let max = Math.max(r, g, b);
+	        let min = Math.min(r, g, b);
+	        let hue, saturation;
+	        let lightness = (min + max) / 2.0;
+	        if (min === max) {
+	            hue = 0;
+	            saturation = 0;
+	        } else {
+	            let delta = max - min;
+	            saturation = lightness <= 0.5 ? delta / (max + min) : delta / (2 - max - min);
+	            switch (max) {
+	                case r:
+	                    hue = (g - b) / delta + (g < b ? 6 : 0);
+	                    break;
+	                case g:
+	                    hue = (b - r) / delta + 2;
+	                    break;
+	                case b:
+	                    hue = (r - g) / delta + 4;
+	                    break;
+	            }
+	            hue /= 6;
+	        }
+	        target.h = hue;
+	        target.s = saturation;
+	        target.l = lightness;
+	        return target;
+	    }
+
+	    getStyle() {
+	        return 'rgb(' + this.r * 255 + ',' + this.g * 255 + ',' + this.b * 255 + ')';
+	    }
+
+	    add(color) {
+	        this.r += color.r;
+	        this.g += color.g;
+	        this.b += color.b;
+	        return this;
+	    }
+
+	    sub(color) {
+	        this.r = Math.max(0, this.r - color.r);
+	        this.g = Math.max(0, this.g - color.g);
+	        this.b = Math.max(0, this.b - color.b);
+	        return this;
+	    }
+
+	    multiply(color) {
+	        this.r *= color.r;
+	        this.g *= color.g;
+	        this.b *= color.b;
+
+	        return this;
+	    }
+
+	    equals(c) {
+	        return (c.r === this.r) && (c.g === this.g) && (c.b === this.b) && (c.a === this.a);
+	    }
+
+	    // 处理透明度
+	    _handleAlpha(style) {
+	        console.warn('THREE.Color: Alpha component of ' + style + ' will be ignored.');
+	    }
+
+	    _hue2rgb(p, q, t) {
+	        if (t < 0) t += 1;
+	        if (t > 1) t -= 1;
+	        if (t < 1 / 6) return p + (q - p) * 6 * t;
+	        if (t < 1 / 2) return q;
+	        if (t < 2 / 3) return p + (q - p) * 6 * (2 / 3 - t);
+	        return p;
+	    }
+	}
+
 	class Vector2 {
 	    constructor(x = 0, y = 0) {
 	        this.isVector2 = true;
@@ -2044,264 +2302,6 @@
 	    }
 	}
 
-	const ColorKeywords={'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFFF,'aquamarine':0x7FFFD4,'azure':0xF0FFFF,'beige':0xF5F5DC,'bisque':0xFFE4C4,'black':0x000000,'blanchedalmond':0xFFEBCD,'blue':0x0000FF,'blueviolet':0x8A2BE2,'brown':0xA52A2A,'burlywood':0xDEB887,'cadetblue':0x5F9EA0,'chartreuse':0x7FFF00,'chocolate':0xD2691E,'coral':0xFF7F50,'cornflowerblue':0x6495ED,'cornsilk':0xFFF8DC,'crimson':0xDC143C,'cyan':0x00FFFF,'darkblue':0x00008B,'darkcyan':0x008B8B,'darkgoldenrod':0xB8860B,'darkgray':0xA9A9A9,'darkgreen':0x006400,'darkgrey':0xA9A9A9,'darkkhaki':0xBDB76B,'darkmagenta':0x8B008B,'darkolivegreen':0x556B2F,'darkorange':0xFF8C00,'darkorchid':0x9932CC,'darkred':0x8B0000,'darksalmon':0xE9967A,'darkseagreen':0x8FBC8F,'darkslateblue':0x483D8B,'darkslategray':0x2F4F4F,'darkslategrey':0x2F4F4F,'darkturquoise':0x00CED1,'darkviolet':0x9400D3,'deeppink':0xFF1493,'deepskyblue':0x00BFFF,'dimgray':0x696969,'dimgrey':0x696969,'dodgerblue':0x1E90FF,'firebrick':0xB22222,'floralwhite':0xFFFAF0,'forestgreen':0x228B22,'fuchsia':0xFF00FF,'gainsboro':0xDCDCDC,'ghostwhite':0xF8F8FF,'gold':0xFFD700,'goldenrod':0xDAA520,'gray':0x808080,'green':0x008000,'greenyellow':0xADFF2F,'grey':0x808080,'honeydew':0xF0FFF0,'hotpink':0xFF69B4,'indianred':0xCD5C5C,'indigo':0x4B0082,'ivory':0xFFFFF0,'khaki':0xF0E68C,'lavender':0xE6E6FA,'lavenderblush':0xFFF0F5,'lawngreen':0x7CFC00,'lemonchiffon':0xFFFACD,'lightblue':0xADD8E6,'lightcoral':0xF08080,'lightcyan':0xE0FFFF,'lightgoldenrodyellow':0xFAFAD2,'lightgray':0xD3D3D3,'lightgreen':0x90EE90,'lightgrey':0xD3D3D3,'lightpink':0xFFB6C1,'lightsalmon':0xFFA07A,'lightseagreen':0x20B2AA,'lightskyblue':0x87CEFA,'lightslategray':0x778899,'lightslategrey':0x778899,'lightsteelblue':0xB0C4DE,'lightyellow':0xFFFFE0,'lime':0x00FF00,'limegreen':0x32CD32,'linen':0xFAF0E6,'magenta':0xFF00FF,'maroon':0x800000,'mediumaquamarine':0x66CDAA,'mediumblue':0x0000CD,'mediumorchid':0xBA55D3,'mediumpurple':0x9370DB,'mediumseagreen':0x3CB371,'mediumslateblue':0x7B68EE,'mediumspringgreen':0x00FA9A,'mediumturquoise':0x48D1CC,'mediumvioletred':0xC71585,'midnightblue':0x191970,'mintcream':0xF5FFFA,'mistyrose':0xFFE4E1,'moccasin':0xFFE4B5,'navajowhite':0xFFDEAD,'navy':0x000080,'oldlace':0xFDF5E6,'olive':0x808000,'olivedrab':0x6B8E23,'orange':0xFFA500,'orangered':0xFF4500,'orchid':0xDA70D6,'palegoldenrod':0xEEE8AA,'palegreen':0x98FB98,'paleturquoise':0xAFEEEE,'palevioletred':0xDB7093,'papayawhip':0xFFEFD5,'peachpuff':0xFFDAB9,'peru':0xCD853F,'pink':0xFFC0CB,'plum':0xDDA0DD,'powderblue':0xB0E0E6,'purple':0x800080,'rebeccapurple':0x663399,'red':0xFF0000,'rosybrown':0xBC8F8F,'royalblue':0x4169E1,'saddlebrown':0x8B4513,'salmon':0xFA8072,'sandybrown':0xF4A460,'seagreen':0x2E8B57,'seashell':0xFFF5EE,'sienna':0xA0522D,'silver':0xC0C0C0,'skyblue':0x87CEEB,'slateblue':0x6A5ACD,'slategray':0x708090,'slategrey':0x708090,'snow':0xFFFAFA,'springgreen':0x00FF7F,'steelblue':0x4682B4,'tan':0xD2B48C,'teal':0x008080,'thistle':0xD8BFD8,'tomato':0xFF6347,'turquoise':0x40E0D0,'violet':0xEE82EE,'wheat':0xF5DEB3,'white':0xFFFFFF,'whitesmoke':0xF5F5F5,'yellow':0xFFFF00,'yellowgreen':0x9ACD32};
-
-	/**
-	 * 颜色可以用以下任意一种方式初始化
-	 * let color = new THREE.Color();
-	 * let color = new THREE.Color(0xff0000);
-	 * let color = new THREE.Color("rgb(255, 0, 0)");
-	 * let color = new THREE.Color("rgb(100%, 0%, 0%)");
-	 * let color = new THREE.Color("skyblue");
-	 * let color = new THREE.Color("hsl(0, 100%, 50%)");
-	 * let color = new THREE.Color(1, 0, 0);
-	 */
-
-	class Color {
-	    constructor(r, g, b) {
-	        this.isColor = true;
-	        this.r = 1;
-	        this.g = 1;
-	        this.b = 1;
-	        if (g === undefined && b === undefined) {
-	            return this.set(r);
-	        }
-
-	        return this.setRGB(r, g, b);
-	    }
-
-	    clone() {
-	        return new this.constructor(this.r, this.g, this.b);
-	    }
-
-	    copy(color) {
-	        this.r = color.r;
-	        this.g = color.g;
-	        this.b = color.b;
-	        return this;
-	    }
-
-	    set(value) {
-	        if (value && value.isColor) {
-	            this.copy(value);
-	        } else if (typeof value === 'number') {
-	            this.setHex(value);
-	        } else if (typeof value === 'string') {
-	            this.setStyle(value);
-	        }
-
-	        return this;
-	    }
-
-	    setHex(hex) {
-	        hex = Math.floor(hex);
-
-	        this.r = (hex >> 16 & 255) / 255;
-	        this.g = (hex >> 8 & 255) / 255;
-	        this.b = (hex & 255) / 255;
-
-	        return this;
-	    }
-
-	    setRGB(r, g, b) {
-	        this.r = r;
-	        this.g = g;
-	        this.b = b;
-
-	        return this;
-	    }
-
-	    setHSL(h, s, l) {
-	        // h,s,l ranges are in 0.0 - 1.0
-	        h = _Math.euclideanModulo(h, 1);
-	        s = _Math.clamp(s, 0, 1);
-	        l = _Math.clamp(l, 0, 1);
-
-	        if (s === 0) {
-	            this.r = this.g = this.b = l;
-	        } else {
-	            let p = l <= 0.5 ? l * (1 + s) : l + s - (l * s);
-	            let q = (2 * l) - p;
-
-	            this.r = this._hue2rgb(q, p, h + 1 / 3);
-	            this.g = this._hue2rgb(q, p, h);
-	            this.b = this._hue2rgb(q, p, h - 1 / 3);
-
-	        }
-	        return this;
-	    }
-
-	    setStyle(style) {
-	        let m;
-	        if (m = /^((?:rgb|hsl)a?)\(\s*([^\)]*)\)/.exec(style)) {
-	            // rgb / hsl
-	            let color;
-	            let name = m[1];
-	            let components = m[2];
-
-	            switch (name) {
-	                case 'rgb':
-	                case 'rgba':
-	                    if (color = /^(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec(components)) {
-	                        // rgb(255,0,0) rgba(255,0,0,0.5)
-	                        this.r = Math.min(255, parseInt(color[1], 10)) / 255;
-	                        this.g = Math.min(255, parseInt(color[2], 10)) / 255;
-	                        this.b = Math.min(255, parseInt(color[3], 10)) / 255;
-	                        this._handleAlpha(style);
-	                        return this;
-	                    }
-	                    if (color = /^(\d+)\%\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec(components)) {
-	                        // rgb(100%,0%,0%) rgba(100%,0%,0%,0.5)
-	                        this.r = Math.min(100, parseInt(color[1], 10)) / 100;
-	                        this.g = Math.min(100, parseInt(color[2], 10)) / 100;
-	                        this.b = Math.min(100, parseInt(color[3], 10)) / 100;
-
-	                        this._handleAlpha(style);
-	                        return this;
-	                    }
-	                    break;
-	                case 'hsl':
-	                case 'hsla':
-	                    if (color = /^([0-9]*\.?[0-9]+)\s*,\s*(\d+)\%\s*,\s*(\d+)\%\s*(,\s*([0-9]*\.?[0-9]+)\s*)?$/.exec(components)) {
-	                        // hsl(120,50%,50%) hsla(120,50%,50%,0.5)
-	                        let h = parseFloat(color[1]) / 360;
-	                        let s = parseInt(color[2], 10) / 100;
-	                        let l = parseInt(color[3], 10) / 100;
-
-	                        this._handleAlpha(color[5]);
-
-	                        return this.setHSL(h, s, l);
-	                    }
-	                    break;
-	            }
-	        } else if (m = /^\#([A-Fa-f0-9]+)$/.exec(style)) {
-	            // hex color
-	            let hex = m[1];
-	            let size = hex.length;
-
-	            if (size === 3) {
-	                // #ff0
-	                this.r = parseInt(hex.charAt(0) + hex.charAt(0), 16) / 255;
-	                this.g = parseInt(hex.charAt(1) + hex.charAt(1), 16) / 255;
-	                this.b = parseInt(hex.charAt(2) + hex.charAt(2), 16) / 255;
-
-	                return this;
-	            } else if (size === 6) {
-	                // #ff0000
-	                this.r = parseInt(hex.charAt(0) + hex.charAt(1), 16) / 255;
-	                this.g = parseInt(hex.charAt(2) + hex.charAt(3), 16) / 255;
-	                this.b = parseInt(hex.charAt(4) + hex.charAt(5), 16) / 255;
-
-	                return this;
-	            }
-	        }
-
-	        if (style && style.length > 0) {
-	            let hex = ColorKeywords[style];
-	            if (hex !== undefined) {
-	                this.setHex(hex);
-	            } else {
-	                console.warn('XCANVAS.Color: Unknown color ' + style);
-	            }
-	        }
-	        return this;
-	    }
-
-	    getHex() {
-	        return (this.r * 255) << 16 ^ (this.g * 255) << 8 ^ (this.b * 255) << 0;
-	    }
-
-	    getHexString() {
-	        return ('000000' + this.getHex().toString(16)).slice(-6);
-	    }
-
-	    getHSL(target) {
-	        // h,s,l ranges are in 0.0 - 1.0
-	        if (target === undefined) {
-	            console.warn('XCANVAS.Color: .getHSL() target is now required');
-	            target = {
-	                h: 0,
-	                s: 0,
-	                l: 0
-	            };
-	        }
-	        let r = this.r,
-	            g = this.g,
-	            b = this.b;
-	        let max = Math.max(r, g, b);
-	        let min = Math.min(r, g, b);
-	        let hue, saturation;
-	        let lightness = (min + max) / 2.0;
-	        if (min === max) {
-	            hue = 0;
-	            saturation = 0;
-	        } else {
-	            let delta = max - min;
-	            saturation = lightness <= 0.5 ? delta / (max + min) : delta / (2 - max - min);
-	            switch (max) {
-	                case r:
-	                    hue = (g - b) / delta + (g < b ? 6 : 0);
-	                    break;
-	                case g:
-	                    hue = (b - r) / delta + 2;
-	                    break;
-	                case b:
-	                    hue = (r - g) / delta + 4;
-	                    break;
-	            }
-	            hue /= 6;
-	        }
-	        target.h = hue;
-	        target.s = saturation;
-	        target.l = lightness;
-	        return target;
-	    }
-
-	    getStyle() {
-	        return 'rgb(' + this.r * 255 + ',' + this.g * 255 + ',' + this.b * 255 + ')';
-	    }
-
-	    add(color) {
-	        this.r += color.r;
-	        this.g += color.g;
-	        this.b += color.b;
-	        return this;
-	    }
-
-	    sub(color) {
-	        this.r = Math.max(0, this.r - color.r);
-	        this.g = Math.max(0, this.g - color.g);
-	        this.b = Math.max(0, this.b - color.b);
-	        return this;
-	    }
-
-	    multiply(color) {
-	        this.r *= color.r;
-	        this.g *= color.g;
-	        this.b *= color.b;
-
-	        return this;
-	    }
-
-	    equals(c) {
-	        return (c.r === this.r) && (c.g === this.g) && (c.b === this.b) && (c.a === this.a);
-	    }
-
-	    // 处理透明度
-	    _handleAlpha(style) {
-	        console.warn('THREE.Color: Alpha component of ' + style + ' will be ignored.');
-	    }
-
-	    _hue2rgb(p, q, t) {
-	        if (t < 0) t += 1;
-	        if (t > 1) t -= 1;
-	        if (t < 1 / 6) return p + (q - p) * 6 * t;
-	        if (t < 1 / 2) return q;
-	        if (t < 2 / 3) return p + (q - p) * 6 * (2 / 3 - t);
-	        return p;
-	    }
-	}
-
 	class Camera extends Object3D {
 	    constructor() {
 	        super();
@@ -2570,7 +2570,6 @@
 	 * 三角面片
 	 */
 	class Face3 {
-	    // TODO 顶点着色未实现
 	    constructor(a, b, c, color = new Color(), materialIndex = 0) {
 	        this.a = a;
 	        this.b = b;
@@ -2672,9 +2671,32 @@
 	    onUploadCallback() {
 	    }
 	}
+
+	class Int8BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int8Array(array), itemSize, normalized);
+	    }
+	}
+	class Uint8BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Uint8Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Int16BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int16Array(array), itemSize, normalized);
+	    }
+	}
 	class Uint16BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Uint16Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Int32BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int32Array(array), itemSize, normalized);
 	    }
 	}
 	class Uint32BufferAttribute extends BufferAttribute {
@@ -2682,9 +2704,21 @@
 	        super(new Uint32Array(array), itemSize, normalized);
 	    }
 	}
+
+	class Int64BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int64Array(array), itemSize, normalized);
+	    }
+	}
 	class Float32BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Float32Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Float64BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Float64Array(array), itemSize, normalized);
 	    }
 	}
 
@@ -2699,7 +2733,7 @@
 	        this.index = null;
 	        this.attributes = {};
 
-	        this.groups = [];
+	        this.groups = [];   // 将当前几何体分割成组进行渲染
 	    }
 
 	    getIndex() {
@@ -2820,7 +2854,7 @@
 	        this.isGeometry = true;
 
 	        this.vertices = []; // 顶点
-	        this.colors=[];     // 顶点 colors 队列
+	        this.colors = [];     // 顶点 colors 队列
 	        this.faces = [];    // 面
 	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
 	    }
@@ -2833,10 +2867,10 @@
 	            vertex.applyMatrix4(matrix);
 	        }
 
-	        for (let i = 0; i < this.faces.length; i++) {
-	            let face = this.faces[i];
-	            // face.normal.applyMatrix3(normalMatrix).normalize();
-	        }
+	        // for (let i = 0; i < this.faces.length; i++) {
+	        //     let face = this.faces[i];
+	        //     face.normal.applyMatrix3(normalMatrix).normalize();
+	        // }
 
 	        return this;
 	    }
@@ -2889,12 +2923,18 @@
 	        let attributes = geometry.attributes;
 
 	        let positions = attributes.position.array;
+
+	        let colors = attributes.color !== undefined ? attributes.color.array : undefined;
 	        let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
 
 	        let tempUVs = [];
 
 	        for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
 	            scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+
+	            if (colors !== undefined) {
+	                scope.colors.push(new Color(colors[i], colors[i + 1], colors[i + 2]));
+	            }
 
 	            if (uvs !== undefined) {
 	                tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
@@ -2905,7 +2945,8 @@
 	            for (let i = 0; i < indices.length; i += 3) {
 	                addFace(indices[i], indices[i + 1], indices[i + 2]);
 	            }
-	        } else {
+	        }
+	        else {
 	            for (let i = 0; i < positions.length / 3; i += 3) {
 	                addFace(i, i + 1, i + 2);
 	            }
@@ -3691,6 +3732,8 @@
 
 	let _modelMatrix,
 	    _modelViewProjectionMatrix = new Matrix4$1();
+
+	// 裁剪点
 	let _clippedVertex1PositionScreen = new Vector4(),
 	    _clippedVertex2PositionScreen = new Vector4();
 
@@ -3702,7 +3745,8 @@
 	        this.object = null;
 	        this.material = null;
 
-	        this.uvs = [];
+	        this.colors = []; // 顶点 colors 队列
+	        this.uvs = [];  // // 面的 UV 层的队列
 	    }
 
 	    // 设置对象（BufferGeometry支持）
@@ -3710,6 +3754,7 @@
 	        this.object = value;
 	        this.material = value.material;
 
+	        this.colors.length = 0;
 	        this.uvs.length = 0;
 	    }
 
@@ -3798,9 +3843,9 @@
 	        let v2 = _vertexPool[b];
 	        let v3 = _vertexPool[c];
 
-	        if (this.checkTriangleVisibility(v1, v2, v3) === false) return;
+	        if (checkTriangleVisibility(v1, v2, v3) === false) return;
 
-	        if (material.side === DoubleSide || this.checkBackfaceCulling(v1, v2, v3) === true) {
+	        if (material.side === DoubleSide || checkBackfaceCulling(v1, v2, v3) === true) {
 	            _face = getNextFaceInPool();
 
 	            _face.id = object.id;
@@ -3834,23 +3879,45 @@
 	        }
 	    }
 
+	    pushLine(a, b) {
+	        let object = this.object;
+	        let v1 = _vertexPool[a];
+	        let v2 = _vertexPool[b];
+
+	        // Clip
+	        v1.positionScreen.copy(v1.position).applyMatrix4(_modelViewProjectionMatrix);
+	        v2.positionScreen.copy(v2.position).applyMatrix4(_modelViewProjectionMatrix);
+
+	        if (clipLine(v1.positionScreen, v2.positionScreen) === true) {
+	            // Perform the perspective divide
+	            v1.positionScreen.multiplyScalar(1 / v1.positionScreen.w);
+	            v2.positionScreen.multiplyScalar(1 / v2.positionScreen.w);
+
+	            _line = getNextLineInPool();
+	            _line.id = object.id;
+	            _line.v1.copy(v1);
+	            _line.v2.copy(v2);
+	            _line.z = Math.max(v1.positionScreen.z, v2.positionScreen.z);
+	            _line.renderOrder = object.renderOrder;
+
+	            _line.material = object.material;
+
+	            if (object.material.vertexColors === VertexColors) {
+	                _line.vertexColors[0].fromArray(colors, a * 3);
+	                _line.vertexColors[1].fromArray(colors, b * 3);
+	            }
+
+	            _renderData.elements.push(_line);
+	        }
+	    }
+
 	    // 添加 uv 点
 	    pushUv(x, y) {
 	        this.uvs.push(x, y);
 	    }
 
-	    checkTriangleVisibility(v1, v2, v3) {
-	        if (v1.visible === true || v2.visible === true || v3.visible === true) return true;
-
-	        _points3[0] = v1.positionScreen;
-	        _points3[1] = v2.positionScreen;
-	        _points3[2] = v3.positionScreen;
-
-	        return _clipBox.intersectsBox(_boundingBox.setFromPoints(_points3));
-	    }
-
-	    checkBackfaceCulling(v1, v2, v3) {
-	        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
+	    pushColor(r, g, b) {
+	        this.colors.push(r, g, b);
 	    }
 	}
 
@@ -3885,7 +3952,6 @@
 	            _modelMatrix = object.matrixWorld;
 
 	            if (object.isMesh === true) {
-	                // BufferGeometry
 	                if (geometry.isBufferGeometry === true) {
 	                    let attributes = geometry.attributes;
 	                    let groups = geometry.groups;
@@ -3928,7 +3994,6 @@
 	                        }
 	                    }
 	                }
-	                // Geometry
 	                else if (geometry.isGeometry === true) {
 	                    let vertices = geometry.vertices;
 	                    let faces = geometry.faces;
@@ -3953,9 +4018,9 @@
 	                        let v2 = _vertexPool[face.b];
 	                        let v3 = _vertexPool[face.c];
 
-	                        if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
+	                        if (checkTriangleVisibility(v1, v2, v3) === false) continue;
 	                        // 过滤面
-	                        let visible = renderList.checkBackfaceCulling(v1, v2, v3);
+	                        let visible = checkBackfaceCulling(v1, v2, v3);
 	                        if (material.side !== DoubleSide) {
 	                            if (material.side === FrontSide && visible === false) continue;
 	                            if (material.side === BackSide && visible === true) continue;
@@ -3991,7 +4056,31 @@
 	                renderList.pushPoint(_vector4, object, camera);
 	            }
 	            else if (object.isLine === true) {
-	                if (geometry.isBufferGeometry === true) ;
+	                _modelViewProjectionMatrix.multiplyMatrices(_viewProjectionMatrix, _modelMatrix);
+
+	                if (geometry.isBufferGeometry === true) {
+	                    let attributes = geometry.attributes;
+	                    if (attributes.position !== undefined) {
+	                        let positions = attributes.position.array;
+	                        for (let i = 0, l = positions.length; i < l; i += 3) {
+	                            renderList.pushVertex(positions[i], positions[i + 1], positions[i + 2]);
+	                        }
+
+	                        if (attributes.color !== undefined) {
+	                            let colors = attributes.color.array;
+	                            for (let i = 0, l = colors.length; i < l; i += 3) {
+	                                renderList.pushColor(colors[i], colors[i + 1], colors[i + 2]);
+	                            }
+	                        }
+
+	                        if (geometry.index !== null) {
+	                            let indices = geometry.index.array;
+	                            for (let i = 0, l = indices.length; i < l; i += 2) {
+	                                renderList.pushLine(indices[i], indices[i + 1]);
+	                            }
+	                        }
+	                    }
+	                }
 	                else if (geometry.isGeometry === true) {
 	                    let vertices = object.geometry.vertices;
 
@@ -4013,8 +4102,7 @@
 	                        _clippedVertex1PositionScreen.copy(v1.positionScreen);
 	                        _clippedVertex2PositionScreen.copy(v2.positionScreen);
 
-	                        if (this.clipLine(_clippedVertex1PositionScreen, _clippedVertex2PositionScreen) === true) {
-
+	                        if (clipLine(_clippedVertex1PositionScreen, _clippedVertex2PositionScreen) === true) {
 	                            // Perform the perspective divide
 	                            _clippedVertex1PositionScreen.multiplyScalar(1 / _clippedVertex1PositionScreen.w);
 	                            _clippedVertex2PositionScreen.multiplyScalar(1 / _clippedVertex2PositionScreen.w);
@@ -4031,16 +4119,12 @@
 	                            _line.material = object.material;
 
 	                            if (object.material.vertexColors === VertexColors) {
-
 	                                _line.vertexColors[0].copy(object.geometry.colors[v]);
 	                                _line.vertexColors[1].copy(object.geometry.colors[v - 1]);
-
 	                            }
 
 	                            _renderData.elements.push(_line);
-
 	                        }
-
 	                    }
 	                }
 	            }
@@ -4063,76 +4147,72 @@
 	            return 0;
 	        }
 	    }
+	}
 
-	    clipLine(s1, s2) {
+	function checkTriangleVisibility(v1, v2, v3) {
+	    if (v1.visible === true || v2.visible === true || v3.visible === true) return true;
 
-	        let alpha1 = 0, alpha2 = 1,
+	    _points3[0] = v1.positionScreen;
+	    _points3[1] = v2.positionScreen;
+	    _points3[2] = v3.positionScreen;
 
-	            // Calculate the boundary coordinate of each vertex for the near and far clip planes,
-	            // Z = -1 and Z = +1, respectively.
+	    return _clipBox.intersectsBox(_boundingBox.setFromPoints(_points3));
+	}
 
-	            bc1near = s1.z + s1.w,
-	            bc2near = s2.z + s2.w,
-	            bc1far = -s1.z + s1.w,
-	            bc2far = -s2.z + s2.w;
+	function checkBackfaceCulling(v1, v2, v3) {
+	    return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
+	}
 
-	        if (bc1near >= 0 && bc2near >= 0 && bc1far >= 0 && bc2far >= 0) {
+	// 裁剪线
+	function clipLine(s1, s2) {
+	    let alpha1 = 0, alpha2 = 1,
+	        // Calculate the boundary coordinate of each vertex for the near and far clip planes,
+	        // Z = -1 and Z = +1, respectively.
+	        bc1near = s1.z + s1.w,
+	        bc2near = s2.z + s2.w,
+	        bc1far = -s1.z + s1.w,
+	        bc2far = -s2.z + s2.w;
 
-	            // Both vertices lie entirely within all clip planes.
-	            return true;
-
-	        } else if ((bc1near < 0 && bc2near < 0) || (bc1far < 0 && bc2far < 0)) {
-
-	            // Both vertices lie entirely outside one of the clip planes.
-	            return false;
-
-	        } else {
-
-	            // The line segment spans at least one clip plane.
-
-	            if (bc1near < 0) {
-
-	                // v1 lies outside the near plane, v2 inside
-	                alpha1 = Math.max(alpha1, bc1near / (bc1near - bc2near));
-
-	            } else if (bc2near < 0) {
-
-	                // v2 lies outside the near plane, v1 inside
-	                alpha2 = Math.min(alpha2, bc1near / (bc1near - bc2near));
-
-	            }
-
-	            if (bc1far < 0) {
-
-	                // v1 lies outside the far plane, v2 inside
-	                alpha1 = Math.max(alpha1, bc1far / (bc1far - bc2far));
-
-	            } else if (bc2far < 0) {
-
-	                // v2 lies outside the far plane, v2 inside
-	                alpha2 = Math.min(alpha2, bc1far / (bc1far - bc2far));
-
-	            }
-
-	            if (alpha2 < alpha1) {
-
-	                // The line segment spans two boundaries, but is outside both of them.
-	                // (This can't happen when we're only clipping against just near/far but good
-	                //  to leave the check here for future usage if other clip planes are added.)
-	                return false;
-
-	            } else {
-
-	                // Update the s1 and s2 vertices to match the clipped line segment.
-	                s1.lerp(s2, alpha1);
-	                s2.lerp(s1, 1 - alpha2);
-
-	                return true;
-
-	            }
-
+	    if (bc1near >= 0 && bc2near >= 0 && bc1far >= 0 && bc2far >= 0) {
+	        // Both vertices lie entirely within all clip planes.
+	        return true;
+	    }
+	    else if ((bc1near < 0 && bc2near < 0) || (bc1far < 0 && bc2far < 0)) {
+	        // Both vertices lie entirely outside one of the clip planes.
+	        return false;
+	    }
+	    else {
+	        // The line segment spans at least one clip plane.
+	        if (bc1near < 0) {
+	            // v1 lies outside the near plane, v2 inside
+	            alpha1 = Math.max(alpha1, bc1near / (bc1near - bc2near));
+	        }
+	        else if (bc2near < 0) {
+	            // v2 lies outside the near plane, v1 inside
+	            alpha2 = Math.min(alpha2, bc1near / (bc1near - bc2near));
 	        }
 
+	        if (bc1far < 0) {
+	            // v1 lies outside the far plane, v2 inside
+	            alpha1 = Math.max(alpha1, bc1far / (bc1far - bc2far));
+	        }
+	        else if (bc2far < 0) {
+	            // v2 lies outside the far plane, v2 inside
+	            alpha2 = Math.min(alpha2, bc1far / (bc1far - bc2far));
+	        }
+
+	        if (alpha2 < alpha1) {
+	            // The line segment spans two boundaries, but is outside both of them.
+	            // (This can't happen when we're only clipping against just near/far but good
+	            //  to leave the check here for future usage if other clip planes are added.)
+	            return false;
+	        }
+	        else {
+	            // Update the s1 and s2 vertices to match the clipped line segment.
+	            s1.lerp(s2, alpha1);
+	            s2.lerp(s1, 1 - alpha2);
+	            return true;
+	        }
 	    }
 	}
 
@@ -4643,37 +4723,30 @@
 	            if (material.vertexColors !== VertexColors) {
 	                this.setStrokeStyle(material.color.getStyle());
 	            }
-	            // else {
-	            //     var colorStyle1 = element.vertexColors[0].getStyle();
-	            //     var colorStyle2 = element.vertexColors[1].getStyle();
-	            //
-	            //     if (colorStyle1 === colorStyle2) {
-	            //
-	            //         this.setStrokeStyle(colorStyle1);
-	            //
-	            //     } else {
-	            //
-	            //         try {
-	            //
-	            //             var grad = _context.createLinearGradient(
-	            //                 v1.positionScreen.x,
-	            //                 v1.positionScreen.y,
-	            //                 v2.positionScreen.x,
-	            //                 v2.positionScreen.y
-	            //             );
-	            //             grad.addColorStop(0, colorStyle1);
-	            //             grad.addColorStop(1, colorStyle2);
-	            //
-	            //         } catch (exception) {
-	            //
-	            //             grad = colorStyle1;
-	            //
-	            //         }
-	            //
-	            //         this.setStrokeStyle(grad);
-	            //
-	            //     }
-	            // }
+	            else {
+	                var colorStyle1 = element.vertexColors[0].getStyle();
+	                var colorStyle2 = element.vertexColors[1].getStyle();
+
+	                if (colorStyle1 === colorStyle2) {
+	                    this.setStrokeStyle(colorStyle1);
+	                }
+	                else {
+	                    // 线性渐变
+	                    try {
+	                        var grad = _context.createLinearGradient(
+	                            v1.positionScreen.x,
+	                            v1.positionScreen.y,
+	                            v2.positionScreen.x,
+	                            v2.positionScreen.y
+	                        );
+	                        grad.addColorStop(0, colorStyle1);
+	                        grad.addColorStop(1, colorStyle2);
+	                    } catch (exception) {
+	                        grad = colorStyle1;
+	                    }
+	                    this.setStrokeStyle(grad);
+	                }
+	            }
 
 	            _context.stroke();
 	            _elemBox.expandByScalar(material.linewidth * 2);
@@ -4723,30 +4796,22 @@
 	    }
 
 	    patternPath(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, texture) {
-
 	        let pattern = _patterns[texture.id];
 
 	        if (pattern === undefined || pattern.version !== texture.version) {
-
 	            pattern = this.textureToPattern(texture);
 	            _patterns[texture.id] = pattern;
-
 	        }
 
 	        if (pattern.canvas !== undefined) {
-
 	            this.setFillStyle(pattern.canvas);
-
 	        } else {
-
 	            this.setFillStyle('rgba( 0, 0, 0, 1)');
 	            _context.fill();
 	            return;
-
 	        }
 
 	        // http://extremelysatisfactorytotalitarianism.com/blog/?p=2120
-
 	        let a, b, c, d, e, f, det, idet,
 	            offsetX = texture.offset.x / texture.repeat.x,
 	            offsetY = texture.offset.y / texture.repeat.y,
@@ -4790,7 +4855,6 @@
 	        _context.transform(a, b, c, d, e, f);
 	        _context.fill();
 	        _context.restore();
-
 	    }
 
 	    // Hide anti-alias gaps
@@ -4890,6 +4954,7 @@
 
 	exports.Math = _Math;
 	exports.Object3D = Object3D;
+	exports.Color = Color;
 	exports.Euler = Euler;
 	exports.Quaternion = Quaternion;
 	exports.Vector2 = Vector2;
@@ -4897,7 +4962,6 @@
 	exports.Vector4 = Vector4;
 	exports.Matrix3 = Matrix3;
 	exports.Matrix4 = Matrix4$1;
-	exports.Color = Color;
 	exports.PerspectiveCamera = PerspectiveCamera;
 	exports.OrthographicCamera = OrthographicCamera;
 	exports.Scene = Scene;
@@ -4912,6 +4976,7 @@
 	exports.Mesh = Mesh;
 	exports.Sprite = Sprite;
 	exports.Line = Line;
+	exports.BufferGeometry = BufferGeometry;
 	exports.Geometry = Geometry;
 	exports.BoxGeometry = BoxGeometry;
 	exports.BoxBufferGeometry = BoxBufferGeometry;
@@ -4944,6 +5009,16 @@
 	exports.UVMapping = UVMapping;
 	exports.RGBFormat = RGBFormat;
 	exports.RGBAFormat = RGBAFormat;
+	exports.BufferAttribute = BufferAttribute;
+	exports.Int8BufferAttribute = Int8BufferAttribute;
+	exports.Uint8BufferAttribute = Uint8BufferAttribute;
+	exports.Int16BufferAttribute = Int16BufferAttribute;
+	exports.Uint16BufferAttribute = Uint16BufferAttribute;
+	exports.Int32BufferAttribute = Int32BufferAttribute;
+	exports.Uint32BufferAttribute = Uint32BufferAttribute;
+	exports.Int64BufferAttribute = Int64BufferAttribute;
+	exports.Float32BufferAttribute = Float32BufferAttribute;
+	exports.Float64BufferAttribute = Float64BufferAttribute;
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 

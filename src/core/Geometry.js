@@ -1,4 +1,5 @@
 import {_Math} from "../math/Math";
+import {Color} from "../math/Color";
 import {Vector2} from "../math/Vector2";
 import {Matrix3} from "../math/Matrix3";
 import {Matrix4} from "../math/Matrix4";
@@ -20,7 +21,7 @@ class Geometry {
         this.isGeometry = true;
 
         this.vertices = []; // 顶点
-        this.colors=[];     // 顶点 colors 队列
+        this.colors = [];     // 顶点 colors 队列
         this.faces = [];    // 面
         this.faceVertexUvs = [[]];  // 面的 UV 层的队列
     }
@@ -33,10 +34,10 @@ class Geometry {
             vertex.applyMatrix4(matrix);
         }
 
-        for (let i = 0; i < this.faces.length; i++) {
-            let face = this.faces[i];
-            // face.normal.applyMatrix3(normalMatrix).normalize();
-        }
+        // for (let i = 0; i < this.faces.length; i++) {
+        //     let face = this.faces[i];
+        //     face.normal.applyMatrix3(normalMatrix).normalize();
+        // }
 
         return this;
     }
@@ -89,12 +90,18 @@ class Geometry {
         let attributes = geometry.attributes;
 
         let positions = attributes.position.array;
+
+        let colors = attributes.color !== undefined ? attributes.color.array : undefined;
         let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
 
         let tempUVs = [];
 
         for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
             scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+
+            if (colors !== undefined) {
+                scope.colors.push(new Color(colors[i], colors[i + 1], colors[i + 2]));
+            }
 
             if (uvs !== undefined) {
                 tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
@@ -105,7 +112,8 @@ class Geometry {
             for (let i = 0; i < indices.length; i += 3) {
                 addFace(indices[i], indices[i + 1], indices[i + 2]);
             }
-        } else {
+        }
+        else {
             for (let i = 0; i < positions.length / 3; i += 3) {
                 addFace(i, i + 1, i + 2);
             }

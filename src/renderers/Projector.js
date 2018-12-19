@@ -24,6 +24,8 @@ let _viewMatrix = new Matrix4(),
 
 let _modelMatrix,
     _modelViewProjectionMatrix = new Matrix4();
+
+// 裁剪点
 let _clippedVertex1PositionScreen = new Vector4(),
     _clippedVertex2PositionScreen = new Vector4();
 
@@ -133,9 +135,9 @@ class RenderList {
         let v2 = _vertexPool[b];
         let v3 = _vertexPool[c];
 
-        if (this.checkTriangleVisibility(v1, v2, v3) === false) return;
+        if (checkTriangleVisibility(v1, v2, v3) === false) return;
 
-        if (material.side === DoubleSide || this.checkBackfaceCulling(v1, v2, v3) === true) {
+        if (material.side === DoubleSide || checkBackfaceCulling(v1, v2, v3) === true) {
             _face = getNextFaceInPool();
 
             _face.id = object.id;
@@ -169,23 +171,45 @@ class RenderList {
         }
     }
 
+    pushLine(a, b) {
+        let object = this.object;
+        let v1 = _vertexPool[a];
+        let v2 = _vertexPool[b];
+
+        // Clip
+        v1.positionScreen.copy(v1.position).applyMatrix4(_modelViewProjectionMatrix);
+        v2.positionScreen.copy(v2.position).applyMatrix4(_modelViewProjectionMatrix);
+
+        if (clipLine(v1.positionScreen, v2.positionScreen) === true) {
+            // Perform the perspective divide
+            v1.positionScreen.multiplyScalar(1 / v1.positionScreen.w);
+            v2.positionScreen.multiplyScalar(1 / v2.positionScreen.w);
+
+            _line = getNextLineInPool();
+            _line.id = object.id;
+            _line.v1.copy(v1);
+            _line.v2.copy(v2);
+            _line.z = Math.max(v1.positionScreen.z, v2.positionScreen.z);
+            _line.renderOrder = object.renderOrder;
+
+            _line.material = object.material;
+
+            if (object.material.vertexColors === VertexColors) {
+                _line.vertexColors[0].fromArray(colors, a * 3);
+                _line.vertexColors[1].fromArray(colors, b * 3);
+            }
+
+            _renderData.elements.push(_line);
+        }
+    }
+
     // 添加 uv 点
     pushUv(x, y) {
         this.uvs.push(x, y);
     }
 
-    checkTriangleVisibility(v1, v2, v3) {
-        if (v1.visible === true || v2.visible === true || v3.visible === true) return true;
-
-        _points3[0] = v1.positionScreen;
-        _points3[1] = v2.positionScreen;
-        _points3[2] = v3.positionScreen;
-
-        return _clipBox.intersectsBox(_boundingBox.setFromPoints(_points3));
-    }
-
-    checkBackfaceCulling(v1, v2, v3) {
-        return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
+    pushColor(r, g, b) {
+        this.colors.push(r, g, b);
     }
 }
 
@@ -220,7 +244,6 @@ class Projector {
             _modelMatrix = object.matrixWorld;
 
             if (object.isMesh === true) {
-                // BufferGeometry
                 if (geometry.isBufferGeometry === true) {
                     let attributes = geometry.attributes;
                     let groups = geometry.groups;
@@ -263,7 +286,6 @@ class Projector {
                         }
                     }
                 }
-                // Geometry
                 else if (geometry.isGeometry === true) {
                     let vertices = geometry.vertices;
                     let faces = geometry.faces;
@@ -288,9 +310,9 @@ class Projector {
                         let v2 = _vertexPool[face.b];
                         let v3 = _vertexPool[face.c];
 
-                        if (renderList.checkTriangleVisibility(v1, v2, v3) === false) continue;
+                        if (checkTriangleVisibility(v1, v2, v3) === false) continue;
                         // 过滤面
-                        let visible = renderList.checkBackfaceCulling(v1, v2, v3);
+                        let visible = checkBackfaceCulling(v1, v2, v3);
                         if (material.side !== DoubleSide) {
                             if (material.side === FrontSide && visible === false) continue;
                             if (material.side === BackSide && visible === true) continue;
@@ -326,7 +348,30 @@ class Projector {
                 renderList.pushPoint(_vector4, object, camera);
             }
             else if (object.isLine === true) {
+                _modelViewProjectionMatrix.multiplyMatrices(_viewProjectionMatrix, _modelMatrix);
+
                 if (geometry.isBufferGeometry === true) {
+                    let attributes = geometry.attributes;
+                    if (attributes.position !== undefined) {
+                        let positions = attributes.position.array;
+                        for (let i = 0, l = positions.length; i < l; i += 3) {
+                            renderList.pushVertex(positions[i], positions[i + 1], positions[i + 2]);
+                        }
+
+                        if (attributes.color !== undefined) {
+                            let colors = attributes.color.array;
+                            for (let i = 0, l = colors.length; i < l; i += 3) {
+                                renderList.pushColor(colors[i], colors[i + 1], colors[i + 2]);
+                            }
+                        }
+
+                        if (geometry.index !== null) {
+                            let indices = geometry.index.array;
+                            for (let i = 0, l = indices.length; i < l; i += 2) {
+                                renderList.pushLine(indices[i], indices[i + 1]);
+                            }
+                        }
+                    }
                 }
                 else if (geometry.isGeometry === true) {
                     let vertices = object.geometry.vertices;
@@ -349,8 +394,7 @@ class Projector {
                         _clippedVertex1PositionScreen.copy(v1.positionScreen);
                         _clippedVertex2PositionScreen.copy(v2.positionScreen);
 
-                        if (this.clipLine(_clippedVertex1PositionScreen, _clippedVertex2PositionScreen) === true) {
-
+                        if (clipLine(_clippedVertex1PositionScreen, _clippedVertex2PositionScreen) === true) {
                             // Perform the perspective divide
                             _clippedVertex1PositionScreen.multiplyScalar(1 / _clippedVertex1PositionScreen.w);
                             _clippedVertex2PositionScreen.multiplyScalar(1 / _clippedVertex2PositionScreen.w);
@@ -367,16 +411,12 @@ class Projector {
                             _line.material = object.material;
 
                             if (object.material.vertexColors === VertexColors) {
-
                                 _line.vertexColors[0].copy(object.geometry.colors[v]);
                                 _line.vertexColors[1].copy(object.geometry.colors[v - 1]);
-
                             }
 
                             _renderData.elements.push(_line);
-
                         }
-
                     }
                 }
             }
@@ -399,76 +439,72 @@ class Projector {
             return 0;
         }
     }
+}
 
-    clipLine(s1, s2) {
+function checkTriangleVisibility(v1, v2, v3) {
+    if (v1.visible === true || v2.visible === true || v3.visible === true) return true;
 
-        let alpha1 = 0, alpha2 = 1,
+    _points3[0] = v1.positionScreen;
+    _points3[1] = v2.positionScreen;
+    _points3[2] = v3.positionScreen;
 
-            // Calculate the boundary coordinate of each vertex for the near and far clip planes,
-            // Z = -1 and Z = +1, respectively.
+    return _clipBox.intersectsBox(_boundingBox.setFromPoints(_points3));
+}
 
-            bc1near = s1.z + s1.w,
-            bc2near = s2.z + s2.w,
-            bc1far = -s1.z + s1.w,
-            bc2far = -s2.z + s2.w;
+function checkBackfaceCulling(v1, v2, v3) {
+    return ((v3.positionScreen.x - v1.positionScreen.x) * (v2.positionScreen.y - v1.positionScreen.y) - (v3.positionScreen.y - v1.positionScreen.y) * (v2.positionScreen.x - v1.positionScreen.x)) < 0;
+}
 
-        if (bc1near >= 0 && bc2near >= 0 && bc1far >= 0 && bc2far >= 0) {
+// 裁剪线
+function clipLine(s1, s2) {
+    let alpha1 = 0, alpha2 = 1,
+        // Calculate the boundary coordinate of each vertex for the near and far clip planes,
+        // Z = -1 and Z = +1, respectively.
+        bc1near = s1.z + s1.w,
+        bc2near = s2.z + s2.w,
+        bc1far = -s1.z + s1.w,
+        bc2far = -s2.z + s2.w;
 
-            // Both vertices lie entirely within all clip planes.
-            return true;
-
-        } else if ((bc1near < 0 && bc2near < 0) || (bc1far < 0 && bc2far < 0)) {
-
-            // Both vertices lie entirely outside one of the clip planes.
-            return false;
-
-        } else {
-
-            // The line segment spans at least one clip plane.
-
-            if (bc1near < 0) {
-
-                // v1 lies outside the near plane, v2 inside
-                alpha1 = Math.max(alpha1, bc1near / (bc1near - bc2near));
-
-            } else if (bc2near < 0) {
-
-                // v2 lies outside the near plane, v1 inside
-                alpha2 = Math.min(alpha2, bc1near / (bc1near - bc2near));
-
-            }
-
-            if (bc1far < 0) {
-
-                // v1 lies outside the far plane, v2 inside
-                alpha1 = Math.max(alpha1, bc1far / (bc1far - bc2far));
-
-            } else if (bc2far < 0) {
-
-                // v2 lies outside the far plane, v2 inside
-                alpha2 = Math.min(alpha2, bc1far / (bc1far - bc2far));
-
-            }
-
-            if (alpha2 < alpha1) {
-
-                // The line segment spans two boundaries, but is outside both of them.
-                // (This can't happen when we're only clipping against just near/far but good
-                //  to leave the check here for future usage if other clip planes are added.)
-                return false;
-
-            } else {
-
-                // Update the s1 and s2 vertices to match the clipped line segment.
-                s1.lerp(s2, alpha1);
-                s2.lerp(s1, 1 - alpha2);
-
-                return true;
-
-            }
-
+    if (bc1near >= 0 && bc2near >= 0 && bc1far >= 0 && bc2far >= 0) {
+        // Both vertices lie entirely within all clip planes.
+        return true;
+    }
+    else if ((bc1near < 0 && bc2near < 0) || (bc1far < 0 && bc2far < 0)) {
+        // Both vertices lie entirely outside one of the clip planes.
+        return false;
+    }
+    else {
+        // The line segment spans at least one clip plane.
+        if (bc1near < 0) {
+            // v1 lies outside the near plane, v2 inside
+            alpha1 = Math.max(alpha1, bc1near / (bc1near - bc2near));
+        }
+        else if (bc2near < 0) {
+            // v2 lies outside the near plane, v1 inside
+            alpha2 = Math.min(alpha2, bc1near / (bc1near - bc2near));
         }
 
+        if (bc1far < 0) {
+            // v1 lies outside the far plane, v2 inside
+            alpha1 = Math.max(alpha1, bc1far / (bc1far - bc2far));
+        }
+        else if (bc2far < 0) {
+            // v2 lies outside the far plane, v2 inside
+            alpha2 = Math.min(alpha2, bc1far / (bc1far - bc2far));
+        }
+
+        if (alpha2 < alpha1) {
+            // The line segment spans two boundaries, but is outside both of them.
+            // (This can't happen when we're only clipping against just near/far but good
+            //  to leave the check here for future usage if other clip planes are added.)
+            return false;
+        }
+        else {
+            // Update the s1 and s2 vertices to match the clipped line segment.
+            s1.lerp(s2, alpha1);
+            s2.lerp(s1, 1 - alpha2);
+            return true;
+        }
     }
 }
 

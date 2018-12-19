@@ -1,62 +1,119 @@
 <!DOCTYPE html>
 <html>
-   
+
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
-    <title>three.js canvas - line</title>
+    <title>three.js canvas - lines - random</title>
     <style>
-        html, body {
-            width: 100%;
-            height: 100%;
-            margin: 0;
-            padding: 0;
+        body {
+            background-color: #000000;
+            margin: 0px;
             overflow: hidden;
         }
 
-        #container {
-            width: 100%;
-            height: 100%;
+        a {
+            color: #0078ff;
         }
     </style>
-    <script src="../build/three.js"></script>
-    <script src="js/libs/stats.min.js"></script>
 </head>
-   
+
 <body>
-   
-<script  type="text/javascript">
-    // 老三样 场景scene，相机camera，渲染器render
-    var scene = new THREE.Scene();
-    // 相机
-    var camera = new THREE.PerspectiveCamera(45, 1, 1, 1000);
-    camera.position.set(0, 0, 100);
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-    // 渲染器
-    var renderer = new THREE.CanvasRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+<script src="../build/three.js"></script>
+<script>
+    var mouseX = 0,
+        mouseY = 0,
+        windowHalfX = window.innerWidth / 2,
+        windowHalfY = window.innerHeight / 2,
+        camera, scene, renderer;
+    init();
+    animate();
 
+    function init() {
+        var particle;
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 1, 10000);
+        camera.position.z = 100;
+        scene = new THREE.Scene();
+        renderer = new THREE.CanvasRenderer();
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-    //显示在窗体
-    document.body.appendChild(renderer.domElement);
+        // particles
+        var PI2 = Math.PI * 2;
+        var material = new THREE.SpriteCanvasMaterial({
+            color: 0xffffff,
+            program: function(context) {
+                context.beginPath();
+                context.arc(0, 0, 0.5, 0, PI2, true);
+                context.fill();
+            }
+        });
+        var geometry = new THREE.Geometry();
+        for (var i = 0; i < 100; i++) {
+            particle = new THREE.Sprite(material);
+            particle.position.x = Math.random() * 2 - 1;
+            particle.position.y = Math.random() * 2 - 1;
+            particle.position.z = Math.random() * 2 - 1;
+            particle.position.normalize();
+            particle.position.multiplyScalar(Math.random() * 10 + 450);
+            particle.scale.x = particle.scale.y = 10;
+            scene.add(particle);
+            geometry.vertices.push(particle.position);
+        }
 
+        // lines
+        var line = new THREE.Line(geometry, new THREE.LineBasicMaterial({color: 0xffffff, opacity: 0.5}));
+        scene.add(line);
 
-    //定义材质THREE.LineBasicMaterial . MeshBasicMaterial...都可以
-    var material = new THREE.LineBasicMaterial({color: 0x0000ff});
-    // 空几何体，里面没有点的信息,不想BoxGeometry已经有一系列点，组成方形了。
-    var geometry = new THREE.Geometry();
-    // 给空白几何体添加点信息，这里写3个点，geometry会把这些点自动组合成线，面。
-    geometry.vertices.push(new THREE.Vector3(-10, 0, 0));
-    geometry.vertices.push(new THREE.Vector3(0, 10, 0));
-    geometry.vertices.push(new THREE.Vector3(0, 5, 0));
-    //线构造
-    var line = new THREE.Line(geometry, material);
-    // 加入到场景中
-    scene.add(line);
-    // 渲染
-    renderer.render(scene, camera);
+        document.addEventListener('mousemove', onDocumentMouseMove, false);
+        document.addEventListener('touchstart', onDocumentTouchStart, false);
+        document.addEventListener('touchmove', onDocumentTouchMove, false);
 
+        window.addEventListener('resize', onWindowResize, false);
+    }
+
+    function onWindowResize() {
+        windowHalfX = window.innerWidth / 2;
+        windowHalfY = window.innerHeight / 2;
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onDocumentMouseMove(event) {
+        mouseX = event.clientX - windowHalfX;
+        mouseY = event.clientY - windowHalfY;
+    }
+
+    function onDocumentTouchStart(event) {
+        if (event.touches.length > 1) {
+            event.preventDefault();
+            mouseX = event.touches[0].pageX - windowHalfX;
+            mouseY = event.touches[0].pageY - windowHalfY;
+        }
+    }
+
+    function onDocumentTouchMove(event) {
+        if (event.touches.length == 1) {
+            event.preventDefault();
+            mouseX = event.touches[0].pageX - windowHalfX;
+            mouseY = event.touches[0].pageY - windowHalfY;
+        }
+    }
+
+    function animate() {
+        requestAnimationFrame(animate);
+        render();
+    }
+
+    function render() {
+        camera.position.x += (mouseX - camera.position.x) * .05;
+        camera.position.y += (-mouseY + 200 - camera.position.y) * .05;
+        camera.lookAt(scene.position);
+        renderer.render(scene, camera);
+    }
 </script>
-   
 </body>
+
 </html>

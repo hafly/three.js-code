@@ -302,37 +302,30 @@ class CanvasRenderer extends Renderer {
             if (material.vertexColors !== VertexColors) {
                 this.setStrokeStyle(material.color.getStyle());
             }
-            // else {
-            //     var colorStyle1 = element.vertexColors[0].getStyle();
-            //     var colorStyle2 = element.vertexColors[1].getStyle();
-            //
-            //     if (colorStyle1 === colorStyle2) {
-            //
-            //         this.setStrokeStyle(colorStyle1);
-            //
-            //     } else {
-            //
-            //         try {
-            //
-            //             var grad = _context.createLinearGradient(
-            //                 v1.positionScreen.x,
-            //                 v1.positionScreen.y,
-            //                 v2.positionScreen.x,
-            //                 v2.positionScreen.y
-            //             );
-            //             grad.addColorStop(0, colorStyle1);
-            //             grad.addColorStop(1, colorStyle2);
-            //
-            //         } catch (exception) {
-            //
-            //             grad = colorStyle1;
-            //
-            //         }
-            //
-            //         this.setStrokeStyle(grad);
-            //
-            //     }
-            // }
+            else {
+                var colorStyle1 = element.vertexColors[0].getStyle();
+                var colorStyle2 = element.vertexColors[1].getStyle();
+
+                if (colorStyle1 === colorStyle2) {
+                    this.setStrokeStyle(colorStyle1);
+                }
+                else {
+                    // 线性渐变
+                    try {
+                        var grad = _context.createLinearGradient(
+                            v1.positionScreen.x,
+                            v1.positionScreen.y,
+                            v2.positionScreen.x,
+                            v2.positionScreen.y
+                        );
+                        grad.addColorStop(0, colorStyle1);
+                        grad.addColorStop(1, colorStyle2);
+                    } catch (exception) {
+                        grad = colorStyle1;
+                    }
+                    this.setStrokeStyle(grad);
+                }
+            }
 
             _context.stroke();
             _elemBox.expandByScalar(material.linewidth * 2);
@@ -348,7 +341,7 @@ class CanvasRenderer extends Renderer {
         }
         let image = texture.image;
 
-        // TODO 图片动态加载未实现
+        // TODO VU贴图偏移未实现
         // if (image.complete === false) {
         //     return {
         //         canvas: undefined,
@@ -397,30 +390,22 @@ class CanvasRenderer extends Renderer {
     }
 
     patternPath(x0, y0, x1, y1, x2, y2, u0, v0, u1, v1, u2, v2, texture) {
-
         let pattern = _patterns[texture.id];
 
         if (pattern === undefined || pattern.version !== texture.version) {
-
             pattern = this.textureToPattern(texture);
             _patterns[texture.id] = pattern;
-
         }
 
         if (pattern.canvas !== undefined) {
-
             this.setFillStyle(pattern.canvas);
-
         } else {
-
             this.setFillStyle('rgba( 0, 0, 0, 1)');
             _context.fill();
             return;
-
         }
 
         // http://extremelysatisfactorytotalitarianism.com/blog/?p=2120
-
         let a, b, c, d, e, f, det, idet,
             offsetX = texture.offset.x / texture.repeat.x,
             offsetY = texture.offset.y / texture.repeat.y,
@@ -464,7 +449,6 @@ class CanvasRenderer extends Renderer {
         _context.transform(a, b, c, d, e, f);
         _context.fill();
         _context.restore();
-
     }
 
     // Hide anti-alias gaps

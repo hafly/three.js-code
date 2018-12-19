@@ -15,7 +15,7 @@ class BufferGeometry {
         this.index = null;
         this.attributes = {};
 
-        this.groups = [];
+        this.groups = [];   // 将当前几何体分割成组进行渲染
     }
 
     getIndex() {

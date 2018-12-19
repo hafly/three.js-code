@@ -4,7 +4,6 @@ import {Color} from "../math/Color";
  * 三角面片
  */
 class Face3 {
-    // TODO 顶点着色未实现
     constructor(a, b, c, color = new Color(), materialIndex = 0) {
         this.a = a;
         this.b = b;
