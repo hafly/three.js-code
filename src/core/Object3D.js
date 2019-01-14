@@ -12,7 +12,7 @@ let position = new Vector3();
 let objectId = 0;
 
 /**
- * 3D场景中图形对象的基类
+ * 3维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
  */
 class Object3D extends EventDispatcher {
     constructor() {
@@ -30,8 +30,8 @@ class Object3D extends EventDispatcher {
 
         this.up = Object3D.DefaultUp.clone();
 
-        this.matrix = new Matrix4();
-        this.matrixWorld = new Matrix4();
+        this.matrix = new Matrix4();        // 局部变换（相对于父级）
+        this.matrixWorld = new Matrix4();   // 全局变换
 
         // 默认true，当设置为true时，自动更新局部矩阵。
         this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;

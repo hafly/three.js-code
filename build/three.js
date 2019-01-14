@@ -522,7 +522,7 @@
 	let one = new Vector3(1, 1, 1);
 	let v1 = new Vector3();
 
-	class Matrix4$1 {
+	class Matrix4 {
 	    constructor() {
 	        this.elements = [
 	            1, 0, 0, 0,
@@ -944,7 +944,7 @@
 	    }
 	}
 
-	let matrix = new Matrix4$1();
+	let matrix = new Matrix4();
 
 	class Euler {
 	    constructor(x = 0, y = 0, z = 0, order = Euler.DefaultOrder) {
@@ -1400,7 +1400,7 @@
 	    }
 	}
 
-	let m1 = new Matrix4$1();
+	let m1 = new Matrix4();
 	let target = new Vector3();
 	let position = new Vector3();
 
@@ -1425,8 +1425,8 @@
 
 	        this.up = Object3D.DefaultUp.clone();
 
-	        this.matrix = new Matrix4$1();
-	        this.matrixWorld = new Matrix4$1();
+	        this.matrix = new Matrix4();
+	        this.matrixWorld = new Matrix4();
 
 	        // 默认true，当设置为true时，自动更新局部矩阵。
 	        this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;
@@ -1818,7 +1818,7 @@
 	    }
 
 	    getStyle() {
-	        return 'rgb(' + this.r * 255 + ',' + this.g * 255 + ',' + this.b * 255 + ')';
+	        return 'rgb(' + ((this.r * 255) | 0) + ',' + ((this.g * 255) | 0) + ',' + ((this.b * 255) | 0) + ')';
 	    }
 
 	    add(color) {
@@ -2308,12 +2308,12 @@
 	        this.isCamera = true;
 
 	        // 投影矩阵
-	        this.projectionMatrix = new Matrix4$1();
+	        this.projectionMatrix = new Matrix4();
 	        // 投影矩阵逆矩阵
-	        this.projectionMatrixInverse = new Matrix4$1();
+	        this.projectionMatrixInverse = new Matrix4();
 
 	        // matrixWorld逆矩阵
-	        this.matrixWorldInverse = new Matrix4$1();
+	        this.matrixWorldInverse = new Matrix4();
 	    }
 
 	    // 重写父类
@@ -2784,35 +2784,35 @@
 	    }
 
 	    rotateX(angle) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeRotationX(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    rotateY(angle) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeRotationY(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    rotateZ(angle) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeRotationZ(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    translate(x, y, z) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeTranslation(x, y, z);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    scale(x, y, z) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeScale(x, y, z);
 	        this.applyMatrix(m1);
 	        return this;
@@ -2876,35 +2876,35 @@
 	    }
 
 	    rotateX(angle) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeRotationX(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    rotateY(angle) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeRotationY(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    rotateZ(angle) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeRotationZ(angle);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    translate(x, y, z) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeTranslation(x, y, z);
 	        this.applyMatrix(m1);
 	        return this;
 	    }
 
 	    scale(x, y, z) {
-	        let m1 = new Matrix4$1();
+	        let m1 = new Matrix4();
 	        m1.makeScale(x, y, z);
 	        this.applyMatrix(m1);
 	        return this;
@@ -3727,11 +3727,11 @@
 
 	let _points3 = new Array(3);
 
-	let _viewMatrix = new Matrix4$1(),
-	    _viewProjectionMatrix = new Matrix4$1();
+	let _viewMatrix = new Matrix4(),
+	    _viewProjectionMatrix = new Matrix4();
 
 	let _modelMatrix,
-	    _modelViewProjectionMatrix = new Matrix4$1();
+	    _modelViewProjectionMatrix = new Matrix4();
 
 	// 裁剪点
 	let _clippedVertex1PositionScreen = new Vector4(),
@@ -4961,7 +4961,7 @@
 	exports.Vector3 = Vector3;
 	exports.Vector4 = Vector4;
 	exports.Matrix3 = Matrix3;
-	exports.Matrix4 = Matrix4$1;
+	exports.Matrix4 = Matrix4;
 	exports.PerspectiveCamera = PerspectiveCamera;
 	exports.OrthographicCamera = OrthographicCamera;
 	exports.Scene = Scene;

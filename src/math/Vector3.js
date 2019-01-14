@@ -1,4 +1,5 @@
 import {_Math} from "./Math";
+import {Matrix4} from "./Matrix4";
 
 class Vector3 {
     constructor(x = 0, y = 0, z = 0) {

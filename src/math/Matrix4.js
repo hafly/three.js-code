@@ -1,3 +1,7 @@
+/**
+ * 4*4矩阵原理可以参考这篇文章：http://blog.vr-seesee.com/detail/185
+ * 矩阵是用于表示变换而不是坐标，4*4矩阵的核心是变换：平移、旋转、缩放
+ */
 import {Vector3} from "./Vector3";
 
 let x = new Vector3();
@@ -180,13 +184,7 @@ class Matrix4 {
         return attribute;
     }
 
-    /**
-     * 平移矩阵
-     * @param x
-     * @param y
-     * @param z
-     * @returns {Matrix4}
-     */
+    // 平移
     makeTranslation(x, y, z) {
         this.set(
             1, 0, 0, x,
@@ -198,11 +196,7 @@ class Matrix4 {
         return this;
     }
 
-    /**
-     * 绕X轴旋转矩阵
-     * @param theta
-     * @returns {Matrix4}
-     */
+    // 绕X轴旋转
     makeRotationX(theta) {
         let c = Math.cos(theta), s = Math.sin(theta);
 
@@ -259,13 +253,7 @@ class Matrix4 {
         return this;
     }
 
-    /**
-     * 缩放矩阵
-     * @param x
-     * @param y
-     * @param z
-     * @returns {Matrix4}
-     */
+    // 缩放
     makeScale(x, y, z) {
         this.set(
             x, 0, 0, 0,

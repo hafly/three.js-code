@@ -11,5 +11,8 @@ var files = {
 		"canvas_particles_random",
 		"canvas_particles_sprites",
 		"canvas_particles_waves",
+		"canvas_lines",
+		"canvas_lines_colors",
+		"canvas_lines_colors_2d"
 	],
 };

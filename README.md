@@ -1,9 +1,9 @@
 ## three.js源码学习
 
 学习three.js源码，在理解代码的基础上重新实现，目前只写了CanvasRenderer  
-[examples](https://hafly.github.io/three.js-test/examples/index.htm)
+[examples](https://hafly.github.io/three.js-test/examples/index.html)
 
-### 已实现功能
+### 新增和修改功能
 
 1.顶点作色  
 2.线条渲染  
