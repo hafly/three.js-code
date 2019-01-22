@@ -1,7 +1,7 @@
 import {EventDispatcher} from "../core/EventDispatcher";
 import {_Math} from "../math/Math";
 import {Vector2} from "../math/Vector2";
-import {Matrix3} from "../math/Matrix3";
+// import {Matrix3} from "../math/Matrix3";
 import {UVMapping} from "../constants";
 
 let textureId = 0;
@@ -10,7 +10,7 @@ class Texture extends EventDispatcher {
     constructor(image = undefined) {
         super();
         this.id = textureId++;
-        this.uuid = _Math.generateUUID();
+        // this.uuid = _Math.generateUUID();
         this.image = image;
         this.mapping = UVMapping;   // 纹理映射
 
@@ -20,7 +20,7 @@ class Texture extends EventDispatcher {
         this.rotation = 0;
 
         this.matrixAutoUpdate = true;
-        this.matrix = new Matrix3();
+        // this.matrix = new Matrix3();
 
         this.version = 0;
         this.onUpdate = null;

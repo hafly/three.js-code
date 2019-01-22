@@ -1,6 +1,5 @@
 class Vector2 {
     constructor(x = 0, y = 0) {
-        this.isVector2 = true;
         this.x = x;
         this.y = y;
     }
@@ -23,34 +22,21 @@ class Vector2 {
         return this;
     }
 
-    /**
-     * 左加向量
-     * @param v
-     * @returns {Vector3}
-     */
+    // 左加向量
     add(v) {
         this.x += v.x;
         this.y += v.y;
         return this;
     }
 
-    /**
-     * 左加标量
-     * @param s
-     * @returns {Vector3}
-     */
+    // 左加标量
     addScalar(s) {
         this.x += s;
         this.y += s;
         return this;
     }
 
-    /**
-     * 两向量相加
-     * @param a
-     * @param b
-     * @returns {Vector3}
-     */
+    // 两向量相加
     addVectors(a, b) {
         this.x = a.x + b.x;
         this.y = a.y + b.y;
@@ -158,5 +144,9 @@ class Vector2 {
         return this;
     }
 }
+
+Object.assign(Vector2.prototype, {
+    isVector2: true
+});
 
 export {Vector2};

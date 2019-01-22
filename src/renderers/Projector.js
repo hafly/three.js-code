@@ -14,15 +14,15 @@ let _object, _face, _vertex, _sprite, _line,
 
 let _vector3 = new Vector3(),
     _vector4 = new Vector4(),
-    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)), // 修剪盒子
+    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)), // 修剪盒子（设定清除画布的范围）
     _boundingBox = new Box3();  // 包围盒子
 
 let _points3 = new Array(3);
 
-let _viewMatrix = new Matrix4(),
-    _viewProjectionMatrix = new Matrix4();
+let _viewMatrix = new Matrix4(),            // 相机逆矩阵
+    _viewProjectionMatrix = new Matrix4();  // 视图矩阵
 
-let _modelMatrix,
+let _modelMatrix,                               // 模型矩阵
     _modelViewProjectionMatrix = new Matrix4();
 
 // 裁剪点
@@ -37,8 +37,8 @@ class RenderList {
         this.object = null;
         this.material = null;
 
-        this.colors = []; // 顶点 colors 队列
-        this.uvs = [];  // // 面的 UV 层的队列
+        this.colors = [];   // 顶点 colors 队列
+        this.uvs = [];      // 面的 UV 层的队列
     }
 
     // 设置对象（BufferGeometry支持）
@@ -225,8 +225,12 @@ class Projector {
         _renderData.elements = [];
         _renderData.objects = [];
 
-        _viewMatrix.copy(camera.matrixWorldInverse);
+        _viewMatrix.copy(camera.matrixWorldInverse); // 相机逆矩阵
+
+        // 视图投影矩阵（camera.projectionMatrix = _viewProjectionMatrix * camera.matrixWorld）
+        // 当屏幕大小固定时，camera.projectionMatrix不变！camera.matrixWorld的变化影响视图矩阵_viewProjectionMatrix
         _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
+
         renderList.projectObject(scene);
 
         if (sortObjects === true) {

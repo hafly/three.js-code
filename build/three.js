@@ -174,7 +174,6 @@
 
 	class Vector3 {
 	    constructor(x = 0, y = 0, z = 0) {
-	        this.isVector3 = true;
 	        this.x = x;
 	        this.y = y;
 	        this.z = z;
@@ -205,11 +204,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 左加向量
-	     * @param v
-	     * @returns {Vector3}
-	     */
+	    // 左加向量
 	    add(v) {
 	        this.x += v.x;
 	        this.y += v.y;
@@ -217,11 +212,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 左加标量
-	     * @param s
-	     * @returns {Vector3}
-	     */
+	    // 左加标量
 	    addScalar(s) {
 	        this.x += s;
 	        this.y += s;
@@ -229,12 +220,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 两向量相加
-	     * @param a
-	     * @param b
-	     * @returns {Vector3}
-	     */
+	    // 两向量相加
 	    addVectors(a, b) {
 	        this.x = a.x + b.x;
 	        this.y = a.y + b.y;
@@ -340,20 +326,12 @@
 	        return dx * dx + dy * dy + dz * dz;
 	    }
 
-	    /**
-	     * 点乘
-	     * @param v
-	     * @returns {number}
-	     */
+	    // 点乘
 	    dot(v) {
 	        return this.x * v.x + this.y * v.y + this.z * v.z;
 	    }
 
-	    /**
-	     * 叉乘
-	     * @param v
-	     * @returns {Vector3}
-	     */
+	    // 叉乘
 	    cross(v) {
 	        let x = this.x;
 	        let y = this.y;
@@ -376,27 +354,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 将当前向量乘以一个3x3的矩阵
-	     * @param m
-	     * @returns {Vector3}
-	     */
-	    applyMatrix3(m) {
-	        let x = this.x, y = this.y, z = this.z;
-	        let e = m.elements;
-
-	        this.x = e[0] * x + e[3] * y + e[6] * z;
-	        this.y = e[1] * x + e[4] * y + e[7] * z;
-	        this.z = e[2] * x + e[5] * y + e[8] * z;
-
-	        return this;
-	    }
-
-	    /**
-	     * 将当前向量乘以一个4x3的矩阵
-	     * @param m
-	     * @returns {Vector3}
-	     */
+	    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
 	    applyMatrix4(m) {
 	        let x = this.x, y = this.y, z = this.z;
 	        let e = m.elements;
@@ -410,12 +368,12 @@
 	        return this;
 	    }
 
-	    // 用相机投影该向量
+	    // 用相机投影该向量（暂未使用）
 	    project(camera) {
 	        return this.applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix);
 	    }
 
-	    // 用相机反投影该向量
+	    // 用相机反投影该向量（暂未使用）
 	    unproject(camera) {
 	        let matrix = new Matrix4();
 	        return this.applyMatrix4(matrix.getInverse(camera.projectionMatrix)).applyMatrix4(camera.matrixWorld);
@@ -433,11 +391,7 @@
 	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
 	    }
 
-	    /**
-	     * 从矩阵中获取位置向量（原getFromMatrixPosition方法）
-	     * @param m
-	     * @returns {Vector3}
-	     */
+	    // 从矩阵中获取位置向量（原getFromMatrixPosition方法）
 	    setFromMatrixPosition(m) {
 	        let e = m.elements;
 
@@ -448,11 +402,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 从矩阵中获取缩放向量
-	     * @param m
-	     * @returns {Vector3}
-	     */
+	    // 从矩阵中获取缩放向量
 	    setFromMatrixScale(m) {
 	        let sx = this.setFromMatrixColumn(m, 0).length();
 	        let sy = this.setFromMatrixColumn(m, 1).length();
@@ -514,6 +464,19 @@
 
 	    }
 	}
+
+	Object.assign(Vector3.prototype, {
+	    isVector3: true
+	});
+
+	/**
+	 * 4*4矩阵原理可以参考这篇文章：http://blog.vr-seesee.com/detail/185
+	 * 矩阵是用于表示变换而不是坐标，4*4矩阵的核心是变换：平移、旋转、缩放
+	 * 矩阵3个特性：
+	 * 1.变换；
+	 * 2.矩阵乘以对应的3D点坐标，就可以获取变换后的点坐标；
+	 * 3.矩阵相乘结果为新的矩阵变换。
+	 */
 
 	let x = new Vector3();
 	let y = new Vector3();
@@ -580,59 +543,17 @@
 	        return this;
 	    }
 
-	    lookAt(eye, target, up) {
-	        let te = this.elements;
-
-	        z.subVectors(eye, target);
-
-	        if (z.lengthSq() === 0) {
-	            // eye and target are in the same position
-	            z.z = 1;
-	        }
-
-	        z.normalize();
-	        x.crossVectors(up, z);
-
-	        if (x.lengthSq() === 0) {
-	            // up and z are parallel
-	            if (Math.abs(up.z) === 1) {
-	                z.x += 0.0001;
-	            } else {
-	                z.z += 0.0001;
-	            }
-
-	            z.normalize();
-	            x.crossVectors(up, z);
-	        }
-
-	        x.normalize();
-	        y.crossVectors(z, x);
-
-	        te[0] = x.x;te[4] = y.x;te[8] =  z.x;
-	        te[1] = x.y;te[5] = y.y;te[9] =  z.y;
-	        te[2] = x.z;te[6] = y.z;te[10] = z.z;
-
-	        return this;
-	    }
-
-	    /**
-	     * 左乘矩阵
-	     * @param m
-	     * @returns {*}
-	     */
+	    // 左乘矩阵
 	    multiply(m) {
 	        return this.multiplyMatrices(this, m);
 	    }
 
-	    /**
-	     * 右乘矩阵
-	     * @param m
-	     * @returns {*}
-	     */
+	    // 右乘矩阵
 	    premultiply(m) {
 	        return this.multiplyMatrices(m, this);
 	    }
 
+	    // 矩阵相乘
 	    multiplyMatrices(a, b) {
 	        let ae = a.elements;
 	        let be = b.elements;
@@ -671,6 +592,7 @@
 	        return this;
 	    }
 
+	    // 矩阵缩放（暂未使用）
 	    multiplyScalar(s) {
 	        let te = this.elements;
 
@@ -695,13 +617,7 @@
 	        return attribute;
 	    }
 
-	    /**
-	     * 平移矩阵
-	     * @param x
-	     * @param y
-	     * @param z
-	     * @returns {Matrix4}
-	     */
+	    // 平移
 	    makeTranslation(x, y, z) {
 	        this.set(
 	            1, 0, 0, x,
@@ -713,11 +629,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 绕X轴旋转矩阵
-	     * @param theta
-	     * @returns {Matrix4}
-	     */
+	    // 旋转
 	    makeRotationX(theta) {
 	        let c = Math.cos(theta), s = Math.sin(theta);
 
@@ -774,13 +686,12 @@
 	        return this;
 	    }
 
-	    /**
-	     * 缩放矩阵
-	     * @param x
-	     * @param y
-	     * @param z
-	     * @returns {Matrix4}
-	     */
+	    // 通过四元数对Matrix4应用旋转变换
+	    makeRotationFromQuaternion(q) {
+	        return this.compose(zero, q, one);
+	    }
+
+	    // 缩放
 	    makeScale(x, y, z) {
 	        this.set(
 	            x, 0, 0, 0,
@@ -792,22 +703,7 @@
 	        return this;
 	    }
 
-	    /**
-	     * 通过四元数对Matrix4应用旋转变换
-	     * @param q
-	     * @returns {Matrix4}
-	     */
-	    makeRotationFromQuaternion(q) {
-	        return this.compose(zero, q, one);
-	    }
-
-	    /**
-	     * 处理矩阵位移、旋转、缩放
-	     * @param position
-	     * @param quaternion
-	     * @param scale
-	     * @returns {Matrix4}
-	     */
+	    // 处理矩阵位移、旋转、缩放
 	    compose(position, quaternion, scale) {
 
 	        let te = this.elements;
@@ -844,6 +740,42 @@
 
 	    }
 
+	    // 构造一个旋转矩阵从eye 指向 target
+	    lookAt(eye, target, up) {
+	        let te = this.elements;
+
+	        z.subVectors(eye, target);
+
+	        if (z.lengthSq() === 0) {
+	            // eye and target are in the same position
+	            z.z = 1;
+	        }
+
+	        z.normalize();
+	        x.crossVectors(up, z);
+
+	        if (x.lengthSq() === 0) {
+	            // up and z are parallel
+	            if (Math.abs(up.z) === 1) {
+	                z.x += 0.0001;
+	            } else {
+	                z.z += 0.0001;
+	            }
+
+	            z.normalize();
+	            x.crossVectors(up, z);
+	        }
+
+	        x.normalize();
+	        y.crossVectors(z, x);
+
+	        te[0] = x.x;te[4] = y.x;te[8] =  z.x;
+	        te[1] = x.y;te[5] = y.y;te[9] =  z.y;
+	        te[2] = x.z;te[6] = y.z;te[10] = z.z;
+
+	        return this;
+	    }
+
 	    // 创建一个透视投影矩阵
 	    makePerspective(left, right, top, bottom, near, far) {
 	        let te = this.elements;
@@ -863,6 +795,7 @@
 	        return this;
 	    }
 
+	    // 创建一个正交投影矩阵
 	    makeOrthographic(left, right, top, bottom, near, far) {
 	        let te = this.elements;
 	        let w = 1.0 / (right - left);
@@ -880,7 +813,7 @@
 	        return this;
 	    }
 
-	    // 获取逆矩阵
+	    // 逆矩阵（矩阵的倒数，用来实现矩阵的除法。矩阵不存在直接相除的概念，需要借助逆矩阵）
 	    getInverse(m, throwOnDegenerate) {
 	        let te = this.elements,
 	            me = m.elements,
@@ -944,261 +877,18 @@
 	    }
 	}
 
-	let matrix = new Matrix4();
-
-	class Euler {
-	    constructor(x = 0, y = 0, z = 0, order = Euler.DefaultOrder) {
-	        this.isEuler = true;
-	        this._x = x;
-	        this._y = y;
-	        this._z = z;
-	        this._order = order;
-	    }
-
-	    get x() {
-	        return this._x;
-	    }
-
-	    set x(value) {
-	        this._x = value;
-	        this.onChangeCallback();
-	    }
-
-	    get y() {
-	        return this._y;
-	    }
-
-	    set y(value) {
-	        this._y = value;
-	        this.onChangeCallback();
-	    }
-
-	    get z() {
-	        return this._z;
-	    }
-
-	    set z(value) {
-	        this._z = value;
-	        this.onChangeCallback();
-	    }
-
-	    set(x, y, z, order) {
-	        this._x = x;
-	        this._y = y;
-	        this._z = z;
-	        this._order = order || this._order;
-	    }
-
-	    clone() {
-	        return new this.constructor(this._x, this._y, this._z, this._order);
-	    }
-
-	    copy(euler) {
-	        this._x = euler._x;
-	        this._y = euler._y;
-	        this._z = euler._z;
-	        this._order = euler._order;
-	        return this;
-	    }
-
-	    /**
-	     * 通过Matrix4设置Euler
-	     * @param m
-	     * @param order
-	     * @param update
-	     * @returns {Euler}
-	     */
-	    setFromRotationMatrix(m, order, update) {
-	        let clamp = _Math.clamp;
-
-	        // assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
-
-	        let te = m.elements;
-	        let m11 = te[0], m12 = te[4], m13 = te[8];
-	        let m21 = te[1], m22 = te[5], m23 = te[9];
-	        let m31 = te[2], m32 = te[6], m33 = te[10];
-
-	        order = order || this._order;
-
-	        if (order === 'XYZ') {
-
-	            this._y = Math.asin(clamp(m13, -1, 1));
-
-	            if (Math.abs(m13) < 0.99999) {
-
-	                this._x = Math.atan2(-m23, m33);
-	                this._z = Math.atan2(-m12, m11);
-
-	            } else {
-
-	                this._x = Math.atan2(m32, m22);
-	                this._z = 0;
-
-	            }
-
-	        } else if (order === 'YXZ') {
-
-	            this._x = Math.asin(-clamp(m23, -1, 1));
-
-	            if (Math.abs(m23) < 0.99999) {
-
-	                this._y = Math.atan2(m13, m33);
-	                this._z = Math.atan2(m21, m22);
-
-	            } else {
-
-	                this._y = Math.atan2(-m31, m11);
-	                this._z = 0;
-
-	            }
-
-	        } else if (order === 'ZXY') {
-
-	            this._x = Math.asin(clamp(m32, -1, 1));
-
-	            if (Math.abs(m32) < 0.99999) {
-
-	                this._y = Math.atan2(-m31, m33);
-	                this._z = Math.atan2(-m12, m22);
-
-	            } else {
-
-	                this._y = 0;
-	                this._z = Math.atan2(m21, m11);
-
-	            }
-
-	        } else if (order === 'ZYX') {
-
-	            this._y = Math.asin(-clamp(m31, -1, 1));
-
-	            if (Math.abs(m31) < 0.99999) {
-
-	                this._x = Math.atan2(m32, m33);
-	                this._z = Math.atan2(m21, m11);
-
-	            } else {
-
-	                this._x = 0;
-	                this._z = Math.atan2(-m12, m22);
-
-	            }
-
-	        } else if (order === 'YZX') {
-
-	            this._z = Math.asin(clamp(m21, -1, 1));
-
-	            if (Math.abs(m21) < 0.99999) {
-
-	                this._x = Math.atan2(-m23, m22);
-	                this._y = Math.atan2(-m31, m11);
-
-	            } else {
-
-	                this._x = 0;
-	                this._y = Math.atan2(m13, m33);
-
-	            }
-
-	        } else if (order === 'XZY') {
-
-	            this._z = Math.asin(-clamp(m12, -1, 1));
-
-	            if (Math.abs(m12) < 0.99999) {
-
-	                this._x = Math.atan2(m32, m22);
-	                this._y = Math.atan2(m13, m11);
-
-	            } else {
-
-	                this._x = Math.atan2(-m23, m33);
-	                this._y = 0;
-
-	            }
-
-	        } else {
-
-	            console.warn('THREE.Euler: .setFromRotationMatrix() given unsupported order: ' + order);
-
-	        }
-
-	        this._order = order;
-
-	        if (update !== false) this.onChangeCallback();
-
-	        return this;
-
-	    }
-
-	    /**
-	     * 通过Quaternion设置Euler
-	     * @param q
-	     * @param order
-	     * @param update
-	     * @returns {Quaternion}
-	     */
-	    setFromQuaternion(q, order, update) {
-	        matrix.makeRotationFromQuaternion(q);
-	        return this.setFromRotationMatrix(matrix, order, update);
-	    }
-
-	    onChange(callback) {
-	        this.onChangeCallback = callback;
-
-	        return this;
-	    }
-
-	    onChangeCallback() {
-	    }
-	}
-
-	Euler.RotationOrders = ['XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX'];
-
-	Euler.DefaultOrder = 'XYZ';
+	Object.assign(Matrix4.prototype, {
+	    isMatrix4: true
+	});
+
+	// import {Vector3} from "./Vector3";
 
 	class Quaternion {
 	    constructor(x = 0, y = 0, z = 0, w = 1) {
-	        this.isQuaternion = true;
 	        this._x = x;
 	        this._y = y;
 	        this._z = z;
 	        this._w = w;
-	    }
-
-	    get x() {
-	        return this._x;
-	    }
-
-	    set x(value) {
-	        this._x = value;
-	        this.onChangeCallback();
-	    }
-
-	    get y() {
-	        return this._y;
-	    }
-
-	    set y(value) {
-	        this._y = value;
-	        this.onChangeCallback();
-	    }
-
-	    get z() {
-	        return this._z;
-	    }
-
-	    set z(value) {
-	        this._z = value;
-	        this.onChangeCallback();
-	    }
-
-	    get w() {
-	        return this._w;
-	    }
-
-	    set w(value) {
-	        this._w = value;
-	        this.onChangeCallback();
 	    }
 
 	    set(x, y, z, w) {
@@ -1206,6 +896,8 @@
 	        this._y = y;
 	        this._z = z;
 	        this._w = w;
+
+	        this.onChangeCallback();
 
 	        return this;
 	    }
@@ -1219,6 +911,8 @@
 	        this._y = quaternion._y;
 	        this._z = quaternion._z;
 	        this._w = quaternion._w;
+
+	        this.onChangeCallback();
 
 	        return this;
 	    }
@@ -1400,21 +1094,315 @@
 	    }
 	}
 
-	let m1 = new Matrix4();
-	let target = new Vector3();
-	let position = new Vector3();
+	Object.assign(Quaternion.prototype, {
+	    isQuaternion: true
+	});
 
-	let objectId = 0;
+	Object.defineProperties(Quaternion.prototype, {
+	    x: {
+	        get: function () {
+	            return this._x;
+	        },
+
+	        set: function (value) {
+	            this._x = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	    y: {
+	        get: function () {
+	            return this._y;
+	        },
+
+	        set: function (value) {
+	            this._y = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	    z: {
+	        get: function () {
+	            return this._z;
+	        },
+
+	        set: function (value) {
+	            this._z = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	    w: {
+	        get: function () {
+	            return this._w;
+	        },
+
+	        set: function (value) {
+	            this._w = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	});
+
+	let matrix = new Matrix4();
+
+	class Euler {
+	    constructor(x = 0, y = 0, z = 0, order = Euler.DefaultOrder) {
+	        this._x = x;
+	        this._y = y;
+	        this._z = z;
+	        this._order = order;
+	    }
+
+	    set(x, y, z, order) {
+	        this._x = x;
+	        this._y = y;
+	        this._z = z;
+	        this._order = order || this._order;
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this._x, this._y, this._z, this._order);
+	    }
+
+	    copy(euler) {
+	        this._x = euler._x;
+	        this._y = euler._y;
+	        this._z = euler._z;
+	        this._order = euler._order;
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    /**
+	     * 通过Matrix4设置Euler
+	     * @param m
+	     * @param order
+	     * @param update
+	     * @returns {Euler}
+	     */
+	    setFromRotationMatrix(m, order, update) {
+	        let clamp = _Math.clamp;
+
+	        // assumes the upper 3x3 of m is a pure rotation matrix (i.e, unscaled)
+
+	        let te = m.elements;
+	        let m11 = te[0], m12 = te[4], m13 = te[8];
+	        let m21 = te[1], m22 = te[5], m23 = te[9];
+	        let m31 = te[2], m32 = te[6], m33 = te[10];
+
+	        order = order || this._order;
+
+	        if (order === 'XYZ') {
+
+	            this._y = Math.asin(clamp(m13, -1, 1));
+
+	            if (Math.abs(m13) < 0.99999) {
+
+	                this._x = Math.atan2(-m23, m33);
+	                this._z = Math.atan2(-m12, m11);
+
+	            } else {
+
+	                this._x = Math.atan2(m32, m22);
+	                this._z = 0;
+
+	            }
+
+	        } else if (order === 'YXZ') {
+
+	            this._x = Math.asin(-clamp(m23, -1, 1));
+
+	            if (Math.abs(m23) < 0.99999) {
+
+	                this._y = Math.atan2(m13, m33);
+	                this._z = Math.atan2(m21, m22);
+
+	            } else {
+
+	                this._y = Math.atan2(-m31, m11);
+	                this._z = 0;
+
+	            }
+
+	        } else if (order === 'ZXY') {
+
+	            this._x = Math.asin(clamp(m32, -1, 1));
+
+	            if (Math.abs(m32) < 0.99999) {
+
+	                this._y = Math.atan2(-m31, m33);
+	                this._z = Math.atan2(-m12, m22);
+
+	            } else {
+
+	                this._y = 0;
+	                this._z = Math.atan2(m21, m11);
+
+	            }
+
+	        } else if (order === 'ZYX') {
+
+	            this._y = Math.asin(-clamp(m31, -1, 1));
+
+	            if (Math.abs(m31) < 0.99999) {
+
+	                this._x = Math.atan2(m32, m33);
+	                this._z = Math.atan2(m21, m11);
+
+	            } else {
+
+	                this._x = 0;
+	                this._z = Math.atan2(-m12, m22);
+
+	            }
+
+	        } else if (order === 'YZX') {
+
+	            this._z = Math.asin(clamp(m21, -1, 1));
+
+	            if (Math.abs(m21) < 0.99999) {
+
+	                this._x = Math.atan2(-m23, m22);
+	                this._y = Math.atan2(-m31, m11);
+
+	            } else {
+
+	                this._x = 0;
+	                this._y = Math.atan2(m13, m33);
+
+	            }
+
+	        } else if (order === 'XZY') {
+
+	            this._z = Math.asin(-clamp(m12, -1, 1));
+
+	            if (Math.abs(m12) < 0.99999) {
+
+	                this._x = Math.atan2(m32, m22);
+	                this._y = Math.atan2(m13, m11);
+
+	            } else {
+
+	                this._x = Math.atan2(-m23, m33);
+	                this._y = 0;
+
+	            }
+
+	        } else {
+
+	            console.warn('THREE.Euler: .setFromRotationMatrix() given unsupported order: ' + order);
+
+	        }
+
+	        this._order = order;
+
+	        if (update !== false) this.onChangeCallback();
+
+	        return this;
+
+	    }
+
+	    /**
+	     * 通过Quaternion设置Euler
+	     * @param q
+	     * @param order
+	     * @param update
+	     * @returns {Quaternion}
+	     */
+	    setFromQuaternion(q, order, update) {
+	        matrix.makeRotationFromQuaternion(q);
+	        return this.setFromRotationMatrix(matrix, order, update);
+	    }
+
+	    onChange(callback) {
+	        this.onChangeCallback = callback;
+
+	        return this;
+	    }
+
+	    onChangeCallback() {
+	    }
+	}
+
+	Object.assign(Euler.prototype,{
+	    isEuler:true
+	});
+
+	Object.defineProperties(Euler.prototype,{
+	    x: {
+	        get: function () {
+	            return this._x;
+	        },
+
+	        set: function ( value ) {
+	            this._x = value;
+	            this.onChangeCallback();
+	        }
+	    },
+
+	    y: {
+	        get: function () {
+	            return this._y;
+	        },
+
+	        set: function ( value ) {
+	            this._y = value;
+	            this.onChangeCallback();
+	        }
+	    },
+
+	    z: {
+	        get: function () {
+	            return this._z;
+	        },
+
+	        set: function ( value ) {
+	            this._z = value;
+	            this.onChangeCallback();
+	        }
+	    },
+
+	    order: {
+	        get: function () {
+	            return this._order;
+	        },
+
+	        set: function ( value ) {
+	            this._order = value;
+	            this.onChangeCallback();
+	        }
+	    }
+	});
+
+	Euler.RotationOrders = ['XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX'];
+
+	Euler.DefaultOrder = 'XYZ';
+
+	// import {_Math} from "../math/Math";
+
+	// 全局临时变量（作为全局避免重复实例化）
+	let m1 = new Matrix4();
+	let position = new Vector3();   // eye
+	let target = new Vector3();     // target
+
+	let object3DId = 0;
 
 	/**
-	 * 3D场景中图形对象的基类
+	 * 三维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
 	 */
 	class Object3D extends EventDispatcher {
 	    constructor() {
 	        super();
+
+	        Object.defineProperty(this, 'id', {value: object3DId++});
+	        // this.uuid = _Math.generateUUID();
+	        this.type = 'Object3D';
 	        this.isObject3D = true;
-	        this.id = objectId++;
-	        this.uuid = _Math.generateUUID();
+
 	        this.parent = null;
 	        this.children = [];
 
@@ -1425,8 +1413,8 @@
 
 	        this.up = Object3D.DefaultUp.clone();
 
-	        this.matrix = new Matrix4();
-	        this.matrixWorld = new Matrix4();
+	        this.matrix = new Matrix4();        // 局部变换（相对于父级的变换）
+	        this.matrixWorld = new Matrix4();   // 全局变换（用于最终的显示）
 
 	        // 默认true，当设置为true时，自动更新局部矩阵。
 	        this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;
@@ -1464,13 +1452,14 @@
 	            if (this.parent === null) {
 	                this.matrixWorld.copy(this.matrix);
 	            } else {
+	                // 矩阵相乘结果为新的矩阵变换
 	                this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
 	            }
 	            this.matrixWorldNeedsUpdate = false;
 	            force = true;
 	        }
 
-	        // update children
+	        // 必须更新子对象
 	        let children = this.children;
 	        for (let i = 0, l = children.length; i < l; i++) {
 	            children[i].updateMatrixWorld(force);
@@ -1538,10 +1527,11 @@
 	            m1.lookAt(target, position, this.up);
 	        }
 
+	        // 获取quaternion
 	        this.quaternion.setFromRotationMatrix(m1);
 	    }
 
-	    // 遍历对象并回调
+	    // 遍历对象
 	    traverse(callback) {
 	        callback(this);
 
@@ -1619,7 +1609,6 @@
 
 	class Color {
 	    constructor(r, g, b) {
-	        this.isColor = true;
 	        this.r = 1;
 	        this.g = 1;
 	        this.b = 1;
@@ -1862,9 +1851,12 @@
 	    }
 	}
 
+	Object.assign(Color.prototype, {
+	    isColor: true
+	});
+
 	class Vector2 {
 	    constructor(x = 0, y = 0) {
-	        this.isVector2 = true;
 	        this.x = x;
 	        this.y = y;
 	    }
@@ -1887,34 +1879,21 @@
 	        return this;
 	    }
 
-	    /**
-	     * 左加向量
-	     * @param v
-	     * @returns {Vector3}
-	     */
+	    // 左加向量
 	    add(v) {
 	        this.x += v.x;
 	        this.y += v.y;
 	        return this;
 	    }
 
-	    /**
-	     * 左加标量
-	     * @param s
-	     * @returns {Vector3}
-	     */
+	    // 左加标量
 	    addScalar(s) {
 	        this.x += s;
 	        this.y += s;
 	        return this;
 	    }
 
-	    /**
-	     * 两向量相加
-	     * @param a
-	     * @param b
-	     * @returns {Vector3}
-	     */
+	    // 两向量相加
 	    addVectors(a, b) {
 	        this.x = a.x + b.x;
 	        this.y = a.y + b.y;
@@ -2023,9 +2002,12 @@
 	    }
 	}
 
+	Object.assign(Vector2.prototype, {
+	    isVector2: true
+	});
+
 	class Vector4 {
 	    constructor(x = 0, y = 0, z = 0, w = 1) {
-	        this.isVector4 = true;
 	        this.x = x;
 	        this.y = y;
 	        this.z = z;
@@ -2178,6 +2160,13 @@
 	    }
 	}
 
+	Object.assign(Vector4.prototype, {
+	    isVector4: true
+	});
+
+	/**
+	 * 3*3矩阵（暂未使用）
+	 */
 	class Matrix3 {
 	    constructor(){
 	        this.elements = [
@@ -2302,21 +2291,21 @@
 	    }
 	}
 
+	Object.assign(Matrix3.prototype, {
+	    isMatrix3: true
+	});
+
 	class Camera extends Object3D {
 	    constructor() {
 	        super();
 	        this.isCamera = true;
 
-	        // 投影矩阵
-	        this.projectionMatrix = new Matrix4();
-	        // 投影矩阵逆矩阵
-	        this.projectionMatrixInverse = new Matrix4();
-
-	        // matrixWorld逆矩阵
-	        this.matrixWorldInverse = new Matrix4();
+	        this.projectionMatrix = new Matrix4();          // 投影矩阵
+	        this.projectionMatrixInverse = new Matrix4();   // 投影矩阵逆矩阵
+	        this.matrixWorldInverse = new Matrix4();        // matrixWorld逆矩阵
 	    }
 
-	    // 重写父类
+	    // 更新对象（重写父类）
 	    updateMatrixWorld(force) {
 	        if (this.matrixAutoUpdate) this.updateMatrix();
 	        if (this.matrixWorldNeedsUpdate || force) {
@@ -2328,8 +2317,6 @@
 	            this.matrixWorldNeedsUpdate = false;
 	            force = true;
 	        }
-
-	        // update children
 
 	        let children = this.children;
 	        for (let i = 0, l = children.length; i < l; i++) {
@@ -2352,7 +2339,7 @@
 	        this.far = far;
 
 	        this.aspect = aspect;
-	        this.view = null;
+	        // this.view = null;
 
 	        this.updateProjectionMatrix();
 	    }
@@ -2365,7 +2352,9 @@
 	            width = this.aspect * height,
 	            left = -width / 2;
 
+	        // 创建透视投影矩阵（在屏幕上的矩阵）
 	        this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.far);
+	        // 获取投影矩阵逆矩阵
 	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
 	    }
 	}
@@ -2375,7 +2364,7 @@
 	        super();
 	        this.type = 'OrthographicCamera';
 	        this.zoom = 1;
-	        this.view = null;
+	        // this.view = null;
 
 	        this.left = left;
 	        this.right = right;
@@ -2399,19 +2388,8 @@
 	        let top = cy + dy;
 	        let bottom = cy - dy;
 
-	        if (this.view !== null && this.view.enabled) {
-	            let zoomW = this.zoom / (this.view.width / this.view.fullWidth);
-	            let zoomH = this.zoom / (this.view.height / this.view.fullHeight);
-	            let scaleW = (this.right - this.left) / this.view.width;
-	            let scaleH = (this.top - this.bottom) / this.view.height;
-
-	            left += scaleW * (this.view.offsetX / zoomW);
-	            right = left + scaleW * (this.view.width / zoomW);
-	            top -= scaleH * (this.view.offsetY / zoomH);
-	            bottom = top - scaleH * (this.view.height / zoomH);
-	        }
-
 	        this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far);
+	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
 	    }
 	}
 
@@ -2429,7 +2407,7 @@
 	    constructor(image = undefined) {
 	        super();
 	        this.id = textureId++;
-	        this.uuid = _Math.generateUUID();
+	        // this.uuid = _Math.generateUUID();
 	        this.image = image;
 	        this.mapping = UVMapping;   // 纹理映射
 
@@ -2439,7 +2417,7 @@
 	        this.rotation = 0;
 
 	        this.matrixAutoUpdate = true;
-	        this.matrix = new Matrix3();
+	        // this.matrix = new Matrix3();
 
 	        this.version = 0;
 	        this.onUpdate = null;
@@ -2634,6 +2612,7 @@
 	class BufferAttribute {
 	    constructor(array, itemSize, normalized = true) {
 	        this.isBufferAttribute = true;
+
 	        this.array = array;
 	        this.itemSize = itemSize;
 	        this.normalized = normalized;
@@ -2725,8 +2704,9 @@
 	let bufferGeometryId = 1; // BufferGeometry uses odd numbers as Id
 	class BufferGeometry {
 	    constructor() {
-	        this.id = bufferGeometryId += 2;
-	        this.uuid = _Math.generateUUID();
+	        Object.defineProperty(this, 'id', {value: bufferGeometryId += 2});
+	        // this.uuid = _Math.generateUUID();
+
 	        this.type = 'BufferGeometry';
 	        this.isBufferGeometry = true;
 
@@ -2848,19 +2828,20 @@
 	let geometryId = 0;// Geometry uses even numbers as Id
 	class Geometry {
 	    constructor() {
-	        this.id = geometryId += 2;
-	        this.uuid = _Math.generateUUID();
+	        Object.defineProperty(this, 'id', {value: geometryId += 2});
+	        // this.uuid = _Math.generateUUID();
+
 	        this.type = 'Geometry';
 	        this.isGeometry = true;
 
 	        this.vertices = []; // 顶点
-	        this.colors = [];     // 顶点 colors 队列
+	        this.colors = [];   // 顶点 colors 队列
 	        this.faces = [];    // 面
 	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
 	    }
 
 	    applyMatrix(matrix) {
-	        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
+	        // let normalMatrix = new Matrix3().getNormalMatrix(matrix);
 
 	        for (let i = 0; i < this.vertices.length; i++) {
 	            let vertex = this.vertices[i];
@@ -3669,9 +3650,10 @@
 	    }
 	}
 
+	// import {Box2} from "./Box2";
+
 	class Box3 {
 	    constructor(min = new Vector3(+Infinity, +Infinity, +Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity)) {
-	        this.isBox3 = true;
 	        this.min = min;
 	        this.max = max;
 	    }
@@ -3722,15 +3704,15 @@
 
 	let _vector3 = new Vector3(),
 	    _vector4 = new Vector4(),
-	    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)), // 修剪盒子
+	    _clipBox = new Box3(new Vector3(-1, -1, -1), new Vector3(1, 1, 1)), // 修剪盒子（设定清除画布的范围）
 	    _boundingBox = new Box3();  // 包围盒子
 
 	let _points3 = new Array(3);
 
-	let _viewMatrix = new Matrix4(),
-	    _viewProjectionMatrix = new Matrix4();
+	let _viewMatrix = new Matrix4(),            // 相机逆矩阵
+	    _viewProjectionMatrix = new Matrix4();  // 视图矩阵
 
-	let _modelMatrix,
+	let _modelMatrix,                               // 模型矩阵
 	    _modelViewProjectionMatrix = new Matrix4();
 
 	// 裁剪点
@@ -3745,8 +3727,8 @@
 	        this.object = null;
 	        this.material = null;
 
-	        this.colors = []; // 顶点 colors 队列
-	        this.uvs = [];  // // 面的 UV 层的队列
+	        this.colors = [];   // 顶点 colors 队列
+	        this.uvs = [];      // 面的 UV 层的队列
 	    }
 
 	    // 设置对象（BufferGeometry支持）
@@ -3933,8 +3915,12 @@
 	        _renderData.elements = [];
 	        _renderData.objects = [];
 
-	        _viewMatrix.copy(camera.matrixWorldInverse);
+	        _viewMatrix.copy(camera.matrixWorldInverse); // 相机逆矩阵
+
+	        // 视图投影矩阵（camera.projectionMatrix = _viewProjectionMatrix * camera.matrixWorld）
+	        // 当屏幕大小固定时，camera.projectionMatrix不变！camera.matrixWorld的变化影响视图矩阵_viewProjectionMatrix
 	        _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
+
 	        renderList.projectObject(scene);
 
 	        if (sortObjects === true) {

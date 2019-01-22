@@ -1,6 +1,7 @@
 class BufferAttribute {
     constructor(array, itemSize, normalized = true) {
         this.isBufferAttribute = true;
+
         this.array = array;
         this.itemSize = itemSize;
         this.normalized = normalized;

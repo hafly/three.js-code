@@ -1,42 +1,15 @@
 import {_Math} from "./Math";
 import {Matrix4} from "./Matrix4";
+import {Quaternion} from "./Quaternion";
 
 let matrix = new Matrix4();
 
 class Euler {
     constructor(x = 0, y = 0, z = 0, order = Euler.DefaultOrder) {
-        this.isEuler = true;
         this._x = x;
         this._y = y;
         this._z = z;
         this._order = order;
-    }
-
-    get x() {
-        return this._x;
-    }
-
-    set x(value) {
-        this._x = value;
-        this.onChangeCallback();
-    }
-
-    get y() {
-        return this._y;
-    }
-
-    set y(value) {
-        this._y = value;
-        this.onChangeCallback();
-    }
-
-    get z() {
-        return this._z;
-    }
-
-    set z(value) {
-        this._z = value;
-        this.onChangeCallback();
     }
 
     set(x, y, z, order) {
@@ -44,6 +17,10 @@ class Euler {
         this._y = y;
         this._z = z;
         this._order = order || this._order;
+
+        this.onChangeCallback();
+
+        return this;
     }
 
     clone() {
@@ -55,6 +32,9 @@ class Euler {
         this._y = euler._y;
         this._z = euler._z;
         this._order = euler._order;
+
+        this.onChangeCallback();
+
         return this;
     }
 
@@ -208,6 +188,56 @@ class Euler {
     onChangeCallback() {
     }
 }
+
+Object.assign(Euler.prototype,{
+    isEuler:true
+});
+
+Object.defineProperties(Euler.prototype,{
+    x: {
+        get: function () {
+            return this._x;
+        },
+
+        set: function ( value ) {
+            this._x = value;
+            this.onChangeCallback();
+        }
+    },
+
+    y: {
+        get: function () {
+            return this._y;
+        },
+
+        set: function ( value ) {
+            this._y = value;
+            this.onChangeCallback();
+        }
+    },
+
+    z: {
+        get: function () {
+            return this._z;
+        },
+
+        set: function ( value ) {
+            this._z = value;
+            this.onChangeCallback();
+        }
+    },
+
+    order: {
+        get: function () {
+            return this._order;
+        },
+
+        set: function ( value ) {
+            this._order = value;
+            this.onChangeCallback();
+        }
+    }
+});
 
 Euler.RotationOrders = ['XYZ', 'YZX', 'ZXY', 'XZY', 'YXZ', 'ZYX'];
 

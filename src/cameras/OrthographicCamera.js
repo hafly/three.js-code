@@ -5,7 +5,7 @@ class OrthographicCamera extends Camera {
         super();
         this.type = 'OrthographicCamera';
         this.zoom = 1;
-        this.view = null;
+        // this.view = null;
 
         this.left = left;
         this.right = right;
@@ -29,19 +29,8 @@ class OrthographicCamera extends Camera {
         let top = cy + dy;
         let bottom = cy - dy;
 
-        if (this.view !== null && this.view.enabled) {
-            let zoomW = this.zoom / (this.view.width / this.view.fullWidth);
-            let zoomH = this.zoom / (this.view.height / this.view.fullHeight);
-            let scaleW = (this.right - this.left) / this.view.width;
-            let scaleH = (this.top - this.bottom) / this.view.height;
-
-            left += scaleW * (this.view.offsetX / zoomW);
-            right = left + scaleW * (this.view.width / zoomW);
-            top -= scaleH * (this.view.offsetY / zoomH);
-            bottom = top - scaleH * (this.view.height / zoomH);
-        }
-
         this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far);
+        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
     }
 }
 

@@ -6,16 +6,12 @@ class Camera extends Object3D {
         super();
         this.isCamera = true;
 
-        // 投影矩阵
-        this.projectionMatrix = new Matrix4();
-        // 投影矩阵逆矩阵
-        this.projectionMatrixInverse = new Matrix4();
-
-        // matrixWorld逆矩阵
-        this.matrixWorldInverse = new Matrix4();
+        this.projectionMatrix = new Matrix4();          // 投影矩阵
+        this.projectionMatrixInverse = new Matrix4();   // 投影矩阵逆矩阵
+        this.matrixWorldInverse = new Matrix4();        // matrixWorld逆矩阵
     }
 
-    // 重写父类
+    // 更新对象（重写父类）
     updateMatrixWorld(force) {
         if (this.matrixAutoUpdate) this.updateMatrix();
         if (this.matrixWorldNeedsUpdate || force) {
@@ -27,8 +23,6 @@ class Camera extends Object3D {
             this.matrixWorldNeedsUpdate = false;
             force = true;
         }
-
-        // update children
 
         let children = this.children;
         for (let i = 0, l = children.length; i < l; i++) {

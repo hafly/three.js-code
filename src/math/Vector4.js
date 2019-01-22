@@ -1,6 +1,5 @@
 class Vector4 {
     constructor(x = 0, y = 0, z = 0, w = 1) {
-        this.isVector4 = true;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -152,5 +151,9 @@ class Vector4 {
         return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z) && (v.w === this.w));
     }
 }
+
+Object.assign(Vector4.prototype, {
+    isVector4: true
+});
 
 export {Vector4};

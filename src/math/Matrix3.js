@@ -1,3 +1,8 @@
+import {Matrix4} from "./Matrix4";
+
+/**
+ * 3*3矩阵（暂未使用）
+ */
 class Matrix3 {
     constructor(){
         this.elements = [
@@ -121,5 +126,9 @@ class Matrix3 {
         return this.setFromMatrix4(matrix4).getInverse(this).transpose();
     }
 }
+
+Object.assign(Matrix3.prototype, {
+    isMatrix3: true
+});
 
 export {Matrix3};

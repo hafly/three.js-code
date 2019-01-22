@@ -1,46 +1,11 @@
+// import {Vector3} from "./Vector3";
+
 class Quaternion {
     constructor(x = 0, y = 0, z = 0, w = 1) {
-        this.isQuaternion = true;
         this._x = x;
         this._y = y;
         this._z = z;
         this._w = w;
-    }
-
-    get x() {
-        return this._x;
-    }
-
-    set x(value) {
-        this._x = value;
-        this.onChangeCallback();
-    }
-
-    get y() {
-        return this._y;
-    }
-
-    set y(value) {
-        this._y = value;
-        this.onChangeCallback();
-    }
-
-    get z() {
-        return this._z;
-    }
-
-    set z(value) {
-        this._z = value;
-        this.onChangeCallback();
-    }
-
-    get w() {
-        return this._w;
-    }
-
-    set w(value) {
-        this._w = value;
-        this.onChangeCallback();
     }
 
     set(x, y, z, w) {
@@ -48,6 +13,8 @@ class Quaternion {
         this._y = y;
         this._z = z;
         this._w = w;
+
+        this.onChangeCallback();
 
         return this;
     }
@@ -61,6 +28,8 @@ class Quaternion {
         this._y = quaternion._y;
         this._z = quaternion._z;
         this._w = quaternion._w;
+
+        this.onChangeCallback();
 
         return this;
     }
@@ -241,5 +210,52 @@ class Quaternion {
     onChangeCallback() {
     }
 }
+
+Object.assign(Quaternion.prototype, {
+    isQuaternion: true
+});
+
+Object.defineProperties(Quaternion.prototype, {
+    x: {
+        get: function () {
+            return this._x;
+        },
+
+        set: function (value) {
+            this._x = value;
+            this.onChangeCallback();
+        }
+    },
+    y: {
+        get: function () {
+            return this._y;
+        },
+
+        set: function (value) {
+            this._y = value;
+            this.onChangeCallback();
+        }
+    },
+    z: {
+        get: function () {
+            return this._z;
+        },
+
+        set: function (value) {
+            this._z = value;
+            this.onChangeCallback();
+        }
+    },
+    w: {
+        get: function () {
+            return this._w;
+        },
+
+        set: function (value) {
+            this._w = value;
+            this.onChangeCallback();
+        }
+    },
+});
 
 export {Quaternion};

@@ -1,8 +1,8 @@
 import {Vector3} from "./Vector3";
+// import {Box2} from "./Box2";
 
 class Box3 {
     constructor(min = new Vector3(+Infinity, +Infinity, +Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity)) {
-        this.isBox3 = true;
         this.min = min;
         this.max = max;
     }

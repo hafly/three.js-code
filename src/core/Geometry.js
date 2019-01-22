@@ -1,7 +1,7 @@
 import {_Math} from "../math/Math";
 import {Color} from "../math/Color";
 import {Vector2} from "../math/Vector2";
-import {Matrix3} from "../math/Matrix3";
+// import {Matrix3} from "../math/Matrix3";
 import {Matrix4} from "../math/Matrix4";
 import {Vector3} from "../math/Vector3";
 import {Object3D} from "./Object3D";
@@ -15,19 +15,21 @@ import {Face3} from "./Face3";
 let geometryId = 0;// Geometry uses even numbers as Id
 class Geometry {
     constructor() {
-        this.id = geometryId += 2;
-        this.uuid = _Math.generateUUID();
+        Object.defineProperty(this, 'id', {value: geometryId += 2});
+        // this.uuid = _Math.generateUUID();
+
         this.type = 'Geometry';
         this.isGeometry = true;
 
         this.vertices = []; // 顶点
-        this.colors = [];     // 顶点 colors 队列
+        this.colors = [];   // 顶点 colors 队列
         this.faces = [];    // 面
         this.faceVertexUvs = [[]];  // 面的 UV 层的队列
     }
 
+    // 几何体变换
     applyMatrix(matrix) {
-        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
+        // let normalMatrix = new Matrix3().getNormalMatrix(matrix);
 
         for (let i = 0; i < this.vertices.length; i++) {
             let vertex = this.vertices[i];

@@ -7,8 +7,9 @@ import {Object3D} from "./Object3D";
 let bufferGeometryId = 1; // BufferGeometry uses odd numbers as Id
 class BufferGeometry {
     constructor() {
-        this.id = bufferGeometryId += 2;
-        this.uuid = _Math.generateUUID();
+        Object.defineProperty(this, 'id', {value: bufferGeometryId += 2});
+        // this.uuid = _Math.generateUUID();
+
         this.type = 'BufferGeometry';
         this.isBufferGeometry = true;
 

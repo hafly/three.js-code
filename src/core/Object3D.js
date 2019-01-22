@@ -1,25 +1,29 @@
-import {_Math} from "../math/Math";
+// import {_Math} from "../math/Math";
 import {EventDispatcher} from "./EventDispatcher";
 import {Euler} from "../math/Euler";
 import {Vector3} from "../math/Vector3";
 import {Matrix4} from "../math/Matrix4";
 import {Quaternion} from "../math/Quaternion";
 
+// 全局临时变量（作为全局避免重复实例化）
 let m1 = new Matrix4();
-let target = new Vector3();
-let position = new Vector3();
+let position = new Vector3();   // eye
+let target = new Vector3();     // target
 
-let objectId = 0;
+let object3DId = 0;
 
 /**
- * 3维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
+ * 三维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
  */
 class Object3D extends EventDispatcher {
     constructor() {
         super();
+
+        Object.defineProperty(this, 'id', {value: object3DId++});
+        // this.uuid = _Math.generateUUID();
+        this.type = 'Object3D';
         this.isObject3D = true;
-        this.id = objectId++;
-        this.uuid = _Math.generateUUID();
+
         this.parent = null;
         this.children = [];
 
@@ -30,8 +34,8 @@ class Object3D extends EventDispatcher {
 
         this.up = Object3D.DefaultUp.clone();
 
-        this.matrix = new Matrix4();        // 局部变换（相对于父级）
-        this.matrixWorld = new Matrix4();   // 全局变换
+        this.matrix = new Matrix4();        // 局部变换（相对于父级的变换）
+        this.matrixWorld = new Matrix4();   // 全局变换（用于最终的显示）
 
         // 默认true，当设置为true时，自动更新局部矩阵。
         this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;
@@ -69,13 +73,14 @@ class Object3D extends EventDispatcher {
             if (this.parent === null) {
                 this.matrixWorld.copy(this.matrix);
             } else {
+                // 矩阵相乘结果为新的矩阵变换
                 this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
             }
             this.matrixWorldNeedsUpdate = false;
             force = true;
         }
 
-        // update children
+        // 必须更新子对象
         let children = this.children;
         for (let i = 0, l = children.length; i < l; i++) {
             children[i].updateMatrixWorld(force);
@@ -143,10 +148,11 @@ class Object3D extends EventDispatcher {
             m1.lookAt(target, position, this.up);
         }
 
+        // 获取quaternion
         this.quaternion.setFromRotationMatrix(m1);
     }
 
-    // 遍历对象并回调
+    // 遍历对象
     traverse(callback) {
         callback(this);
 

@@ -1,6 +1,10 @@
 /**
  * 4*4矩阵原理可以参考这篇文章：http://blog.vr-seesee.com/detail/185
  * 矩阵是用于表示变换而不是坐标，4*4矩阵的核心是变换：平移、旋转、缩放
+ * 矩阵3个特性：
+ * 1.变换；
+ * 2.矩阵乘以对应的3D点坐标，就可以获取变换后的点坐标；
+ * 3.矩阵相乘结果为新的矩阵变换。
  */
 import {Vector3} from "./Vector3";
 
@@ -69,59 +73,17 @@ class Matrix4 {
         return this;
     }
 
-    lookAt(eye, target, up) {
-        let te = this.elements;
-
-        z.subVectors(eye, target);
-
-        if (z.lengthSq() === 0) {
-            // eye and target are in the same position
-            z.z = 1;
-        }
-
-        z.normalize();
-        x.crossVectors(up, z);
-
-        if (x.lengthSq() === 0) {
-            // up and z are parallel
-            if (Math.abs(up.z) === 1) {
-                z.x += 0.0001;
-            } else {
-                z.z += 0.0001;
-            }
-
-            z.normalize();
-            x.crossVectors(up, z);
-        }
-
-        x.normalize();
-        y.crossVectors(z, x);
-
-        te[0] = x.x;te[4] = y.x;te[8] =  z.x;
-        te[1] = x.y;te[5] = y.y;te[9] =  z.y;
-        te[2] = x.z;te[6] = y.z;te[10] = z.z;
-
-        return this;
-    }
-
-    /**
-     * 左乘矩阵
-     * @param m
-     * @returns {*}
-     */
+    // 左乘矩阵
     multiply(m) {
         return this.multiplyMatrices(this, m);
     }
 
-    /**
-     * 右乘矩阵
-     * @param m
-     * @returns {*}
-     */
+    // 右乘矩阵
     premultiply(m) {
         return this.multiplyMatrices(m, this);
     }
 
+    // 矩阵相乘
     multiplyMatrices(a, b) {
         let ae = a.elements;
         let be = b.elements;
@@ -160,6 +122,7 @@ class Matrix4 {
         return this;
     }
 
+    // 矩阵缩放（暂未使用）
     multiplyScalar(s) {
         let te = this.elements;
 
@@ -196,7 +159,7 @@ class Matrix4 {
         return this;
     }
 
-    // 绕X轴旋转
+    // 旋转
     makeRotationX(theta) {
         let c = Math.cos(theta), s = Math.sin(theta);
 
@@ -253,6 +216,11 @@ class Matrix4 {
         return this;
     }
 
+    // 通过四元数对Matrix4应用旋转变换
+    makeRotationFromQuaternion(q) {
+        return this.compose(zero, q, one);
+    }
+
     // 缩放
     makeScale(x, y, z) {
         this.set(
@@ -265,22 +233,7 @@ class Matrix4 {
         return this;
     }
 
-    /**
-     * 通过四元数对Matrix4应用旋转变换
-     * @param q
-     * @returns {Matrix4}
-     */
-    makeRotationFromQuaternion(q) {
-        return this.compose(zero, q, one);
-    }
-
-    /**
-     * 处理矩阵位移、旋转、缩放
-     * @param position
-     * @param quaternion
-     * @param scale
-     * @returns {Matrix4}
-     */
+    // 处理矩阵位移、旋转、缩放
     compose(position, quaternion, scale) {
 
         let te = this.elements;
@@ -317,6 +270,42 @@ class Matrix4 {
 
     }
 
+    // 构造一个旋转矩阵从eye 指向 target
+    lookAt(eye, target, up) {
+        let te = this.elements;
+
+        z.subVectors(eye, target);
+
+        if (z.lengthSq() === 0) {
+            // eye and target are in the same position
+            z.z = 1;
+        }
+
+        z.normalize();
+        x.crossVectors(up, z);
+
+        if (x.lengthSq() === 0) {
+            // up and z are parallel
+            if (Math.abs(up.z) === 1) {
+                z.x += 0.0001;
+            } else {
+                z.z += 0.0001;
+            }
+
+            z.normalize();
+            x.crossVectors(up, z);
+        }
+
+        x.normalize();
+        y.crossVectors(z, x);
+
+        te[0] = x.x;te[4] = y.x;te[8] =  z.x;
+        te[1] = x.y;te[5] = y.y;te[9] =  z.y;
+        te[2] = x.z;te[6] = y.z;te[10] = z.z;
+
+        return this;
+    }
+
     // 创建一个透视投影矩阵
     makePerspective(left, right, top, bottom, near, far) {
         let te = this.elements;
@@ -336,6 +325,7 @@ class Matrix4 {
         return this;
     }
 
+    // 创建一个正交投影矩阵
     makeOrthographic(left, right, top, bottom, near, far) {
         let te = this.elements;
         let w = 1.0 / (right - left);
@@ -353,7 +343,7 @@ class Matrix4 {
         return this;
     }
 
-    // 获取逆矩阵
+    // 逆矩阵（矩阵的倒数，用来实现矩阵的除法。矩阵不存在直接相除的概念，需要借助逆矩阵）
     getInverse(m, throwOnDegenerate) {
         let te = this.elements,
             me = m.elements,
@@ -416,5 +406,9 @@ class Matrix4 {
         return true;
     }
 }
+
+Object.assign(Matrix4.prototype, {
+    isMatrix4: true
+});
 
 export {Matrix4};

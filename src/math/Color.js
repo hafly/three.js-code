@@ -15,7 +15,6 @@ const ColorKeywords={'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFF
 
 class Color {
     constructor(r, g, b) {
-        this.isColor = true;
         this.r = 1;
         this.g = 1;
         this.b = 1;
@@ -257,5 +256,9 @@ class Color {
         return p;
     }
 }
+
+Object.assign(Color.prototype, {
+    isColor: true
+});
 
 export {Color};

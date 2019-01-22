@@ -12,7 +12,7 @@ class PerspectiveCamera extends Camera {
         this.far = far;
 
         this.aspect = aspect;
-        this.view = null;
+        // this.view = null;
 
         this.updateProjectionMatrix();
     }
@@ -25,7 +25,9 @@ class PerspectiveCamera extends Camera {
             width = this.aspect * height,
             left = -width / 2;
 
+        // 创建透视投影矩阵（在屏幕上的矩阵）
         this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.far);
+        // 获取投影矩阵逆矩阵
         this.projectionMatrixInverse.getInverse(this.projectionMatrix);
     }
 }

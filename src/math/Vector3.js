@@ -3,7 +3,6 @@ import {Matrix4} from "./Matrix4";
 
 class Vector3 {
     constructor(x = 0, y = 0, z = 0) {
-        this.isVector3 = true;
         this.x = x;
         this.y = y;
         this.z = z;
@@ -34,11 +33,7 @@ class Vector3 {
         return this;
     }
 
-    /**
-     * 左加向量
-     * @param v
-     * @returns {Vector3}
-     */
+    // 左加向量
     add(v) {
         this.x += v.x;
         this.y += v.y;
@@ -46,11 +41,7 @@ class Vector3 {
         return this;
     }
 
-    /**
-     * 左加标量
-     * @param s
-     * @returns {Vector3}
-     */
+    // 左加标量
     addScalar(s) {
         this.x += s;
         this.y += s;
@@ -58,12 +49,7 @@ class Vector3 {
         return this;
     }
 
-    /**
-     * 两向量相加
-     * @param a
-     * @param b
-     * @returns {Vector3}
-     */
+    // 两向量相加
     addVectors(a, b) {
         this.x = a.x + b.x;
         this.y = a.y + b.y;
@@ -169,20 +155,12 @@ class Vector3 {
         return dx * dx + dy * dy + dz * dz;
     }
 
-    /**
-     * 点乘
-     * @param v
-     * @returns {number}
-     */
+    // 点乘
     dot(v) {
         return this.x * v.x + this.y * v.y + this.z * v.z;
     }
 
-    /**
-     * 叉乘
-     * @param v
-     * @returns {Vector3}
-     */
+    // 叉乘
     cross(v) {
         let x = this.x;
         let y = this.y;
@@ -205,27 +183,7 @@ class Vector3 {
         return this;
     }
 
-    /**
-     * 将当前向量乘以一个3x3的矩阵
-     * @param m
-     * @returns {Vector3}
-     */
-    applyMatrix3(m) {
-        let x = this.x, y = this.y, z = this.z;
-        let e = m.elements;
-
-        this.x = e[0] * x + e[3] * y + e[6] * z;
-        this.y = e[1] * x + e[4] * y + e[7] * z;
-        this.z = e[2] * x + e[5] * y + e[8] * z;
-
-        return this;
-    }
-
-    /**
-     * 将当前向量乘以一个4x3的矩阵
-     * @param m
-     * @returns {Vector3}
-     */
+    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
     applyMatrix4(m) {
         let x = this.x, y = this.y, z = this.z;
         let e = m.elements;
@@ -239,12 +197,12 @@ class Vector3 {
         return this;
     }
 
-    // 用相机投影该向量
+    // 用相机投影该向量（暂未使用）
     project(camera) {
         return this.applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix);
     }
 
-    // 用相机反投影该向量
+    // 用相机反投影该向量（暂未使用）
     unproject(camera) {
         let matrix = new Matrix4();
         return this.applyMatrix4(matrix.getInverse(camera.projectionMatrix)).applyMatrix4(camera.matrixWorld);
@@ -262,11 +220,7 @@ class Vector3 {
         return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
     }
 
-    /**
-     * 从矩阵中获取位置向量（原getFromMatrixPosition方法）
-     * @param m
-     * @returns {Vector3}
-     */
+    // 从矩阵中获取位置向量（原getFromMatrixPosition方法）
     setFromMatrixPosition(m) {
         let e = m.elements;
 
@@ -277,11 +231,7 @@ class Vector3 {
         return this;
     }
 
-    /**
-     * 从矩阵中获取缩放向量
-     * @param m
-     * @returns {Vector3}
-     */
+    // 从矩阵中获取缩放向量
     setFromMatrixScale(m) {
         let sx = this.setFromMatrixColumn(m, 0).length();
         let sy = this.setFromMatrixColumn(m, 1).length();
@@ -343,5 +293,9 @@ class Vector3 {
 
     }
 }
+
+Object.assign(Vector3.prototype, {
+    isVector3: true
+});
 
 export {Vector3};
