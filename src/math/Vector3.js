@@ -33,7 +33,7 @@ class Vector3 {
         return this;
     }
 
-    // 左加向量
+    // 向量加法（AB+BC=AC）
     add(v) {
         this.x += v.x;
         this.y += v.y;
@@ -41,7 +41,7 @@ class Vector3 {
         return this;
     }
 
-    // 左加标量
+    // 加标量（没有意义，只用到个别特殊情况）
     addScalar(s) {
         this.x += s;
         this.y += s;
@@ -49,7 +49,7 @@ class Vector3 {
         return this;
     }
 
-    // 两向量相加
+    // 向量加法（由另外两个向量相加）
     addVectors(a, b) {
         this.x = a.x + b.x;
         this.y = a.y + b.y;
@@ -78,13 +78,15 @@ class Vector3 {
         return this;
     }
 
-    multiply(v) {
-        this.x *= v.x;
-        this.y *= v.y;
-        this.z *= v.z;
-        return this;
-    }
+    // 两向量的乘除法（没有几何意义）
+    // multiply(v) {
+    //     this.x *= v.x;
+    //     this.y *= v.y;
+    //     this.z *= v.z;
+    //     return this;
+    // }
 
+    // 乘以标量（放大向量）
     multiplyScalar(scalar) {
         this.x *= scalar;
         this.y *= scalar;
@@ -92,14 +94,16 @@ class Vector3 {
         return this;
     }
 
-    multiplyVectors(a, b) {
-        this.x = a.x * b.x;
-        this.y = a.y * b.y;
-        this.z = a.z * b.z;
+    // 未使用
+    // multiplyVectors(a, b) {
+    //     this.x = a.x * b.x;
+    //     this.y = a.y * b.y;
+    //     this.z = a.z * b.z;
+    //
+    //     return this;
+    // }
 
-        return this;
-    }
-
+    // 只用于个别情况（向量x,y,z各自的缩放）
     divide(v) {
         this.x /= v.x;
         this.y /= v.y;
@@ -107,22 +111,17 @@ class Vector3 {
         return this;
     }
 
+    // 除以标量（缩小向量）
     divideScalar(scalar) {
         return this.multiplyScalar(1 / scalar);
     }
 
-    /**
-     * 标准化向量，长度为1
-     * @returns {*}
-     */
+    // 标准化向量，长度为1
     normalize() {
         return this.divideScalar(this.length() || 1);
     }
 
-    /**
-     * 反转向量
-     * @returns {Vector2}
-     */
+    // 反转向量
     negate() {
         this.x = -this.x;
         this.y = -this.y;
@@ -130,6 +129,7 @@ class Vector3 {
         return this;
     }
 
+    // 向量的模
     length() {
         return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
     }
@@ -168,7 +168,7 @@ class Vector3 {
 
         this.x = y * v.z - z * v.y;
         this.y = z * v.x - x * v.z;
-        this.z = x * v.y - this.y * v.x;
+        this.z = x * v.y - y * v.x;
         return this;
     }
 
@@ -206,6 +206,12 @@ class Vector3 {
     unproject(camera) {
         let matrix = new Matrix4();
         return this.applyMatrix4(matrix.getInverse(camera.projectionMatrix)).applyMatrix4(camera.matrixWorld);
+    }
+
+    // 在向量上的投影
+    projectOnVector(vector) {
+        let scalar = vector.dot(this) / vector.lengthSq();
+        return this.copy(vector).multiplyScalar(scalar);
     }
 
     lerp(v, alpha) {

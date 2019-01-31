@@ -23,6 +23,7 @@ class BufferGeometry {
         return this.index;
     }
 
+    // 设置顶点索引
     setIndex(index) {
         if (Array.isArray(index)) {
             this.index = new (arrayMax(index) > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute)(index, 1);
