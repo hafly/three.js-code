@@ -1,7 +1,7 @@
+import {Quaternion} from "../math/Quaternion";
+
 class BufferAttribute {
     constructor(array, itemSize, normalized = true) {
-        this.isBufferAttribute = true;
-
         this.array = array;
         this.itemSize = itemSize;
         this.normalized = normalized;
@@ -14,16 +14,20 @@ class BufferAttribute {
         if (value === true) this.version++;
     }
 
-    getX( index ) {
-        return this.array[ index * this.itemSize ];
+    getX(index) {
+        return this.array[index * this.itemSize];
     }
 
-    getY( index ) {
-        return this.array[ index * this.itemSize + 1 ];
+    getY(index) {
+        return this.array[index * this.itemSize + 1];
     }
 
-    getZ( index ) {
-        return this.array[ index * this.itemSize + 2 ];
+    getZ(index) {
+        return this.array[index * this.itemSize + 2];
+    }
+
+    getW(index) {
+        return this.array[index * this.itemSize + 3];
     }
 
     setXYZ(index, x, y, z) {
@@ -36,15 +40,31 @@ class BufferAttribute {
         return this;
     }
 
+    setXYZW(index, x, y, z, w) {
+        index *= this.itemSize;
+
+        this.array[index + 0] = x;
+        this.array[index + 1] = y;
+        this.array[index + 2] = z;
+        this.array[index + 3] = w;
+
+        return this;
+    }
+
     onUploadCallback() {
     }
 }
+
+Object.assign(BufferAttribute.prototype, {
+    isBufferAttribute: true
+});
 
 class Int8BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Int8Array(array), itemSize, normalized);
     }
 }
+
 class Uint8BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Uint8Array(array), itemSize, normalized);
@@ -56,6 +76,7 @@ class Int16BufferAttribute extends BufferAttribute {
         super(new Int16Array(array), itemSize, normalized);
     }
 }
+
 class Uint16BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Uint16Array(array), itemSize, normalized);
@@ -67,6 +88,7 @@ class Int32BufferAttribute extends BufferAttribute {
         super(new Int32Array(array), itemSize, normalized);
     }
 }
+
 class Uint32BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Uint32Array(array), itemSize, normalized);
@@ -78,6 +100,7 @@ class Int64BufferAttribute extends BufferAttribute {
         super(new Int64Array(array), itemSize, normalized);
     }
 }
+
 class Float32BufferAttribute extends BufferAttribute {
     constructor(array, itemSize, normalized) {
         super(new Float32Array(array), itemSize, normalized);

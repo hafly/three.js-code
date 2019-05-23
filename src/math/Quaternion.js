@@ -1,5 +1,8 @@
-// import {Vector3} from "./Vector3";
+import {Matrix3} from "./Matrix3";
 
+/**
+ * 四元数
+ */
 class Quaternion {
     constructor(x = 0, y = 0, z = 0, w = 1) {
         this._x = x;
@@ -37,7 +40,7 @@ class Quaternion {
     /**
      * 从欧拉角设置Quaternion
      * @param euler
-     * @param update
+     * @param update {Boolean} 是否调用onChangeCallback()方法
      * @returns {Quaternion}
      */
     setFromEuler(euler, update) {
@@ -163,30 +166,15 @@ class Quaternion {
         return this;
     }
 
-    /**
-     * 左乘四元素
-     * @param q
-     * @returns {Quaternion}
-     */
+    // 四元素乘法
     multiply(q) {
         return this.multiplyQuaternions(this, q);
     }
 
-    /**
-     * 右乘四元素
-     * @param q
-     * @returns {*}
-     */
     premultiply(q) {
         return this.multiplyQuaternions(q, this);
     }
 
-    /**
-     * 两个四元素相乘
-     * @param a
-     * @param b
-     * @returns {Quaternion}
-     */
     multiplyQuaternions(a, b) {
         let qax = a._x, qay = a._y, qaz = a._z, qaw = a._w;
         let qbx = b._x, qby = b._y, qbz = b._z, qbw = b._w;
@@ -201,6 +189,94 @@ class Quaternion {
         return this;
     }
 
+    // 线性插值
+    slerp(qb, t) {
+        if (t === 0) return this;
+        if (t === 1) return this.copy(qb);
+
+        let x = this._x, y = this._y, z = this._z, w = this._w;
+
+        // http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/
+
+        let cosHalfTheta = w * qb._w + x * qb._x + y * qb._y + z * qb._z;
+
+        if (cosHalfTheta < 0) {
+            this._w = -qb._w;
+            this._x = -qb._x;
+            this._y = -qb._y;
+            this._z = -qb._z;
+
+            cosHalfTheta = -cosHalfTheta;
+        }
+        else {
+            this.copy(qb);
+        }
+
+        if (cosHalfTheta >= 1.0) {
+            this._w = w;
+            this._x = x;
+            this._y = y;
+            this._z = z;
+
+            return this;
+        }
+
+        let sqrSinHalfTheta = 1.0 - cosHalfTheta * cosHalfTheta;
+
+        if (sqrSinHalfTheta <= Number.EPSILON) {
+            let s = 1 - t;
+            this._w = s * w + t * this._w;
+            this._x = s * x + t * this._x;
+            this._y = s * y + t * this._y;
+            this._z = s * z + t * this._z;
+
+            return this.normalize();
+        }
+
+        let sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
+        let halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
+        let ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,
+            ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+
+        this._w = (w * ratioA + this._w * ratioB);
+        this._x = (x * ratioA + this._x * ratioB);
+        this._y = (y * ratioA + this._y * ratioB);
+        this._z = (z * ratioA + this._z * ratioB);
+
+        this.onChangeCallback();
+
+        return this;
+    }
+
+    equals(quaternion) {
+        return (quaternion._x === this._x) && (quaternion._y === this._y) && (quaternion._z === this._z) && (quaternion._w === this._w);
+    }
+
+    fromArray(array, offset) {
+        if (offset === undefined) offset = 0;
+
+        this._x = array[offset];
+        this._y = array[offset + 1];
+        this._z = array[offset + 2];
+        this._w = array[offset + 3];
+
+        this.onChangeCallback();
+
+        return this;
+    }
+
+    toArray(array, offset) {
+        if (array === undefined) array = [];
+        if (offset === undefined) offset = 0;
+
+        array[offset] = this._x;
+        array[offset + 1] = this._y;
+        array[offset + 2] = this._z;
+        array[offset + 3] = this._w;
+
+        return array;
+    }
+
     onChange(callback) {
         this.onChangeCallback = callback;
 
@@ -211,10 +287,9 @@ class Quaternion {
     }
 }
 
-Object.assign(Quaternion.prototype, {
-    isQuaternion: true
-});
+Object.defineProperty(Quaternion.prototype, 'isQuaternion', {value: true});
 
+// 定义内部属性。对xyzw值的改变会自动触发 onChangeCallback() 方法
 Object.defineProperties(Quaternion.prototype, {
     x: {
         get: function () {

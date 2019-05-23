@@ -3,9 +3,8 @@
   "version": "0.1.0",
   "scripts": {
     "build": "rollup -c",
-    "build-babel": "babel build/three.js -o build/three.babel.js",
-    "build-uglify": "npm run build-babel && uglifyjs build/three.babel.js -cm > build/three.min.js",
-    "server": "http-server"
+    "build-uglify": "babel build/three.js -o build/three.babel.js && uglifyjs build/three.babel.js -cm > build/three.min.js",
+    "server": "http-server -c-1 -s -o"
   },
   "dependencies": {},
   "devDependencies": {

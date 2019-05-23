@@ -1,75 +1,83 @@
 (function (global, factory) {
 	typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
 	typeof define === 'function' && define.amd ? define(['exports'], factory) :
-	(factory((global.THREE = {})));
-}(this, (function (exports) { 'use strict';
+	(global = global || self, factory(global.THREE = {}));
+}(this, function (exports) { 'use strict';
 
 	const REVISION = '1';
-	// 面法向量
-	let FrontSide = 0;
-	let BackSide = 1;
-	let DoubleSide = 2;
+	// 材质附着面
+	let FrontSide = 0;   // 正面
+	let BackSide = 1;    // 背面
+	let DoubleSide = 2;  // 双面
+	// 作色方式
+	let FlatShading = 1;     // GL_FLAT恒定着色
+	let SmoothShading = 2;   // GL_SMOOTH平滑着色
 	// 作色点或面
-	let NoColors = 0;
-	let FaceColors = 1;
-	let VertexColors = 2;
-	// canvas混合模式
-	let NoBlending = 0;
-	let NormalBlending = 1;
-	let AdditiveBlending = 2;
-	let SubtractiveBlending = 3;
-	let MultiplyBlending = 4;
-	let CustomBlending = 5;
+	let NoColors = 0;    // 顶点没有颜色
+	let FaceColors = 1;  // 顶点使用面的颜色
+	let VertexColors = 2;// 顶点使用顶点的颜色
+	// 材质混合模式
+	let NoBlending = 0;          // 没有混合
+	let NormalBlending = 1;      // 普通混合
+	let AdditiveBlending = 2;    // 相加混合
+	let SubtractiveBlending = 3; // 相减混合
+	let MultiplyBlending = 4;    // 相乘混合
+	let CustomBlending = 5;      // 自定义混合
 	// 纹理映射
 	let UVMapping = 300;
-
+	// Pixel formats像素颜色格式
 	let RGBFormat = 1022;
 	let RGBAFormat = 1023;
-
-	let lut = [];
-	for (let i = 0; i < 256; i++) {
-	    lut[i] = (i < 16 ? '0' : '') + (i).toString(16);
-	}
 
 	let _Math = {
 	    DEG2RAD: Math.PI / 180,
 	    RAD2DEG: 180 / Math.PI,
-	    generateUUID: function () {
-	        let d0 = Math.random() * 0xffffffff | 0;
-	        let d1 = Math.random() * 0xffffffff | 0;
-	        let d2 = Math.random() * 0xffffffff | 0;
-	        let d3 = Math.random() * 0xffffffff | 0;
-	        let uuid = lut[ d0 & 0xff ] + lut[ d0 >> 8 & 0xff ] + lut[ d0 >> 16 & 0xff ] + lut[ d0 >> 24 & 0xff ] + '-' +
-	            lut[ d1 & 0xff ] + lut[ d1 >> 8 & 0xff ] + '-' + lut[ d1 >> 16 & 0x0f | 0x40 ] + lut[ d1 >> 24 & 0xff ] + '-' +
-	            lut[ d2 & 0x3f | 0x80 ] + lut[ d2 >> 8 & 0xff ] + '-' + lut[ d2 >> 16 & 0xff ] + lut[ d2 >> 24 & 0xff ] +
-	            lut[ d3 & 0xff ] + lut[ d3 >> 8 & 0xff ] + lut[ d3 >> 16 & 0xff ] + lut[ d3 >> 24 & 0xff ];
 
-	        // .toUpperCase() here flattens concatenated strings to save heap memory space.
-	        return uuid.toUpperCase();
-	    },
+	    // 生成一个36位的uuid通用唯一识别码
+	    generateUUID: (function () {
+	        let lut = [];
+	        for (let i = 0; i < 256; i++) {
+	            lut[i] = (i < 16 ? '0' : '') + (i).toString(16);
+	        }
 
-	    //限制最小最大值
+	        return function generateUUID() {
+	            let d0 = Math.random() * 0xffffffff | 0;
+	            let d1 = Math.random() * 0xffffffff | 0;
+	            let d2 = Math.random() * 0xffffffff | 0;
+	            let d3 = Math.random() * 0xffffffff | 0;
+	            let uuid = lut[d0 & 0xff] + lut[d0 >> 8 & 0xff] + lut[d0 >> 16 & 0xff] + lut[d0 >> 24 & 0xff] + '-' +
+	                lut[d1 & 0xff] + lut[d1 >> 8 & 0xff] + '-' + lut[d1 >> 16 & 0x0f | 0x40] + lut[d1 >> 24 & 0xff] + '-' +
+	                lut[d2 & 0x3f | 0x80] + lut[d2 >> 8 & 0xff] + '-' + lut[d2 >> 16 & 0xff] + lut[d2 >> 24 & 0xff] +
+	                lut[d3 & 0xff] + lut[d3 >> 8 & 0xff] + lut[d3 >> 16 & 0xff] + lut[d3 >> 24 & 0xff];
+	            // .toUpperCase() here flattens concatenated strings to save heap memory space.
+	            return uuid.toUpperCase();
+	        };
+	    })(),
+
+	    // 限制最小最大值
 	    clamp: function (value, min, max) {
 	        return Math.max(min, Math.min(max, value));
 	    },
 
-	    //计算m % n的欧几里得模
+	    // 计算m % n的欧几里得模
 	    euclideanModulo: function (n, m) {
 	        return ((n % m) + m) % m;
 	    },
 
-	    //线性插值
+	    // 线性插值
 	    lerp: function (x, y, t) {
 	        return (1 - t) * x + t * y;
 	    },
 
-	    //平滑值(返回0-1之间的值，该值表示x在最小值和最大值之间移动的百分比，但当x接近最小值和最大值时，则使其平滑或减慢)
+	    // 和lerp类似，在最小和最大值之间的插值，并在限制处渐入渐出。三次平滑插值
+	    // 返回0-1之间的值，该值表示x在最小值和最大值之间移动的百分比，但当x接近最小值和最大值时，则使其平滑或减慢
 	    smoothstep: function (x, min, max) {
 	        if (x <= min) return 0;
 	        if (x >= max) return 1;
 	        x = (x - min) / (max - min);
 	        return x * x * (3 - 2 * x);
 	    },
+	    // 五次平滑插值
 	    smootherstep: function (x, min, max) {
 	        if (x <= min) return 0;
 	        if (x >= max) return 1;
@@ -90,17 +98,17 @@
 	        return range * (0.5 - Math.random());
 	    },
 
-	    //角度转弧度
+	    // 角度转弧度
 	    degToRad: function (degrees) {
 	        return degrees * _Math.DEG2RAD;
 	    },
 
-	    //弧度转角度
+	    // 弧度转角度
 	    radToDeg: function (radians) {
 	        return radians * _Math.RAD2DEG;
 	    },
 
-	    //是否是n的2次幂
+	    // 是否是2的幂
 	    isPowerOfTwo: function (value) {
 	        return (value & (value - 1)) === 0 && value !== 0;
 	    },
@@ -172,723 +180,243 @@
 	    }
 	}
 
-	class Vector3 {
-	    constructor(x = 0, y = 0, z = 0) {
-	        this.x = x;
-	        this.y = y;
-	        this.z = z;
-	    }
-
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
-	        this.z = v.z;
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y, this.z);
-	    }
-
-	    set(x, y, z) {
-	        this.x = x;
-	        this.y = y;
-	        this.z = z;
-	        return this;
-	    }
-
-	    zero() {
-	        this.x = 0;
-	        this.y = 0;
-	        this.z = 0;
-	        return this;
-	    }
-
-	    // 向量加法（AB+BC=AC）
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        this.z += v.z;
-	        return this;
-	    }
-
-	    // 加标量（没有意义，只用到个别特殊情况）
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        this.z += s;
-	        return this;
-	    }
-
-	    // 向量加法（由另外两个向量相加）
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        this.z = a.z + b.z;
-	        return this;
-	    }
-
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        this.z -= v.z;
-	        return this;
-	    }
-
-	    subScalar(s) {
-	        this.x -= s;
-	        this.y -= s;
-	        this.z -= s;
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        this.z = a.z - b.z;
-	        return this;
-	    }
-
-	    // 两向量的乘除法（没有几何意义）
-	    // multiply(v) {
-	    //     this.x *= v.x;
-	    //     this.y *= v.y;
-	    //     this.z *= v.z;
-	    //     return this;
-	    // }
-
-	    // 乘以标量（放大向量）
-	    multiplyScalar(scalar) {
-	        this.x *= scalar;
-	        this.y *= scalar;
-	        this.z *= scalar;
-	        return this;
-	    }
-
-	    // 未使用
-	    // multiplyVectors(a, b) {
-	    //     this.x = a.x * b.x;
-	    //     this.y = a.y * b.y;
-	    //     this.z = a.z * b.z;
-	    //
-	    //     return this;
-	    // }
-
-	    // 只用于个别情况（向量x,y,z各自的缩放）
-	    divide(v) {
-	        this.x /= v.x;
-	        this.y /= v.y;
-	        this.z /= v.z;
-	        return this;
-	    }
-
-	    // 除以标量（缩小向量）
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
-	    // 标准化向量，长度为1
-	    normalize() {
-	        return this.divideScalar(this.length() || 1);
-	    }
-
-	    // 反转向量
-	    negate() {
-	        this.x = -this.x;
-	        this.y = -this.y;
-	        this.z = -this.z;
-	        return this;
-	    }
-
-	    // 向量的模
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y + this.z * this.z;
-	    }
-
-	    // 与向量的角度
-	    angleTo(v) {
-	        let theta = this.dot(v) / (Math.sqrt(this.lengthSq() * v.lengthSq()));
-	        return Math.acos(_Math.clamp(theta, -1, 1));
-	    }
-
-	    distanceTo(v) {
-	        return Math.sqrt(this.distanceToSquared(v));
-	    }
-
-	    distanceToSquared(v) {
-	        let dx = this.x - v.x,
-	            dy = this.y - v.y,
-	            dz = this.z - v.z;
-	        return dx * dx + dy * dy + dz * dz;
-	    }
-
-	    // 点乘
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y + this.z * v.z;
-	    }
-
-	    // 叉乘
-	    cross(v) {
-	        let x = this.x;
-	        let y = this.y;
-	        let z = this.z;
-
-	        this.x = y * v.z - z * v.y;
-	        this.y = z * v.x - x * v.z;
-	        this.z = x * v.y - y * v.x;
-	        return this;
-	    }
-
-	    crossVectors(a, b) {
-	        let ax = a.x, ay = a.y, az = a.z;
-	        let bx = b.x, by = b.y, bz = b.z;
-
-	        this.x = ay * bz - az * by;
-	        this.y = az * bx - ax * bz;
-	        this.z = ax * by - ay * bx;
-
-	        return this;
-	    }
-
-	    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
-	    applyMatrix4(m) {
-	        let x = this.x, y = this.y, z = this.z;
-	        let e = m.elements;
-
-	        let w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
-
-	        this.x = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
-	        this.y = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
-	        this.z = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
-
-	        return this;
-	    }
-
-	    // 用相机投影该向量（暂未使用）
-	    project(camera) {
-	        return this.applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix);
-	    }
-
-	    // 用相机反投影该向量（暂未使用）
-	    unproject(camera) {
-	        let matrix = new Matrix4();
-	        return this.applyMatrix4(matrix.getInverse(camera.projectionMatrix)).applyMatrix4(camera.matrixWorld);
-	    }
-
-	    // 在向量上的投影
-	    projectOnVector(vector) {
-	        let scalar = vector.dot(this) / vector.lengthSq();
-	        return this.copy(vector).multiplyScalar(scalar);
-	    }
-
-	    lerp(v, alpha) {
-	        this.x += (v.x - this.x) * alpha;
-	        this.y += (v.y - this.y) * alpha;
-	        this.z += (v.z - this.z) * alpha;
-
-	        return this;
-	    }
-
-	    lerpVectors(v1, v2, alpha) {
-	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
-	    }
-
-	    // 从矩阵中获取位置向量（原getFromMatrixPosition方法）
-	    setFromMatrixPosition(m) {
-	        let e = m.elements;
-
-	        this.x = e[12];
-	        this.y = e[13];
-	        this.z = e[14];
-
-	        return this;
-	    }
-
-	    // 从矩阵中获取缩放向量
-	    setFromMatrixScale(m) {
-	        let sx = this.setFromMatrixColumn(m, 0).length();
-	        let sy = this.setFromMatrixColumn(m, 1).length();
-	        let sz = this.setFromMatrixColumn(m, 2).length();
-
-	        this.x = sx;
-	        this.y = sy;
-	        this.z = sz;
-
-	        return this;
-	    }
-
-	    setFromMatrixColumn(m, index) {
-	        return this.fromArray(m.elements, index * 4);
-	    }
-
-	    min(v) {
-	        this.x = Math.min(this.x, v.x);
-	        this.y = Math.min(this.y, v.y);
-	        this.z = Math.min(this.z, v.z);
-
-	        return this;
-	    }
-
-	    max(v) {
-	        this.x = Math.max(this.x, v.x);
-	        this.y = Math.max(this.y, v.y);
-	        this.z = Math.max(this.z, v.z);
-
-	        return this;
-	    }
-
-	    equals(v) {
-	        return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z));
-	    }
-
-	    fromArray(array, offset) {
-
-	        if (offset === undefined) offset = 0;
-
-	        this.x = array[offset];
-	        this.y = array[offset + 1];
-	        this.z = array[offset + 2];
-
-	        return this;
-
-	    }
-
-	    toArray(array, offset) {
-
-	        if (array === undefined) array = [];
-	        if (offset === undefined) offset = 0;
-
-	        array[offset] = this.x;
-	        array[offset + 1] = this.y;
-	        array[offset + 2] = this.z;
-
-	        return array;
-
-	    }
-	}
-
-	Object.assign(Vector3.prototype, {
-	    isVector3: true
-	});
-
 	/**
-	 * 4*4矩阵原理可以参考这篇文章：http://blog.vr-seesee.com/detail/185
-	 * 矩阵是用于表示变换而不是坐标，4*4矩阵的核心是变换：平移、旋转、缩放
-	 * 矩阵3个特性：
-	 * 1.变换；
-	 * 2.矩阵乘以对应的3D点坐标，就可以获取变换后的点坐标；
-	 * 3.矩阵相乘结果为新的矩阵变换。
+	 * 3x3矩阵
+	 * 3x3矩阵可含有旋转、缩放、倾斜，但没有平移。
 	 */
-
-	let x = new Vector3();
-	let y = new Vector3();
-	let z = new Vector3();
-	let zero = new Vector3(0, 0, 0);
-	let one = new Vector3(1, 1, 1);
-	let v1 = new Vector3();
-
-	class Matrix4 {
+	class Matrix3 {
 	    constructor() {
 	        this.elements = [
-	            1, 0, 0, 0,
-	            0, 1, 0, 0,
-	            0, 0, 1, 0,
-	            0, 0, 0, 1
+	            1, 0, 0,
+	            0, 1, 0,
+	            0, 0, 1
 	        ];
 	    }
 
-	    set(n11, n12, n13, n14, n21, n22, n23, n24, n31, n32, n33, n34, n41, n42, n43, n44) {
+	    set(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
 	        let te = this.elements;
 
-	        te[0] = n11;te[4] = n12;te[8] =  n13;te[12] = n14;
-	        te[1] = n21;te[5] = n22;te[9] =  n23;te[13] = n24;
-	        te[2] = n31;te[6] = n32;te[10] = n33;te[14] = n34;
-	        te[3] = n41;te[7] = n42;te[11] = n43;te[15] = n44;
+	        te[0] = n11, te[1] = n21, te[2] = n31;
+	        te[3] = n12, te[4] = n22, te[5] = n32;
+	        te[6] = n13, te[7] = n23, te[8] = n33;
 
 	        return this;
 	    }
 
+	    // 重置为单位矩阵
 	    identity() {
 	        this.set(
-	            1, 0, 0, 0,
-	            0, 1, 0, 0,
-	            0, 0, 1, 0,
-	            0, 0, 0, 1
+	            1, 0, 0,
+	            0, 1, 0,
+	            0, 0, 1
 	        );
-
 	        return this;
 	    }
 
 	    clone() {
-	        return new this.constructor(this.elements);
+	        return new this.constructor().fromArray(this.elements);
 	    }
 
 	    copy(m) {
 	        let te = this.elements;
 	        let me = m.elements;
 
-	        te[0] = me[0];  te[1] =  me[1]; te[2] =  me[2]; te[3] =  me[3];
-	        te[4] = me[4];  te[5] =  me[5]; te[6] =  me[6]; te[7] =  me[7];
-	        te[8] = me[8];  te[9] =  me[9]; te[10] = me[10];te[11] = me[11];
-	        te[12] = me[12];te[13] = me[13];te[14] = me[14];te[15] = me[15];
+	        te[0] = me[0], te[1] = me[1], te[2] = me[2];
+	        te[3] = me[3], te[4] = me[4], te[5] = me[5];
+	        te[6] = me[6], te[7] = me[7], te[8] = me[8];
 
 	        return this;
 	    }
 
-	    copyPosition(m) {
-	        let te = this.elements, me = m.elements;
-
-	        te[12] = me[12];
-	        te[13] = me[13];
-	        te[14] = me[14];
-
+	    // 从Matrix4中设置
+	    setFromMatrix4(m) {
+	        let me = m.elements;
+	        this.set(
+	            me[0], me[4], me[8],
+	            me[1], me[5], me[9],
+	            me[2], me[6], me[10]
+	        );
 	        return this;
 	    }
 
-	    // 左乘矩阵
+	    // 矩阵乘法
 	    multiply(m) {
 	        return this.multiplyMatrices(this, m);
 	    }
 
-	    // 右乘矩阵
 	    premultiply(m) {
 	        return this.multiplyMatrices(m, this);
 	    }
 
-	    // 矩阵相乘
 	    multiplyMatrices(a, b) {
 	        let ae = a.elements;
 	        let be = b.elements;
 	        let te = this.elements;
 
-	        let a11 = ae[0], a12 = ae[4], a13 = ae[8], a14 = ae[12];
-	        let a21 = ae[1], a22 = ae[5], a23 = ae[9], a24 = ae[13];
-	        let a31 = ae[2], a32 = ae[6], a33 = ae[10], a34 = ae[14];
-	        let a41 = ae[3], a42 = ae[7], a43 = ae[11], a44 = ae[15];
+	        let a11 = ae[0], a12 = ae[3], a13 = ae[6];
+	        let a21 = ae[1], a22 = ae[4], a23 = ae[7];
+	        let a31 = ae[2], a32 = ae[5], a33 = ae[8];
 
-	        let b11 = be[0], b12 = be[4], b13 = be[8], b14 = be[12];
-	        let b21 = be[1], b22 = be[5], b23 = be[9], b24 = be[13];
-	        let b31 = be[2], b32 = be[6], b33 = be[10], b34 = be[14];
-	        let b41 = be[3], b42 = be[7], b43 = be[11], b44 = be[15];
+	        let b11 = be[0], b12 = be[3], b13 = be[6];
+	        let b21 = be[1], b22 = be[4], b23 = be[7];
+	        let b31 = be[2], b32 = be[5], b33 = be[8];
 
-	        te[0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
-	        te[4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
-	        te[8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
-	        te[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
+	        te[0] = a11 * b11 + a12 * b21 + a13 * b31;
+	        te[3] = a11 * b12 + a12 * b22 + a13 * b32;
+	        te[6] = a11 * b13 + a12 * b23 + a13 * b33;
 
-	        te[1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
-	        te[5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
-	        te[9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
-	        te[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
+	        te[1] = a21 * b11 + a22 * b21 + a23 * b31;
+	        te[4] = a21 * b12 + a22 * b22 + a23 * b32;
+	        te[7] = a21 * b13 + a22 * b23 + a23 * b33;
 
-	        te[2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
-	        te[6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
-	        te[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
-	        te[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
-
-	        te[3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
-	        te[7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
-	        te[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
-	        te[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
+	        te[2] = a31 * b11 + a32 * b21 + a33 * b31;
+	        te[5] = a31 * b12 + a32 * b22 + a33 * b32;
+	        te[8] = a31 * b13 + a32 * b23 + a33 * b33;
 
 	        return this;
 	    }
 
-	    // 矩阵缩放（暂未使用）
+	    // 矩阵乘以标量s（缩放矩阵）
 	    multiplyScalar(s) {
 	        let te = this.elements;
 
-	        te[0] *= s;te[4] *= s;te[8] *= s; te[12] *= s;
-	        te[1] *= s;te[5] *= s;te[9] *= s; te[13] *= s;
-	        te[2] *= s;te[6] *= s;te[10] *= s;te[14] *= s;
-	        te[3] *= s;te[7] *= s;te[11] *= s;te[15] *= s;
+	        te[0] *= s;
+	        te[3] *= s;
+	        te[6] *= s;
+	        te[1] *= s;
+	        te[4] *= s;
+	        te[7] *= s;
+	        te[2] *= s;
+	        te[5] *= s;
+	        te[8] *= s;
 
 	        return this;
 	    }
 
-	    applyToBufferAttribute(attribute) {
-	        for (let i = 0, l = attribute.count; i < l; i++) {
-	            v1.x = attribute.getX(i);
-	            v1.y = attribute.getY(i);
-	            v1.z = attribute.getZ(i);
-
-	            v1.applyMatrix4(this);
-
-	            attribute.setXYZ(i, v1.x, v1.y, v1.z);
-	        }
-	        return attribute;
-	    }
-
-	    // 平移
-	    makeTranslation(x, y, z) {
-	        this.set(
-	            1, 0, 0, x,
-	            0, 1, 0, y,
-	            0, 0, 1, z,
-	            0, 0, 0, 1
-	        );
-
-	        return this;
-	    }
-
-	    // 旋转
-	    makeRotationX(theta) {
-	        let c = Math.cos(theta), s = Math.sin(theta);
-
-	        this.set(
-	            1, 0, 0, 0,
-	            0, c, -s, 0,
-	            0, s, c, 0,
-	            0, 0, 0, 1
-	        );
-
-	        return this;
-	    }
-
-	    makeRotationY(theta) {
-	        let c = Math.cos(theta), s = Math.sin(theta);
-
-	        this.set(
-	            c, 0, s, 0,
-	            0, 1, 0, 0,
-	            -s, 0, c, 0,
-	            0, 0, 0, 1
-	        );
-
-	        return this;
-	    }
-
-	    makeRotationZ(theta) {
-	        let c = Math.cos(theta), s = Math.sin(theta);
-
-	        this.set(
-	            c, -s, 0, 0,
-	            s, c, 0, 0,
-	            0, 0, 1, 0,
-	            0, 0, 0, 1
-	        );
-
-	        return this;
-	    }
-
-	    makeRotationAxis(axis, angle) {
-	        let c = Math.cos(angle);
-	        let s = Math.sin(angle);
-	        let t = 1 - c;
-	        let x = axis.x, y = axis.y, z = axis.z;
-	        let tx = t * x, ty = t * y;
-
-	        this.set(
-	            tx * x + c, tx * y - s * z, tx * z + s * y, 0,
-	            tx * y + s * z, ty * y + c, ty * z - s * x, 0,
-	            tx * z - s * y, ty * z + s * x, t * z * z + c, 0,
-	            0, 0, 0, 1
-	        );
-
-	        return this;
-	    }
-
-	    // 通过四元数对Matrix4应用旋转变换
-	    makeRotationFromQuaternion(q) {
-	        return this.compose(zero, q, one);
-	    }
-
-	    // 缩放
-	    makeScale(x, y, z) {
-	        this.set(
-	            x, 0, 0, 0,
-	            0, y, 0, 0,
-	            0, 0, z, 0,
-	            0, 0, 0, 1
-	        );
-
-	        return this;
-	    }
-
-	    // 处理矩阵位移、旋转、缩放
-	    compose(position, quaternion, scale) {
-
+	    // 行列式
+	    determinant() {
 	        let te = this.elements;
 
-	        let x = quaternion.x, y = quaternion.y, z = quaternion.z, w = quaternion.w;
-	        let x2 = x + x, y2 = y + y, z2 = z + z;
-	        let xx = x * x2, xy = x * y2, xz = x * z2;
-	        let yy = y * y2, yz = y * z2, zz = z * z2;
-	        let wx = w * x2, wy = w * y2, wz = w * z2;
+	        let a = te[0], b = te[1], c = te[2],
+	            d = te[3], e = te[4], f = te[5],
+	            g = te[6], h = te[7], i = te[8];
 
-	        let sx = scale.x, sy = scale.y, sz = scale.z;
-
-	        te[0] = (1 - (yy + zz)) * sx;
-	        te[1] = (xy + wz) * sx;
-	        te[2] = (xz - wy) * sx;
-	        te[3] = 0;
-
-	        te[4] = (xy - wz) * sy;
-	        te[5] = (1 - (xx + zz)) * sy;
-	        te[6] = (yz + wx) * sy;
-	        te[7] = 0;
-
-	        te[8] = (xz + wy) * sz;
-	        te[9] = (yz - wx) * sz;
-	        te[10] = (1 - (xx + yy)) * sz;
-	        te[11] = 0;
-
-	        te[12] = position.x;
-	        te[13] = position.y;
-	        te[14] = position.z;
-	        te[15] = 1;
-
-	        return this;
-
+	        return a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
 	    }
 
-	    // 构造一个旋转矩阵从eye 指向 target
-	    lookAt(eye, target, up) {
-	        let te = this.elements;
-
-	        z.subVectors(eye, target);
-
-	        if (z.lengthSq() === 0) {
-	            // eye and target are in the same position
-	            z.z = 1;
+	    // 求逆矩阵
+	    getInverse(matrix, throwOnDegenerate) {
+	        if (matrix && matrix.isMatrix4) {
+	            console.error("THREE.Matrix3: .getInverse() no longer takes a Matrix4 argument.");
 	        }
 
-	        z.normalize();
-	        x.crossVectors(up, z);
+	        let me = matrix.elements,
+	            te = this.elements,
 
-	        if (x.lengthSq() === 0) {
-	            // up and z are parallel
-	            if (Math.abs(up.z) === 1) {
-	                z.x += 0.0001;
-	            } else {
-	                z.z += 0.0001;
-	            }
+	            n11 = me[0], n21 = me[1], n31 = me[2],
+	            n12 = me[3], n22 = me[4], n32 = me[5],
+	            n13 = me[6], n23 = me[7], n33 = me[8],
 
-	            z.normalize();
-	            x.crossVectors(up, z);
-	        }
+	            t11 = n33 * n22 - n32 * n23,
+	            t12 = n32 * n13 - n33 * n12,
+	            t13 = n23 * n12 - n22 * n13,
 
-	        x.normalize();
-	        y.crossVectors(z, x);
-
-	        te[0] = x.x;te[4] = y.x;te[8] =  z.x;
-	        te[1] = x.y;te[5] = y.y;te[9] =  z.y;
-	        te[2] = x.z;te[6] = y.z;te[10] = z.z;
-
-	        return this;
-	    }
-
-	    // 创建一个透视投影矩阵
-	    makePerspective(left, right, top, bottom, near, far) {
-	        let te = this.elements;
-	        let x = 2 * near / (right - left);
-	        let y = 2 * near / (top - bottom);
-
-	        let a = (right + left) / (right - left);
-	        let b = (top + bottom) / (top - bottom);
-	        let c = -(far + near) / (far - near);
-	        let d = -2 * far * near / (far - near);
-
-	        te[0] = x;te[4] = 0;te[8] = a;  te[12] = 0;
-	        te[1] = 0;te[5] = y;te[9] = b;  te[13] = 0;
-	        te[2] = 0;te[6] = 0;te[10] = c; te[14] = d;
-	        te[3] = 0;te[7] = 0;te[11] = -1;te[15] = 0;
-
-	        return this;
-	    }
-
-	    // 创建一个正交投影矩阵
-	    makeOrthographic(left, right, top, bottom, near, far) {
-	        let te = this.elements;
-	        let w = 1.0 / (right - left);
-	        let h = 1.0 / (top - bottom);
-	        let p = 1.0 / (far - near);
-
-	        let x = (right + left) * w;
-	        let y = (top + bottom) * h;
-	        let z = (far + near) * p;
-
-	        te[0] = 2 * w;te[4] = 0;te[8] = 0;te[12] = -x;
-	        te[1] = 0;te[5] = 2 * h;te[9] = 0;te[13] = -y;
-	        te[2] = 0;te[6] = 0;te[10] = -2 * p;te[14] = -z;
-	        te[3] = 0;te[7] = 0;te[11] = 0;te[15] = 1;
-	        return this;
-	    }
-
-	    // 逆矩阵（矩阵的倒数，用来实现矩阵的除法。矩阵不存在直接相除的概念，需要借助逆矩阵）
-	    getInverse(m, throwOnDegenerate) {
-	        let te = this.elements,
-	            me = m.elements,
-
-	            n11 = me[0], n21 = me[1], n31 = me[2], n41 = me[3],
-	            n12 = me[4], n22 = me[5], n32 = me[6], n42 = me[7],
-	            n13 = me[8], n23 = me[9], n33 = me[10], n43 = me[11],
-	            n14 = me[12], n24 = me[13], n34 = me[14], n44 = me[15],
-
-	            t11 = n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44,
-	            t12 = n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44,
-	            t13 = n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44,
-	            t14 = n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
-
-	        let det = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
+	            det = n11 * t11 + n21 * t12 + n31 * t13;
 
 	        if (det === 0) {
-	            let msg = "THREE.Matrix4: .getInverse() can't invert matrix, determinant is 0";
+	            let msg = "THREE.Matrix3: .getInverse() can't invert matrix, determinant is 0";
+
 	            if (throwOnDegenerate === true) {
 	                throw new Error(msg);
-	            } else {
+	            }
+	            else {
 	                console.warn(msg);
 	            }
+
 	            return this.identity();
 	        }
 
 	        let detInv = 1 / det;
 
 	        te[0] = t11 * detInv;
-	        te[1] = (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) * detInv;
-	        te[2] = (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) * detInv;
-	        te[3] = (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) * detInv;
+	        te[1] = (n31 * n23 - n33 * n21) * detInv;
+	        te[2] = (n32 * n21 - n31 * n22) * detInv;
 
-	        te[4] = t12 * detInv;
-	        te[5] = (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) * detInv;
-	        te[6] = (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) * detInv;
-	        te[7] = (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) * detInv;
+	        te[3] = t12 * detInv;
+	        te[4] = (n33 * n11 - n31 * n13) * detInv;
+	        te[5] = (n31 * n12 - n32 * n11) * detInv;
 
-	        te[8] = t13 * detInv;
-	        te[9] = (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) * detInv;
-	        te[10] = (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) * detInv;
-	        te[11] = (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) * detInv;
-
-	        te[12] = t14 * detInv;
-	        te[13] = (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) * detInv;
-	        te[14] = (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) * detInv;
-	        te[15] = (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) * detInv;
+	        te[6] = t13 * detInv;
+	        te[7] = (n21 * n13 - n23 * n11) * detInv;
+	        te[8] = (n22 * n11 - n21 * n12) * detInv;
 
 	        return this;
+	    }
+
+	    // 转置矩阵
+	    transpose() {
+	        let tmp, m = this.elements;
+
+	        tmp = m[1], m[1] = m[3], m[3] = tmp;
+	        tmp = m[2], m[2] = m[6], m[6] = tmp;
+	        tmp = m[5], m[5] = m[7], m[7] = tmp;
+
+	        return this;
+	    }
+
+	    // 正规矩阵（矩阵m的逆矩阵的转置）
+	    getNormalMatrix(matrix4) {
+	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
 	    }
 
 	    equals(matrix) {
 	        let te = this.elements;
 	        let me = matrix.elements;
 
-	        for (let i = 0; i < 16; i++) {
+	        for (let i = 0; i < 9; i++) {
 	            if (te[i] !== me[i]) return false;
 	        }
 
 	        return true;
 	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        for (let i = 0; i < 9; i++) {
+	            this.elements[i] = array[i + offset];
+	        }
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        let te = this.elements;
+
+	        array[offset] = te[0];
+	        array[offset + 1] = te[1];
+	        array[offset + 2] = te[2];
+
+	        array[offset + 3] = te[3];
+	        array[offset + 4] = te[4];
+	        array[offset + 5] = te[5];
+
+	        array[offset + 6] = te[6];
+	        array[offset + 7] = te[7];
+	        array[offset + 8] = te[8];
+
+	        return array;
+	    }
 	}
 
-	Object.assign(Matrix4.prototype, {
-	    isMatrix4: true
-	});
+	Object.defineProperty(Matrix3.prototype, 'isMatrix3', {value: true});
 
-	// import {Vector3} from "./Vector3";
-
+	/**
+	 * 四元数
+	 */
 	class Quaternion {
 	    constructor(x = 0, y = 0, z = 0, w = 1) {
 	        this._x = x;
@@ -926,7 +454,7 @@
 	    /**
 	     * 从欧拉角设置Quaternion
 	     * @param euler
-	     * @param update
+	     * @param update {Boolean} 是否调用onChangeCallback()方法
 	     * @returns {Quaternion}
 	     */
 	    setFromEuler(euler, update) {
@@ -1052,30 +580,15 @@
 	        return this;
 	    }
 
-	    /**
-	     * 左乘四元素
-	     * @param q
-	     * @returns {Quaternion}
-	     */
+	    // 四元素乘法
 	    multiply(q) {
 	        return this.multiplyQuaternions(this, q);
 	    }
 
-	    /**
-	     * 右乘四元素
-	     * @param q
-	     * @returns {*}
-	     */
 	    premultiply(q) {
 	        return this.multiplyQuaternions(q, this);
 	    }
 
-	    /**
-	     * 两个四元素相乘
-	     * @param a
-	     * @param b
-	     * @returns {Quaternion}
-	     */
 	    multiplyQuaternions(a, b) {
 	        let qax = a._x, qay = a._y, qaz = a._z, qaw = a._w;
 	        let qbx = b._x, qby = b._y, qbz = b._z, qbw = b._w;
@@ -1090,6 +603,94 @@
 	        return this;
 	    }
 
+	    // 线性插值
+	    slerp(qb, t) {
+	        if (t === 0) return this;
+	        if (t === 1) return this.copy(qb);
+
+	        let x = this._x, y = this._y, z = this._z, w = this._w;
+
+	        // http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/
+
+	        let cosHalfTheta = w * qb._w + x * qb._x + y * qb._y + z * qb._z;
+
+	        if (cosHalfTheta < 0) {
+	            this._w = -qb._w;
+	            this._x = -qb._x;
+	            this._y = -qb._y;
+	            this._z = -qb._z;
+
+	            cosHalfTheta = -cosHalfTheta;
+	        }
+	        else {
+	            this.copy(qb);
+	        }
+
+	        if (cosHalfTheta >= 1.0) {
+	            this._w = w;
+	            this._x = x;
+	            this._y = y;
+	            this._z = z;
+
+	            return this;
+	        }
+
+	        let sqrSinHalfTheta = 1.0 - cosHalfTheta * cosHalfTheta;
+
+	        if (sqrSinHalfTheta <= Number.EPSILON) {
+	            let s = 1 - t;
+	            this._w = s * w + t * this._w;
+	            this._x = s * x + t * this._x;
+	            this._y = s * y + t * this._y;
+	            this._z = s * z + t * this._z;
+
+	            return this.normalize();
+	        }
+
+	        let sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
+	        let halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
+	        let ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,
+	            ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+
+	        this._w = (w * ratioA + this._w * ratioB);
+	        this._x = (x * ratioA + this._x * ratioB);
+	        this._y = (y * ratioA + this._y * ratioB);
+	        this._z = (z * ratioA + this._z * ratioB);
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    equals(quaternion) {
+	        return (quaternion._x === this._x) && (quaternion._y === this._y) && (quaternion._z === this._z) && (quaternion._w === this._w);
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this._x = array[offset];
+	        this._y = array[offset + 1];
+	        this._z = array[offset + 2];
+	        this._w = array[offset + 3];
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this._x;
+	        array[offset + 1] = this._y;
+	        array[offset + 2] = this._z;
+	        array[offset + 3] = this._w;
+
+	        return array;
+	    }
+
 	    onChange(callback) {
 	        this.onChangeCallback = callback;
 
@@ -1100,10 +701,9 @@
 	    }
 	}
 
-	Object.assign(Quaternion.prototype, {
-	    isQuaternion: true
-	});
+	Object.defineProperty(Quaternion.prototype, 'isQuaternion', {value: true});
 
+	// 定义内部属性。对xyzw值的改变会自动触发 onChangeCallback() 方法
 	Object.defineProperties(Quaternion.prototype, {
 	    x: {
 	        get: function () {
@@ -1147,8 +747,1259 @@
 	    },
 	});
 
-	let matrix = new Matrix4();
+	/**
+	 * 二维向量
+	 * （部分没有意义且未使用的方法注释了）
+	 */
+	class Vector2 {
+	    constructor(x = 0, y = 0) {
+	        this.x = x;
+	        this.y = y;
+	    }
 
+	    set(x, y) {
+	        this.x = x;
+	        this.y = y;
+
+	        return this;
+	    }
+
+	    setX(x) {
+	        this.x = x;
+	        return this;
+	    }
+
+	    setY(y) {
+	        this.y = y;
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.x, this.y);
+	    }
+
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+
+	        return this;
+	    }
+
+	    // 向量加法：AB+BC=AC
+	    add(v) {
+	        this.x += v.x;
+	        this.y += v.y;
+	        return this;
+	    }
+
+	    addVectors(a, b) {
+	        this.x = a.x + b.x;
+	        this.y = a.y + b.y;
+	        return this;
+	    }
+
+	    // 与标量s相加（没有几何意义，只用到Box2扩展边界）
+	    addScalar(s) {
+	        this.x += s;
+	        this.y += s;
+	        return this;
+	    }
+
+	    // 向量减法
+	    sub(v) {
+	        this.x -= v.x;
+	        this.y -= v.y;
+	        return this;
+	    }
+
+	    subVectors(a, b) {
+	        this.x = a.x - b.x;
+	        this.y = a.y - b.y;
+	        return this;
+	    }
+
+	    // 与标量s相减（没有几何意义）
+	    // subScalar(s) {
+	    //     this.x -= s;
+	    //     this.y -= s;
+	    //     return this;
+	    // }
+
+	    // 向量乘法（没有几何意义）
+	    // multiply(v) {
+	    //     this.x *= v.x;
+	    //     this.y *= v.y;
+	    //     return this;
+	    // }
+
+	    // 乘以标量（放大向量）
+	    multiplyScalar(scalar) {
+	        this.x *= scalar;
+	        this.y *= scalar;
+	        return this;
+	    }
+
+	    // 向量除法（没有几何意义）
+	    // divide(v) {
+	    //     this.x /= v.x;
+	    //     this.y /= v.y;
+	    //     return this;
+	    // }
+
+	    // 除以标量（缩小向量）
+	    divideScalar(scalar) {
+	        return this.multiplyScalar(1 / scalar);
+	    }
+
+	    // 标准化向量，长度为1
+	    normalize() {
+	        return this.divideScalar(this.length() || 1);
+	    }
+
+	    // 反转向量
+	    negate() {
+	        this.x = -this.x;
+	        this.y = -this.y;
+
+	        return this;
+	    }
+
+	    // 点乘
+	    dot(v) {
+	        return this.x * v.x + this.y * v.y;
+	    }
+
+	    // 叉乘
+	    cross(v) {
+	        return this.x * v.y - this.y * v.x;
+	    }
+
+	    // 向量的模（长度）
+	    length() {
+	        return Math.sqrt(this.x * this.x + this.y * this.y);
+	    }
+
+	    lengthSq() {
+	        return this.x * this.x + this.y * this.y;
+	    }
+
+	    // 到向量v的距离
+	    distanceTo(v) {
+	        return Math.sqrt(this.distanceToSquared(v));
+	    }
+
+	    distanceToSquared(v) {
+	        let dx = this.x - v.x, dy = this.y - v.y;
+	        return dx * dx + dy * dy;
+	    }
+
+	    /**
+	     * 与向量v的线性插值
+	     * @param v
+	     * @param alpha 百分比权值(0.0-1.0)
+	     * @returns {Vector2}
+	     */
+	    lerp(v, alpha) {
+	        this.x += (v.x - this.x) * alpha;
+	        this.y += (v.y - this.y) * alpha;
+
+	        return this;
+	    }
+
+	    lerpVectors(v1, v2, alpha) {
+	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+	    }
+
+	    // 与向量v比较返回(x,y)值最小的二维向量
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+
+	        return this;
+	    }
+
+	    // 与向量v比较返回(x,y)值最大的二维向量
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+
+	        return this;
+	    }
+
+	    equals(v) {
+	        return ((v.x === this.x) && (v.y === this.y));
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this.x = array[offset];
+	        this.y = array[offset + 1];
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this.x;
+	        array[offset + 1] = this.y;
+
+	        return array;
+	    }
+
+	    fromBufferAttribute(attribute, index) {
+	        this.x = attribute.getX(index);
+	        this.y = attribute.getY(index);
+
+	        return this;
+	    }
+	}
+
+	Object.defineProperty(Vector2.prototype, 'isVector2', {value: true});
+
+	/**
+	 * 三维向量
+	 * （部分没有意义且未使用的方法注释了）
+	 */
+	class Vector3 {
+	    constructor(x = 0, y = 0, z = 0) {
+	        this.x = x;
+	        this.y = y;
+	        this.z = z;
+	    }
+
+	    set(x, y, z) {
+	        this.x = x;
+	        this.y = y;
+	        this.z = z;
+	        return this;
+	    }
+
+	    setX(x) {
+	        this.x = x;
+	        return this;
+	    }
+
+	    setY(y) {
+	        this.y = y;
+	        return this;
+	    }
+
+	    setZ(z) {
+	        this.z = z;
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.x, this.y, this.z);
+	    }
+
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+	        this.z = v.z;
+	        return this;
+	    }
+
+	    // 向量加法
+	    add(v) {
+	        this.x += v.x;
+	        this.y += v.y;
+	        this.z += v.z;
+	        return this;
+	    }
+
+	    addVectors(a, b) {
+	        this.x = a.x + b.x;
+	        this.y = a.y + b.y;
+	        this.z = a.z + b.z;
+	        return this;
+	    }
+
+	    // 与标量s相加（没有几何意义，只用到Box3扩展边界）
+	    addScalar(s) {
+	        this.x += s;
+	        this.y += s;
+	        this.z += s;
+	        return this;
+	    }
+
+	    // 向量减法
+	    sub(v) {
+	        this.x -= v.x;
+	        this.y -= v.y;
+	        this.z -= v.z;
+	        return this;
+	    }
+
+	    subVectors(a, b) {
+	        this.x = a.x - b.x;
+	        this.y = a.y - b.y;
+	        this.z = a.z - b.z;
+	        return this;
+	    }
+
+	    // 与标量s相减（没有几何意义）
+	    // subScalar(s) {
+	    //     this.x -= s;
+	    //     this.y -= s;
+	    //     this.z -= s;
+	    //     return this;
+	    // }
+
+	    // 向量乘法（没有几何意义）
+	    // multiply(v) {
+	    //     this.x *= v.x;
+	    //     this.y *= v.y;
+	    //     this.z *= v.z;
+	    //     return this;
+	    // }
+
+	    // multiplyVectors(a, b) {
+	    //     this.x = a.x * b.x;
+	    //     this.y = a.y * b.y;
+	    //     this.z = a.z * b.z;
+	    //
+	    //     return this;
+	    // }
+
+	    // 乘以标量（放大向量）
+	    multiplyScalar(scalar) {
+	        this.x *= scalar;
+	        this.y *= scalar;
+	        this.z *= scalar;
+	        return this;
+	    }
+
+	    // 向量除法（没有几何意义）
+	    // divide(v) {
+	    //     this.x /= v.x;
+	    //     this.y /= v.y;
+	    //     this.z /= v.z;
+	    //     return this;
+	    // }
+
+	    // 除以标量（缩小向量）
+	    divideScalar(scalar) {
+	        return this.multiplyScalar(1 / scalar);
+	    }
+
+	    // 标准化向量，长度为1
+	    normalize() {
+	        return this.divideScalar(this.length() || 1);
+	    }
+
+	    // 反转向量
+	    negate() {
+	        this.x = -this.x;
+	        this.y = -this.y;
+	        this.z = -this.z;
+	        return this;
+	    }
+
+	    // 向量的模（长度）
+	    length() {
+	        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
+	    }
+
+	    lengthSq() {
+	        return this.x * this.x + this.y * this.y + this.z * this.z;
+	    }
+
+	    // 到向量v的距离
+	    distanceTo(v) {
+	        return Math.sqrt(this.distanceToSquared(v));
+	    }
+
+	    distanceToSquared(v) {
+	        let dx = this.x - v.x,
+	            dy = this.y - v.y,
+	            dz = this.z - v.z;
+	        return dx * dx + dy * dy + dz * dz;
+	    }
+
+	    // 与向量v的角度
+	    angleTo(v) {
+	        let theta = this.dot(v) / (Math.sqrt(this.lengthSq() * v.lengthSq()));
+	        return Math.acos(_Math.clamp(theta, -1, 1));
+	    }
+
+	    // 点乘
+	    dot(v) {
+	        return this.x * v.x + this.y * v.y + this.z * v.z;
+	    }
+
+	    // 叉乘
+	    cross(v) {
+	        let x = this.x;
+	        let y = this.y;
+	        let z = this.z;
+
+	        this.x = y * v.z - z * v.y;
+	        this.y = z * v.x - x * v.z;
+	        this.z = x * v.y - y * v.x;
+	        return this;
+	    }
+
+	    crossVectors(a, b) {
+	        let ax = a.x, ay = a.y, az = a.z;
+	        let bx = b.x, by = b.y, bz = b.z;
+
+	        this.x = ay * bz - az * by;
+	        this.y = az * bx - ax * bz;
+	        this.z = ax * by - ay * bx;
+
+	        return this;
+	    }
+
+	    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
+	    applyMatrix4(m) {
+	        let x = this.x, y = this.y, z = this.z;
+	        let e = m.elements;
+
+	        let w = 1 / (e[3] * x + e[7] * y + e[11] * z + e[15]);
+
+	        this.x = (e[0] * x + e[4] * y + e[8] * z + e[12]) * w;
+	        this.y = (e[1] * x + e[5] * y + e[9] * z + e[13]) * w;
+	        this.z = (e[2] * x + e[6] * y + e[10] * z + e[14]) * w;
+
+	        return this;
+	    }
+
+	    // 用相机投影该向量（暂未使用）
+	    project(camera) {
+	        return this.applyMatrix4(camera.matrixWorldInverse).applyMatrix4(camera.projectionMatrix);
+	    }
+
+	    // 用相机反投影该向量（暂未使用）
+	    unproject(camera) {
+	        let matrix = new Matrix4();
+	        return this.applyMatrix4(matrix.getInverse(camera.projectionMatrix)).applyMatrix4(camera.matrixWorld);
+	    }
+
+	    // 投影该向量到另一个向量上。
+	    projectOnVector(vector) {
+	        let scalar = vector.dot(this) / vector.lengthSq();
+	        return this.copy(vector).multiplyScalar(scalar);
+	    }
+
+	    // 线性插值
+	    lerp(v, alpha) {
+	        this.x += (v.x - this.x) * alpha;
+	        this.y += (v.y - this.y) * alpha;
+	        this.z += (v.z - this.z) * alpha;
+
+	        return this;
+	    }
+
+	    lerpVectors(v1, v2, alpha) {
+	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+	    }
+
+	    // 从矩阵中获取位置向量（原getFromMatrixPosition方法）
+	    setFromMatrixPosition(m) {
+	        let e = m.elements;
+
+	        this.x = e[12];
+	        this.y = e[13];
+	        this.z = e[14];
+
+	        return this;
+	    }
+
+	    // 从矩阵中获取缩放向量
+	    setFromMatrixScale(m) {
+	        let sx = this.setFromMatrixColumn(m, 0).length();
+	        let sy = this.setFromMatrixColumn(m, 1).length();
+	        let sz = this.setFromMatrixColumn(m, 2).length();
+
+	        this.x = sx;
+	        this.y = sy;
+	        this.z = sz;
+
+	        return this;
+	    }
+
+	    /**
+	     * 将矩阵指定的列中的元素的向量值赋值给给当前的向量
+	     * @param m
+	     * @param index 列数,列的下标
+	     * @returns {*}
+	     */
+	    setFromMatrixColumn(m, index) {
+	        return this.fromArray(m.elements, index * 4);
+	    }
+
+	    // 与向量v比较返回(x,y,z)值最小的三维向量
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+	        this.z = Math.min(this.z, v.z);
+
+	        return this;
+	    }
+
+	    // 与向量v比较返回(x,y,z)值最大的三维向量
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+	        this.z = Math.max(this.z, v.z);
+
+	        return this;
+	    }
+
+	    equals(v) {
+	        return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z));
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this.x = array[offset];
+	        this.y = array[offset + 1];
+	        this.z = array[offset + 2];
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this.x;
+	        array[offset + 1] = this.y;
+	        array[offset + 2] = this.z;
+
+	        return array;
+	    }
+
+	    fromBufferAttribute(attribute, index) {
+	        this.x = attribute.getX(index);
+	        this.y = attribute.getY(index);
+	        this.z = attribute.getZ(index);
+
+	        return this;
+	    }
+	}
+
+	Object.defineProperty(Vector3.prototype, 'isVector3', {value: true});
+
+	let x = new Vector3();  // lookAt变量
+	let y = new Vector3();
+	let z = new Vector3();
+	let zero = new Vector3(0, 0, 0);    // makeRotationFromQuaternion变量
+	let one = new Vector3(1, 1, 1);     // makeRotationFromQuaternion变量
+	let v1 = new Vector3(); // applyToBufferAttribute变量，attribute里的position
+
+	let vector = new Vector3();
+	let matrix = undefined;
+
+	/**
+	 * 4*4矩阵原理可以参考这篇文章：http://blog.vr-seesee.com/detail/185
+	 * 矩阵是用于表示变换而不是坐标，4*4矩阵的核心是变换：平移、旋转、缩放
+	 * 矩阵3个特性：
+	 * 1.变换；
+	 * 2.矩阵乘以对应的3D点坐标，就可以获取变换后的点坐标；
+	 * 3.矩阵相乘结果为新的矩阵变换。
+	 * three.js里的矩阵：
+	 * 1.投影矩阵projectionMatrix
+	 * 2.视图矩阵CameraMatrixWorldInverse（camera.matrixWorldInverse） 或 viewMatrix
+	 * 3.模型矩阵ObjectWorldMatrix（object.matrixWorld） 或 modelMatrix
+	 * 三维投影矩阵计算公式：let m = ProjectMatrix * CameraMatrixWorldInverse* ObjectMatrixWorld
+	 */
+	class Matrix4 {
+	    constructor() {
+	        this.elements = [
+	            1, 0, 0, 0,
+	            0, 1, 0, 0,
+	            0, 0, 1, 0,
+	            0, 0, 0, 1
+	        ];
+	    }
+
+	    set(n11, n12, n13, n14, n21, n22, n23, n24, n31, n32, n33, n34, n41, n42, n43, n44) {
+	        let te = this.elements;
+
+	        te[0] = n11, te[4] = n12, te[8] = n13, te[12] = n14;
+	        te[1] = n21, te[5] = n22, te[9] = n23, te[13] = n24;
+	        te[2] = n31, te[6] = n32, te[10] = n33, te[14] = n34;
+	        te[3] = n41, te[7] = n42, te[11] = n43, te[15] = n44;
+
+	        return this;
+	    }
+
+	    // 重置为单位矩阵
+	    identity() {
+	        this.set(
+	            1, 0, 0, 0,
+	            0, 1, 0, 0,
+	            0, 0, 1, 0,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.elements);
+	    }
+
+	    copy(m) {
+	        let te = this.elements;
+	        let me = m.elements;
+
+	        te[0] = me[0];
+	        te[1] = me[1];
+	        te[2] = me[2];
+	        te[3] = me[3];
+	        te[4] = me[4];
+	        te[5] = me[5];
+	        te[6] = me[6];
+	        te[7] = me[7];
+	        te[8] = me[8];
+	        te[9] = me[9];
+	        te[10] = me[10];
+	        te[11] = me[11];
+	        te[12] = me[12];
+	        te[13] = me[13];
+	        te[14] = me[14];
+	        te[15] = me[15];
+
+	        return this;
+	    }
+
+	    // 矩阵乘法（矩阵相乘结果为新的矩阵变换）
+	    multiply(m) {
+	        return this.multiplyMatrices(this, m);
+	    }
+
+	    premultiply(m) {
+	        return this.multiplyMatrices(m, this);
+	    }
+
+	    multiplyMatrices(a, b) {
+	        let ae = a.elements;
+	        let be = b.elements;
+	        let te = this.elements;
+
+	        let a11 = ae[0], a12 = ae[4], a13 = ae[8], a14 = ae[12];
+	        let a21 = ae[1], a22 = ae[5], a23 = ae[9], a24 = ae[13];
+	        let a31 = ae[2], a32 = ae[6], a33 = ae[10], a34 = ae[14];
+	        let a41 = ae[3], a42 = ae[7], a43 = ae[11], a44 = ae[15];
+
+	        let b11 = be[0], b12 = be[4], b13 = be[8], b14 = be[12];
+	        let b21 = be[1], b22 = be[5], b23 = be[9], b24 = be[13];
+	        let b31 = be[2], b32 = be[6], b33 = be[10], b34 = be[14];
+	        let b41 = be[3], b42 = be[7], b43 = be[11], b44 = be[15];
+
+	        te[0] = a11 * b11 + a12 * b21 + a13 * b31 + a14 * b41;
+	        te[4] = a11 * b12 + a12 * b22 + a13 * b32 + a14 * b42;
+	        te[8] = a11 * b13 + a12 * b23 + a13 * b33 + a14 * b43;
+	        te[12] = a11 * b14 + a12 * b24 + a13 * b34 + a14 * b44;
+
+	        te[1] = a21 * b11 + a22 * b21 + a23 * b31 + a24 * b41;
+	        te[5] = a21 * b12 + a22 * b22 + a23 * b32 + a24 * b42;
+	        te[9] = a21 * b13 + a22 * b23 + a23 * b33 + a24 * b43;
+	        te[13] = a21 * b14 + a22 * b24 + a23 * b34 + a24 * b44;
+
+	        te[2] = a31 * b11 + a32 * b21 + a33 * b31 + a34 * b41;
+	        te[6] = a31 * b12 + a32 * b22 + a33 * b32 + a34 * b42;
+	        te[10] = a31 * b13 + a32 * b23 + a33 * b33 + a34 * b43;
+	        te[14] = a31 * b14 + a32 * b24 + a33 * b34 + a34 * b44;
+
+	        te[3] = a41 * b11 + a42 * b21 + a43 * b31 + a44 * b41;
+	        te[7] = a41 * b12 + a42 * b22 + a43 * b32 + a44 * b42;
+	        te[11] = a41 * b13 + a42 * b23 + a43 * b33 + a44 * b43;
+	        te[15] = a41 * b14 + a42 * b24 + a43 * b34 + a44 * b44;
+
+	        return this;
+	    }
+
+	    // 矩阵乘以标量s（缩放矩阵）
+	    multiplyScalar(s) {
+	        let te = this.elements;
+
+	        te[0] *= s;
+	        te[4] *= s;
+	        te[8] *= s;
+	        te[12] *= s;
+	        te[1] *= s;
+	        te[5] *= s;
+	        te[9] *= s;
+	        te[13] *= s;
+	        te[2] *= s;
+	        te[6] *= s;
+	        te[10] *= s;
+	        te[14] *= s;
+	        te[3] *= s;
+	        te[7] *= s;
+	        te[11] *= s;
+	        te[15] *= s;
+
+	        return this;
+	    }
+
+	    // 复制参数m(4x4矩阵)的平移分量
+	    copyPosition(m) {
+	        let te = this.elements, me = m.elements;
+
+	        te[12] = me[12];
+	        te[13] = me[13];
+	        te[14] = me[14];
+
+	        return this;
+	    }
+
+	    // 用这个矩阵乘以缓存属性attribute里position向量
+	    applyToBufferAttribute(attribute) {
+	        for (let i = 0, l = attribute.count; i < l; i++) {
+	            v1.x = attribute.getX(i);
+	            v1.y = attribute.getY(i);
+	            v1.z = attribute.getZ(i);
+
+	            // v1经过矩阵变换后的位置
+	            v1.applyMatrix4(this);
+
+	            attribute.setXYZ(i, v1.x, v1.y, v1.z);
+	        }
+	        return attribute;
+	    }
+
+	    // 平移
+	    makeTranslation(x, y, z) {
+	        this.set(
+	            1, 0, 0, x,
+	            0, 1, 0, y,
+	            0, 0, 1, z,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    // 绕x轴旋转theta弧度
+	    makeRotationX(theta) {
+	        let c = Math.cos(theta), s = Math.sin(theta);
+
+	        this.set(
+	            1, 0, 0, 0,
+	            0, c, -s, 0,
+	            0, s, c, 0,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    makeRotationY(theta) {
+	        let c = Math.cos(theta), s = Math.sin(theta);
+
+	        this.set(
+	            c, 0, s, 0,
+	            0, 1, 0, 0,
+	            -s, 0, c, 0,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    makeRotationZ(theta) {
+	        let c = Math.cos(theta), s = Math.sin(theta);
+
+	        this.set(
+	            c, -s, 0, 0,
+	            s, c, 0, 0,
+	            0, 0, 1, 0,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    // 围绕轴 axis 旋转量为 theta弧度（旋转轴需要归一化）
+	    makeRotationAxis(axis, angle) {
+	        let c = Math.cos(angle);
+	        let s = Math.sin(angle);
+	        let t = 1 - c;
+	        let x = axis.x, y = axis.y, z = axis.z;
+	        let tx = t * x, ty = t * y;
+
+	        this.set(
+	            tx * x + c, tx * y - s * z, tx * z + s * y, 0,
+	            tx * y + s * z, ty * y + c, ty * z - s * x, 0,
+	            tx * z - s * y, ty * z + s * x, t * z * z + c, 0,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    // 将传入的欧拉角转换为该矩阵的旋转分量(左上角的3x3矩阵)。 矩阵的其余部分被设为单位矩阵（未使用）
+	    makeRotationFromEuler(euler) {
+	        if (!(euler && euler.isEuler)) {
+	            console.error('THREE.Matrix4: .makeRotationFromEuler() now expects a Euler rotation rather than a Vector3 and order.');
+	        }
+
+	        let te = this.elements;
+
+	        let x = euler.x, y = euler.y, z = euler.z;
+	        let a = Math.cos(x), b = Math.sin(x);
+	        let c = Math.cos(y), d = Math.sin(y);
+	        let e = Math.cos(z), f = Math.sin(z);
+
+	        if (euler.order === 'XYZ') {
+	            let ae = a * e, af = a * f, be = b * e, bf = b * f;
+
+	            te[0] = c * e;
+	            te[4] = -c * f;
+	            te[8] = d;
+
+	            te[1] = af + be * d;
+	            te[5] = ae - bf * d;
+	            te[9] = -b * c;
+
+	            te[2] = bf - ae * d;
+	            te[6] = be + af * d;
+	            te[10] = a * c;
+	        } else if (euler.order === 'YXZ') {
+	            let ce = c * e, cf = c * f, de = d * e, df = d * f;
+
+	            te[0] = ce + df * b;
+	            te[4] = de * b - cf;
+	            te[8] = a * d;
+
+	            te[1] = a * f;
+	            te[5] = a * e;
+	            te[9] = -b;
+
+	            te[2] = cf * b - de;
+	            te[6] = df + ce * b;
+	            te[10] = a * c;
+	        } else if (euler.order === 'ZXY') {
+	            let ce = c * e, cf = c * f, de = d * e, df = d * f;
+
+	            te[0] = ce - df * b;
+	            te[4] = -a * f;
+	            te[8] = de + cf * b;
+
+	            te[1] = cf + de * b;
+	            te[5] = a * e;
+	            te[9] = df - ce * b;
+
+	            te[2] = -a * d;
+	            te[6] = b;
+	            te[10] = a * c;
+	        } else if (euler.order === 'ZYX') {
+	            let ae = a * e, af = a * f, be = b * e, bf = b * f;
+
+	            te[0] = c * e;
+	            te[4] = be * d - af;
+	            te[8] = ae * d + bf;
+
+	            te[1] = c * f;
+	            te[5] = bf * d + ae;
+	            te[9] = af * d - be;
+
+	            te[2] = -d;
+	            te[6] = b * c;
+	            te[10] = a * c;
+	        } else if (euler.order === 'YZX') {
+	            let ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+
+	            te[0] = c * e;
+	            te[4] = bd - ac * f;
+	            te[8] = bc * f + ad;
+
+	            te[1] = f;
+	            te[5] = a * e;
+	            te[9] = -b * e;
+
+	            te[2] = -d * e;
+	            te[6] = ad * f + bc;
+	            te[10] = ac - bd * f;
+	        } else if (euler.order === 'XZY') {
+	            let ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+
+	            te[0] = c * e;
+	            te[4] = -f;
+	            te[8] = d * e;
+
+	            te[1] = ac * f + bd;
+	            te[5] = a * e;
+	            te[9] = ad * f - bc;
+
+	            te[2] = bc * f - ad;
+	            te[6] = b * e;
+	            te[10] = bd * f + ac;
+	        }
+
+	        // bottom row
+	        te[3] = 0;
+	        te[7] = 0;
+	        te[11] = 0;
+
+	        // last column
+	        te[12] = 0;
+	        te[13] = 0;
+	        te[14] = 0;
+	        te[15] = 1;
+
+	        return this;
+	    }
+
+	    // 将这个矩阵的旋转分量设置为四元数q指定的旋转，矩阵的其余部分被设为单位矩阵（用于通过Quaternion设置Euler）
+	    makeRotationFromQuaternion(q) {
+	        return this.compose(zero, q, one);
+	    }
+
+	    // 缩放
+	    makeScale(x, y, z) {
+	        this.set(
+	            x, 0, 0, 0,
+	            0, y, 0, 0,
+	            0, 0, z, 0,
+	            0, 0, 0, 1
+	        );
+
+	        return this;
+	    }
+
+	    // 由位置position，四元数quaternion 和 缩放scale 组合变换的矩阵
+	    compose(position, quaternion, scale) {
+	        let te = this.elements;
+
+	        let x = quaternion.x, y = quaternion.y, z = quaternion.z, w = quaternion.w;
+	        let x2 = x + x, y2 = y + y, z2 = z + z;
+	        let xx = x * x2, xy = x * y2, xz = x * z2;
+	        let yy = y * y2, yz = y * z2, zz = z * z2;
+	        let wx = w * x2, wy = w * y2, wz = w * z2;
+
+	        let sx = scale.x, sy = scale.y, sz = scale.z;
+
+	        te[0] = (1 - (yy + zz)) * sx;
+	        te[1] = (xy + wz) * sx;
+	        te[2] = (xz - wy) * sx;
+	        te[3] = 0;
+
+	        te[4] = (xy - wz) * sy;
+	        te[5] = (1 - (xx + zz)) * sy;
+	        te[6] = (yz + wx) * sy;
+	        te[7] = 0;
+
+	        te[8] = (xz + wy) * sz;
+	        te[9] = (yz - wx) * sz;
+	        te[10] = (1 - (xx + yy)) * sz;
+	        te[11] = 0;
+
+	        te[12] = position.x;
+	        te[13] = position.y;
+	        te[14] = position.z;
+	        te[15] = 1;
+
+	        return this;
+	    }
+
+	    // 将矩阵分解到给定的平移position ,旋转 quaternion，缩放scale分量中。
+	    decompose(position, quaternion, scale) {
+	        if (matrix == undefined) matrix = new Matrix4();
+
+	        let te = this.elements;
+
+	        let sx = vector.set(te[0], te[1], te[2]).length();
+	        let sy = vector.set(te[4], te[5], te[6]).length();
+	        let sz = vector.set(te[8], te[9], te[10]).length();
+
+	        // if determine is negative, we need to invert one scale
+	        let det = this.determinant();
+	        if (det < 0) sx = -sx;
+
+	        position.x = te[12];
+	        position.y = te[13];
+	        position.z = te[14];
+
+	        // scale the rotation part
+	        matrix.copy(this);
+
+	        let invSX = 1 / sx;
+	        let invSY = 1 / sy;
+	        let invSZ = 1 / sz;
+
+	        matrix.elements[0] *= invSX;
+	        matrix.elements[1] *= invSX;
+	        matrix.elements[2] *= invSX;
+
+	        matrix.elements[4] *= invSY;
+	        matrix.elements[5] *= invSY;
+	        matrix.elements[6] *= invSY;
+
+	        matrix.elements[8] *= invSZ;
+	        matrix.elements[9] *= invSZ;
+	        matrix.elements[10] *= invSZ;
+
+	        quaternion.setFromRotationMatrix(matrix);
+
+	        scale.x = sx;
+	        scale.y = sy;
+	        scale.z = sz;
+
+	        return this;
+	    }
+
+	    // 构造一个旋转矩阵从eye 指向 target
+	    lookAt(eye, target, up) {
+	        let te = this.elements;
+
+	        z.subVectors(eye, target);
+
+	        if (z.lengthSq() === 0) {
+	            // eye and target are in the same position
+	            z.z = 1;
+	        }
+
+	        z.normalize();
+	        x.crossVectors(up, z);
+
+	        if (x.lengthSq() === 0) {
+	            // up and z are parallel
+	            if (Math.abs(up.z) === 1) {
+	                z.x += 0.0001;
+	            } else {
+	                z.z += 0.0001;
+	            }
+
+	            z.normalize();
+	            x.crossVectors(up, z);
+	        }
+
+	        x.normalize();
+	        y.crossVectors(z, x);
+
+	        te[0] = x.x, te[4] = y.x, te[8] = z.x;
+	        te[1] = x.y, te[5] = y.y, te[9] = z.y;
+	        te[2] = x.z, te[6] = y.z, te[10] = z.z;
+
+	        return this;
+	    }
+
+	    // 创建一个透视投影矩阵
+	    makePerspective(left, right, top, bottom, near, far) {
+	        let te = this.elements;
+	        let x = 2 * near / (right - left);
+	        let y = 2 * near / (top - bottom);
+
+	        let a = (right + left) / (right - left);
+	        let b = (top + bottom) / (top - bottom);
+	        let c = -(far + near) / (far - near);
+	        let d = -2 * far * near / (far - near);
+
+	        te[0] = x, te[4] = 0, te[8] = a, te[12] = 0;
+	        te[1] = 0, te[5] = y, te[9] = b, te[13] = 0;
+	        te[2] = 0, te[6] = 0, te[10] = c, te[14] = d;
+	        te[3] = 0, te[7] = 0, te[11] = -1, te[15] = 0;
+
+	        return this;
+	    }
+
+	    // 创建一个正交投影矩阵
+	    makeOrthographic(left, right, top, bottom, near, far) {
+	        let te = this.elements;
+	        let w = 1.0 / (right - left);
+	        let h = 1.0 / (top - bottom);
+	        let p = 1.0 / (far - near);
+
+	        let x = (right + left) * w;
+	        let y = (top + bottom) * h;
+	        let z = (far + near) * p;
+
+	        te[0] = 2 * w, te[4] = 0, te[8] = 0, te[12] = -x;
+	        te[1] = 0, te[5] = 2 * h, te[9] = 0, te[13] = -y;
+	        te[2] = 0, te[6] = 0, te[10] = -2 * p, te[14] = -z;
+	        te[3] = 0, te[7] = 0, te[11] = 0, te[15] = 1;
+	        return this;
+	    }
+
+	    // 行列式
+	    determinant() {
+	        let te = this.elements;
+
+	        let n11 = te[0], n12 = te[4], n13 = te[8], n14 = te[12];
+	        let n21 = te[1], n22 = te[5], n23 = te[9], n24 = te[13];
+	        let n31 = te[2], n32 = te[6], n33 = te[10], n34 = te[14];
+	        let n41 = te[3], n42 = te[7], n43 = te[11], n44 = te[15];
+
+	        //( based on http://www.euclideanspace.com/maths/algebra/matrix/functions/inverse/fourD/index.htm )
+
+	        return (
+	            n41 * (
+	                +n14 * n23 * n32
+	                - n13 * n24 * n32
+	                - n14 * n22 * n33
+	                + n12 * n24 * n33
+	                + n13 * n22 * n34
+	                - n12 * n23 * n34
+	            ) +
+	            n42 * (
+	                +n11 * n23 * n34
+	                - n11 * n24 * n33
+	                + n14 * n21 * n33
+	                - n13 * n21 * n34
+	                + n13 * n24 * n31
+	                - n14 * n23 * n31
+	            ) +
+	            n43 * (
+	                +n11 * n24 * n32
+	                - n11 * n22 * n34
+	                - n14 * n21 * n32
+	                + n12 * n21 * n34
+	                + n14 * n22 * n31
+	                - n12 * n24 * n31
+	            ) +
+	            n44 * (
+	                -n13 * n22 * n31
+	                - n11 * n23 * n32
+	                + n11 * n22 * n33
+	                + n13 * n21 * n32
+	                - n12 * n21 * n33
+	                + n12 * n23 * n31
+	            )
+	        );
+	    }
+
+	    /**
+	     * 求逆矩阵（矩阵的倒数，用来实现矩阵的除法。矩阵不存在直接相除的概念，需要借助逆矩阵）
+	     * X * A = B，我们要求X矩阵的值。X = B * A的逆矩阵
+	     * @param m 取逆的矩阵
+	     * @param throwOnDegenerate
+	     * @returns {this}
+	     */
+	    getInverse(m, throwOnDegenerate) {
+	        let te = this.elements,
+	            me = m.elements,
+
+	            n11 = me[0], n21 = me[1], n31 = me[2], n41 = me[3],
+	            n12 = me[4], n22 = me[5], n32 = me[6], n42 = me[7],
+	            n13 = me[8], n23 = me[9], n33 = me[10], n43 = me[11],
+	            n14 = me[12], n24 = me[13], n34 = me[14], n44 = me[15],
+
+	            t11 = n23 * n34 * n42 - n24 * n33 * n42 + n24 * n32 * n43 - n22 * n34 * n43 - n23 * n32 * n44 + n22 * n33 * n44,
+	            t12 = n14 * n33 * n42 - n13 * n34 * n42 - n14 * n32 * n43 + n12 * n34 * n43 + n13 * n32 * n44 - n12 * n33 * n44,
+	            t13 = n13 * n24 * n42 - n14 * n23 * n42 + n14 * n22 * n43 - n12 * n24 * n43 - n13 * n22 * n44 + n12 * n23 * n44,
+	            t14 = n14 * n23 * n32 - n13 * n24 * n32 - n14 * n22 * n33 + n12 * n24 * n33 + n13 * n22 * n34 - n12 * n23 * n34;
+
+	        let det = n11 * t11 + n21 * t12 + n31 * t13 + n41 * t14;
+
+	        if (det === 0) {
+	            let msg = "THREE.Matrix4: .getInverse() can't invert matrix, determinant is 0";
+	            if (throwOnDegenerate === true) {
+	                throw new Error(msg);
+	            } else {
+	                console.warn(msg);
+	            }
+	            return this.identity();
+	        }
+
+	        let detInv = 1 / det;
+
+	        te[0] = t11 * detInv;
+	        te[1] = (n24 * n33 * n41 - n23 * n34 * n41 - n24 * n31 * n43 + n21 * n34 * n43 + n23 * n31 * n44 - n21 * n33 * n44) * detInv;
+	        te[2] = (n22 * n34 * n41 - n24 * n32 * n41 + n24 * n31 * n42 - n21 * n34 * n42 - n22 * n31 * n44 + n21 * n32 * n44) * detInv;
+	        te[3] = (n23 * n32 * n41 - n22 * n33 * n41 - n23 * n31 * n42 + n21 * n33 * n42 + n22 * n31 * n43 - n21 * n32 * n43) * detInv;
+
+	        te[4] = t12 * detInv;
+	        te[5] = (n13 * n34 * n41 - n14 * n33 * n41 + n14 * n31 * n43 - n11 * n34 * n43 - n13 * n31 * n44 + n11 * n33 * n44) * detInv;
+	        te[6] = (n14 * n32 * n41 - n12 * n34 * n41 - n14 * n31 * n42 + n11 * n34 * n42 + n12 * n31 * n44 - n11 * n32 * n44) * detInv;
+	        te[7] = (n12 * n33 * n41 - n13 * n32 * n41 + n13 * n31 * n42 - n11 * n33 * n42 - n12 * n31 * n43 + n11 * n32 * n43) * detInv;
+
+	        te[8] = t13 * detInv;
+	        te[9] = (n14 * n23 * n41 - n13 * n24 * n41 - n14 * n21 * n43 + n11 * n24 * n43 + n13 * n21 * n44 - n11 * n23 * n44) * detInv;
+	        te[10] = (n12 * n24 * n41 - n14 * n22 * n41 + n14 * n21 * n42 - n11 * n24 * n42 - n12 * n21 * n44 + n11 * n22 * n44) * detInv;
+	        te[11] = (n13 * n22 * n41 - n12 * n23 * n41 - n13 * n21 * n42 + n11 * n23 * n42 + n12 * n21 * n43 - n11 * n22 * n43) * detInv;
+
+	        te[12] = t14 * detInv;
+	        te[13] = (n13 * n24 * n31 - n14 * n23 * n31 + n14 * n21 * n33 - n11 * n24 * n33 - n13 * n21 * n34 + n11 * n23 * n34) * detInv;
+	        te[14] = (n14 * n22 * n31 - n12 * n24 * n31 - n14 * n21 * n32 + n11 * n24 * n32 + n12 * n21 * n34 - n11 * n22 * n34) * detInv;
+	        te[15] = (n12 * n23 * n31 - n13 * n22 * n31 + n13 * n21 * n32 - n11 * n23 * n32 - n12 * n21 * n33 + n11 * n22 * n33) * detInv;
+
+	        return this;
+	    }
+
+	    // 转置矩阵
+	    transpose() {
+	        let te = this.elements;
+	        let tmp;
+
+	        tmp = te[1], te[1] = te[4], te[4] = tmp;
+	        tmp = te[2], te[2] = te[8], te[8] = tmp;
+	        tmp = te[6], te[6] = te[9], te[9] = tmp;
+
+	        tmp = te[3], te[3] = te[12], te[12] = tmp;
+	        tmp = te[7], te[7] = te[13], te[13] = tmp;
+	        tmp = te[11], te[11] = te[14], te[14] = tmp;
+
+	        return this;
+	    }
+
+	    equals(matrix) {
+	        let te = this.elements;
+	        let me = matrix.elements;
+
+	        for (let i = 0; i < 16; i++) {
+	            if (te[i] !== me[i]) return false;
+	        }
+
+	        return true;
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        for (let i = 0; i < 16; i++) {
+	            this.elements[i] = array[i + offset];
+	        }
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        let te = this.elements;
+
+	        array[offset] = te[0];
+	        array[offset + 1] = te[1];
+	        array[offset + 2] = te[2];
+	        array[offset + 3] = te[3];
+
+	        array[offset + 4] = te[4];
+	        array[offset + 5] = te[5];
+	        array[offset + 6] = te[6];
+	        array[offset + 7] = te[7];
+
+	        array[offset + 8] = te[8];
+	        array[offset + 9] = te[9];
+	        array[offset + 10] = te[10];
+	        array[offset + 11] = te[11];
+
+	        array[offset + 12] = te[12];
+	        array[offset + 13] = te[13];
+	        array[offset + 14] = te[14];
+	        array[offset + 15] = te[15];
+
+	        return array;
+	    }
+	}
+
+	Object.defineProperty(Matrix4.prototype, 'isMatrix4', {value: true});
+
+	let matrix$1 = new Matrix4();
+
+	/**
+	 * 欧拉角
+	 */
 	class Euler {
 	    constructor(x = 0, y = 0, z = 0, order = Euler.DefaultOrder) {
 	        this._x = x;
@@ -1185,9 +2036,9 @@
 
 	    /**
 	     * 通过Matrix4设置Euler
-	     * @param m
-	     * @param order
-	     * @param update
+	     * @param m Matrix3
+	     * @param order 旋转顺序
+	     * @param update 是否调用onChangeCallback()方法
 	     * @returns {Euler}
 	     */
 	    setFromRotationMatrix(m, order, update) {
@@ -1203,105 +2054,80 @@
 	        order = order || this._order;
 
 	        if (order === 'XYZ') {
-
 	            this._y = Math.asin(clamp(m13, -1, 1));
 
 	            if (Math.abs(m13) < 0.99999) {
-
 	                this._x = Math.atan2(-m23, m33);
 	                this._z = Math.atan2(-m12, m11);
-
-	            } else {
-
+	            }
+	            else {
 	                this._x = Math.atan2(m32, m22);
 	                this._z = 0;
-
 	            }
-
-	        } else if (order === 'YXZ') {
-
+	        }
+	        else if (order === 'YXZ') {
 	            this._x = Math.asin(-clamp(m23, -1, 1));
 
 	            if (Math.abs(m23) < 0.99999) {
-
 	                this._y = Math.atan2(m13, m33);
 	                this._z = Math.atan2(m21, m22);
-
-	            } else {
-
+	            }
+	            else {
 	                this._y = Math.atan2(-m31, m11);
 	                this._z = 0;
-
 	            }
-
-	        } else if (order === 'ZXY') {
-
+	        }
+	        else if (order === 'ZXY') {
 	            this._x = Math.asin(clamp(m32, -1, 1));
 
 	            if (Math.abs(m32) < 0.99999) {
-
 	                this._y = Math.atan2(-m31, m33);
 	                this._z = Math.atan2(-m12, m22);
-
-	            } else {
-
+	            }
+	            else {
 	                this._y = 0;
 	                this._z = Math.atan2(m21, m11);
-
 	            }
 
-	        } else if (order === 'ZYX') {
-
+	        }
+	        else if (order === 'ZYX') {
 	            this._y = Math.asin(-clamp(m31, -1, 1));
 
 	            if (Math.abs(m31) < 0.99999) {
-
 	                this._x = Math.atan2(m32, m33);
 	                this._z = Math.atan2(m21, m11);
-
-	            } else {
-
+	            }
+	            else {
 	                this._x = 0;
 	                this._z = Math.atan2(-m12, m22);
-
 	            }
-
-	        } else if (order === 'YZX') {
-
+	        }
+	        else if (order === 'YZX') {
 	            this._z = Math.asin(clamp(m21, -1, 1));
 
 	            if (Math.abs(m21) < 0.99999) {
-
 	                this._x = Math.atan2(-m23, m22);
 	                this._y = Math.atan2(-m31, m11);
-
-	            } else {
-
+	            }
+	            else {
 	                this._x = 0;
 	                this._y = Math.atan2(m13, m33);
-
 	            }
-
-	        } else if (order === 'XZY') {
-
+	        }
+	        else if (order === 'XZY') {
 	            this._z = Math.asin(-clamp(m12, -1, 1));
 
 	            if (Math.abs(m12) < 0.99999) {
-
 	                this._x = Math.atan2(m32, m22);
 	                this._y = Math.atan2(m13, m11);
-
-	            } else {
-
+	            }
+	            else {
 	                this._x = Math.atan2(-m23, m33);
 	                this._y = 0;
-
 	            }
-
-	        } else {
-
+	        }
+	        else {
 	            console.warn('THREE.Euler: .setFromRotationMatrix() given unsupported order: ' + order);
-
 	        }
 
 	        this._order = order;
@@ -1309,7 +2135,6 @@
 	        if (update !== false) this.onChangeCallback();
 
 	        return this;
-
 	    }
 
 	    /**
@@ -1320,8 +2145,35 @@
 	     * @returns {Quaternion}
 	     */
 	    setFromQuaternion(q, order, update) {
-	        matrix.makeRotationFromQuaternion(q);
-	        return this.setFromRotationMatrix(matrix, order, update);
+	        matrix$1.makeRotationFromQuaternion(q);
+	        return this.setFromRotationMatrix(matrix$1, order, update);
+	    }
+
+	    equals(euler) {
+	        return (euler._x === this._x) && (euler._y === this._y) && (euler._z === this._z) && (euler._order === this._order);
+	    }
+
+	    fromArray(array) {
+	        this._x = array[0];
+	        this._y = array[1];
+	        this._z = array[2];
+	        if (array[3] !== undefined) this._order = array[3];
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this._x;
+	        array[offset + 1] = this._y;
+	        array[offset + 2] = this._z;
+	        array[offset + 3] = this._order;
+
+	        return array;
 	    }
 
 	    onChange(callback) {
@@ -1334,50 +2186,49 @@
 	    }
 	}
 
-	Object.assign(Euler.prototype,{
-	    isEuler:true
-	});
+	Object.defineProperty(Euler.prototype, 'isEuler', {value: true});
 
-	Object.defineProperties(Euler.prototype,{
+	// 定义内部属性。对xyz值的改变会自动触发 onChangeCallback() 方法
+	Object.defineProperties(Euler.prototype, {
 	    x: {
-	        get: function () {
+	        get() {
 	            return this._x;
 	        },
 
-	        set: function ( value ) {
+	        set(value) {
 	            this._x = value;
 	            this.onChangeCallback();
 	        }
 	    },
 
 	    y: {
-	        get: function () {
+	        get() {
 	            return this._y;
 	        },
 
-	        set: function ( value ) {
+	        set(value) {
 	            this._y = value;
 	            this.onChangeCallback();
 	        }
 	    },
 
 	    z: {
-	        get: function () {
+	        get() {
 	            return this._z;
 	        },
 
-	        set: function ( value ) {
+	        set(value) {
 	            this._z = value;
 	            this.onChangeCallback();
 	        }
 	    },
 
 	    order: {
-	        get: function () {
+	        get() {
 	            return this._order;
 	        },
 
-	        set: function ( value ) {
+	        set(value) {
 	            this._order = value;
 	            this.onChangeCallback();
 	        }
@@ -1388,14 +2239,11 @@
 
 	Euler.DefaultOrder = 'XYZ';
 
-	// import {_Math} from "../math/Math";
-
-	// 全局临时变量（作为全局避免重复实例化）
-	let m1 = new Matrix4();
-	let position = new Vector3();   // eye
-	let target = new Vector3();     // target
-
 	let object3DId = 0;
+	// lookAt()的变量（声明全局变量，避免重复实例化）
+	let m1 = new Matrix4();
+	let position = new Vector3();
+	let target = new Vector3();
 
 	/**
 	 * 三维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
@@ -1405,9 +2253,12 @@
 	        super();
 
 	        Object.defineProperty(this, 'id', {value: object3DId++});
-	        // this.uuid = _Math.generateUUID();
+	        Object.defineProperty(this, 'isObject3D', {value: true});
+
+	        this.uuid = _Math.generateUUID();
+
+	        this.name = '';
 	        this.type = 'Object3D';
-	        this.isObject3D = true;
 
 	        this.parent = null;
 	        this.children = [];
@@ -1420,11 +2271,12 @@
 	        this.up = Object3D.DefaultUp.clone();
 
 	        this.matrix = new Matrix4();        // 局部变换（相对于父级的变换）
-	        this.matrixWorld = new Matrix4();   // 全局变换（用于最终的显示）
+	        this.matrixWorld = new Matrix4();   // 全局变换
 
-	        // 默认true，当设置为true时，自动更新局部矩阵。
+	        // 当这个属性设置了之后，它将计算每一帧的位移、旋转（四元变换）和缩放矩阵，并重新计算matrixWorld属性。默认为true
 	        this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;
-	        // 默认false，当设置为true时，自动更新世界矩阵，然后重置该属性为false
+
+	        // 当这个属性设置了之后，它将计算在那一帧中的matrixWorld，并将这个值重置为false。默认为false
 	        this.matrixWorldNeedsUpdate = false;
 
 	        // rotation改变后自动更新quaternion
@@ -1448,21 +2300,30 @@
 	    // 更新局部变换。位置、旋转、缩放 触发矩阵变化
 	    updateMatrix() {
 	        this.matrix.compose(this.position, this.quaternion, this.scale);
+	        // 本地坐标变换一定会更新世界坐标
 	        this.matrixWorldNeedsUpdate = true;
 	    }
 
-	    // 更新对象和子对象变换
+	    // 更新物体及其子级的全局变换（render中调用）
 	    updateMatrixWorld(force) {
-	        if (this.matrixAutoUpdate) this.updateMatrix();
+	        // 更新局部坐标
+	        if (this.matrixAutoUpdate){
+	            this.updateMatrix();
+	        }
+
+	        // 更新世界坐标
 	        if (this.matrixWorldNeedsUpdate || force) {
 	            if (this.parent === null) {
+	                // 父对象（一般是Scene）
 	                this.matrixWorld.copy(this.matrix);
-	            } else {
-	                // 矩阵相乘结果为新的矩阵变换
+	            }
+	            else {
+	                // 子对象
 	                this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
 	            }
 	            this.matrixWorldNeedsUpdate = false;
-	            force = true;
+
+	            force = false;
 	        }
 
 	        // 必须更新子对象
@@ -1548,6 +2409,7 @@
 	        }
 	    }
 
+	    // 遍历可见对象
 	    traverseVisible(callback) {
 	        if (this.visible === false) return;
 
@@ -1558,6 +2420,21 @@
 	        for (let i = 0, l = children.length; i < l; i++) {
 	            children[i].traverseVisible(callback);
 	        }
+	    }
+
+	    /**
+	     * 返回一个表示该物体在世界空间中位置的矢量
+	     * @param target 结果将被复制到这个Vector3中
+	     * @returns {*} target
+	     */
+	    getWorldPosition(target) {
+	        if (target === undefined) {
+	            target = new Vector3();
+	        }
+
+	        this.updateMatrixWorld(true);
+
+	        return target.setFromMatrixPosition(this.matrixWorld);
 	    }
 
 	    clone(recursive) {
@@ -1600,7 +2477,7 @@
 	Object3D.DefaultUp = new Vector3(0, 1, 0);
 	Object3D.DefaultMatrixAutoUpdate = true;
 
-	const ColorKeywords={'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFFF,'aquamarine':0x7FFFD4,'azure':0xF0FFFF,'beige':0xF5F5DC,'bisque':0xFFE4C4,'black':0x000000,'blanchedalmond':0xFFEBCD,'blue':0x0000FF,'blueviolet':0x8A2BE2,'brown':0xA52A2A,'burlywood':0xDEB887,'cadetblue':0x5F9EA0,'chartreuse':0x7FFF00,'chocolate':0xD2691E,'coral':0xFF7F50,'cornflowerblue':0x6495ED,'cornsilk':0xFFF8DC,'crimson':0xDC143C,'cyan':0x00FFFF,'darkblue':0x00008B,'darkcyan':0x008B8B,'darkgoldenrod':0xB8860B,'darkgray':0xA9A9A9,'darkgreen':0x006400,'darkgrey':0xA9A9A9,'darkkhaki':0xBDB76B,'darkmagenta':0x8B008B,'darkolivegreen':0x556B2F,'darkorange':0xFF8C00,'darkorchid':0x9932CC,'darkred':0x8B0000,'darksalmon':0xE9967A,'darkseagreen':0x8FBC8F,'darkslateblue':0x483D8B,'darkslategray':0x2F4F4F,'darkslategrey':0x2F4F4F,'darkturquoise':0x00CED1,'darkviolet':0x9400D3,'deeppink':0xFF1493,'deepskyblue':0x00BFFF,'dimgray':0x696969,'dimgrey':0x696969,'dodgerblue':0x1E90FF,'firebrick':0xB22222,'floralwhite':0xFFFAF0,'forestgreen':0x228B22,'fuchsia':0xFF00FF,'gainsboro':0xDCDCDC,'ghostwhite':0xF8F8FF,'gold':0xFFD700,'goldenrod':0xDAA520,'gray':0x808080,'green':0x008000,'greenyellow':0xADFF2F,'grey':0x808080,'honeydew':0xF0FFF0,'hotpink':0xFF69B4,'indianred':0xCD5C5C,'indigo':0x4B0082,'ivory':0xFFFFF0,'khaki':0xF0E68C,'lavender':0xE6E6FA,'lavenderblush':0xFFF0F5,'lawngreen':0x7CFC00,'lemonchiffon':0xFFFACD,'lightblue':0xADD8E6,'lightcoral':0xF08080,'lightcyan':0xE0FFFF,'lightgoldenrodyellow':0xFAFAD2,'lightgray':0xD3D3D3,'lightgreen':0x90EE90,'lightgrey':0xD3D3D3,'lightpink':0xFFB6C1,'lightsalmon':0xFFA07A,'lightseagreen':0x20B2AA,'lightskyblue':0x87CEFA,'lightslategray':0x778899,'lightslategrey':0x778899,'lightsteelblue':0xB0C4DE,'lightyellow':0xFFFFE0,'lime':0x00FF00,'limegreen':0x32CD32,'linen':0xFAF0E6,'magenta':0xFF00FF,'maroon':0x800000,'mediumaquamarine':0x66CDAA,'mediumblue':0x0000CD,'mediumorchid':0xBA55D3,'mediumpurple':0x9370DB,'mediumseagreen':0x3CB371,'mediumslateblue':0x7B68EE,'mediumspringgreen':0x00FA9A,'mediumturquoise':0x48D1CC,'mediumvioletred':0xC71585,'midnightblue':0x191970,'mintcream':0xF5FFFA,'mistyrose':0xFFE4E1,'moccasin':0xFFE4B5,'navajowhite':0xFFDEAD,'navy':0x000080,'oldlace':0xFDF5E6,'olive':0x808000,'olivedrab':0x6B8E23,'orange':0xFFA500,'orangered':0xFF4500,'orchid':0xDA70D6,'palegoldenrod':0xEEE8AA,'palegreen':0x98FB98,'paleturquoise':0xAFEEEE,'palevioletred':0xDB7093,'papayawhip':0xFFEFD5,'peachpuff':0xFFDAB9,'peru':0xCD853F,'pink':0xFFC0CB,'plum':0xDDA0DD,'powderblue':0xB0E0E6,'purple':0x800080,'rebeccapurple':0x663399,'red':0xFF0000,'rosybrown':0xBC8F8F,'royalblue':0x4169E1,'saddlebrown':0x8B4513,'salmon':0xFA8072,'sandybrown':0xF4A460,'seagreen':0x2E8B57,'seashell':0xFFF5EE,'sienna':0xA0522D,'silver':0xC0C0C0,'skyblue':0x87CEEB,'slateblue':0x6A5ACD,'slategray':0x708090,'slategrey':0x708090,'snow':0xFFFAFA,'springgreen':0x00FF7F,'steelblue':0x4682B4,'tan':0xD2B48C,'teal':0x008080,'thistle':0xD8BFD8,'tomato':0xFF6347,'turquoise':0x40E0D0,'violet':0xEE82EE,'wheat':0xF5DEB3,'white':0xFFFFFF,'whitesmoke':0xF5F5F5,'yellow':0xFFFF00,'yellowgreen':0x9ACD32};
+	const ColorKeywords = {'aliceblue':0xF0F8FF,'antiquewhite':0xFAEBD7,'aqua':0x00FFFF,'aquamarine':0x7FFFD4,'azure':0xF0FFFF,'beige':0xF5F5DC,'bisque':0xFFE4C4,'black':0x000000,'blanchedalmond':0xFFEBCD,'blue':0x0000FF,'blueviolet':0x8A2BE2,'brown':0xA52A2A,'burlywood':0xDEB887,'cadetblue':0x5F9EA0,'chartreuse':0x7FFF00,'chocolate':0xD2691E,'coral':0xFF7F50,'cornflowerblue':0x6495ED,'cornsilk':0xFFF8DC,'crimson':0xDC143C,'cyan':0x00FFFF,'darkblue':0x00008B,'darkcyan':0x008B8B,'darkgoldenrod':0xB8860B,'darkgray':0xA9A9A9,'darkgreen':0x006400,'darkgrey':0xA9A9A9,'darkkhaki':0xBDB76B,'darkmagenta':0x8B008B,'darkolivegreen':0x556B2F,'darkorange':0xFF8C00,'darkorchid':0x9932CC,'darkred':0x8B0000,'darksalmon':0xE9967A,'darkseagreen':0x8FBC8F,'darkslateblue':0x483D8B,'darkslategray':0x2F4F4F,'darkslategrey':0x2F4F4F,'darkturquoise':0x00CED1,'darkviolet':0x9400D3,'deeppink':0xFF1493,'deepskyblue':0x00BFFF,'dimgray':0x696969,'dimgrey':0x696969,'dodgerblue':0x1E90FF,'firebrick':0xB22222,'floralwhite':0xFFFAF0,'forestgreen':0x228B22,'fuchsia':0xFF00FF,'gainsboro':0xDCDCDC,'ghostwhite':0xF8F8FF,'gold':0xFFD700,'goldenrod':0xDAA520,'gray':0x808080,'green':0x008000,'greenyellow':0xADFF2F,'grey':0x808080,'honeydew':0xF0FFF0,'hotpink':0xFF69B4,'indianred':0xCD5C5C,'indigo':0x4B0082,'ivory':0xFFFFF0,'khaki':0xF0E68C,'lavender':0xE6E6FA,'lavenderblush':0xFFF0F5,'lawngreen':0x7CFC00,'lemonchiffon':0xFFFACD,'lightblue':0xADD8E6,'lightcoral':0xF08080,'lightcyan':0xE0FFFF,'lightgoldenrodyellow':0xFAFAD2,'lightgray':0xD3D3D3,'lightgreen':0x90EE90,'lightgrey':0xD3D3D3,'lightpink':0xFFB6C1,'lightsalmon':0xFFA07A,'lightseagreen':0x20B2AA,'lightskyblue':0x87CEFA,'lightslategray':0x778899,'lightslategrey':0x778899,'lightsteelblue':0xB0C4DE,'lightyellow':0xFFFFE0,'lime':0x00FF00,'limegreen':0x32CD32,'linen':0xFAF0E6,'magenta':0xFF00FF,'maroon':0x800000,'mediumaquamarine':0x66CDAA,'mediumblue':0x0000CD,'mediumorchid':0xBA55D3,'mediumpurple':0x9370DB,'mediumseagreen':0x3CB371,'mediumslateblue':0x7B68EE,'mediumspringgreen':0x00FA9A,'mediumturquoise':0x48D1CC,'mediumvioletred':0xC71585,'midnightblue':0x191970,'mintcream':0xF5FFFA,'mistyrose':0xFFE4E1,'moccasin':0xFFE4B5,'navajowhite':0xFFDEAD,'navy':0x000080,'oldlace':0xFDF5E6,'olive':0x808000,'olivedrab':0x6B8E23,'orange':0xFFA500,'orangered':0xFF4500,'orchid':0xDA70D6,'palegoldenrod':0xEEE8AA,'palegreen':0x98FB98,'paleturquoise':0xAFEEEE,'palevioletred':0xDB7093,'papayawhip':0xFFEFD5,'peachpuff':0xFFDAB9,'peru':0xCD853F,'pink':0xFFC0CB,'plum':0xDDA0DD,'powderblue':0xB0E0E6,'purple':0x800080,'rebeccapurple':0x663399,'red':0xFF0000,'rosybrown':0xBC8F8F,'royalblue':0x4169E1,'saddlebrown':0x8B4513,'salmon':0xFA8072,'sandybrown':0xF4A460,'seagreen':0x2E8B57,'seashell':0xFFF5EE,'sienna':0xA0522D,'silver':0xC0C0C0,'skyblue':0x87CEEB,'slateblue':0x6A5ACD,'slategray':0x708090,'slategrey':0x708090,'snow':0xFFFAFA,'springgreen':0x00FF7F,'steelblue':0x4682B4,'tan':0xD2B48C,'teal':0x008080,'thistle':0xD8BFD8,'tomato':0xFF6347,'turquoise':0x40E0D0,'violet':0xEE82EE,'wheat':0xF5DEB3,'white':0xFFFFFF,'whitesmoke':0xF5F5F5,'yellow':0xFFFF00,'yellowgreen':0x9ACD32};
 
 	/**
 	 * 颜色可以用以下任意一种方式初始化
@@ -1612,7 +2489,6 @@
 	 * let color = new THREE.Color("hsl(0, 100%, 50%)");
 	 * let color = new THREE.Color(1, 0, 0);
 	 */
-
 	class Color {
 	    constructor(r, g, b) {
 	        this.r = 1;
@@ -1648,16 +2524,18 @@
 	        return this;
 	    }
 
+	    // 设置16进制颜色值
 	    setHex(hex) {
 	        hex = Math.floor(hex);
 
-	        this.r = (hex >> 16 & 255) / 255;
-	        this.g = (hex >> 8 & 255) / 255;
-	        this.b = (hex & 255) / 255;
+	        this.r = (hex >> 16 & 255) / 255;   // 将左边两位16进制数值变换成rgb颜色值对应的red
+	        this.g = (hex >> 8 & 255) / 255;    // 将中间两位16进制数值变换成rgb颜色值对应的green，并赋值给属性Color.g
+	        this.b = (hex & 255) / 255;         // 将右边两位16进制数值变换成rgb颜色值对应的blue，并赋值给属性Color.b
 
 	        return this;
 	    }
 
+	    // 设置rgb颜色值
 	    setRGB(r, g, b) {
 	        this.r = r;
 	        this.g = g;
@@ -1666,6 +2544,13 @@
 	        return this;
 	    }
 
+	    /**
+	     * HSL和HSV颜色是一种将RGB色彩模型中的点在圆柱坐标系中的表示法。
+	     * @param h 色相（H）是色彩的基本属性，就是平常所说的颜色名称，如红色、绿色、蓝色等将360度的一个圆环平分成3分，0(360),120,240，取值范围是0-360，本库将区间设置为0.0-1.0
+	     * @param s 饱和度（S）是指色彩的纯度，越高色彩越纯，低则逐渐变灰，取0-100%的数值，输入时为0.0-1.0
+	     * @param l 度（V），亮度（L），取0-100%，输入时为0.0-1.0
+	     * @returns {Color}
+	     */
 	    setHSL(h, s, l) {
 	        // h,s,l ranges are in 0.0 - 1.0
 	        h = _Math.euclideanModulo(h, 1);
@@ -1686,6 +2571,13 @@
 	        return this;
 	    }
 
+	    /**
+	     * rgb(255,0,0) 数值型
+	     * rgb(100%,0%,0%)  百分比型
+	     * #ff0000  6位16进制型
+	     * #f00     3位16进制型
+	     * red      颜色名
+	     */
 	    setStyle(style) {
 	        let m;
 	        if (m = /^((?:rgb|hsl)a?)\(\s*([^\)]*)\)/.exec(style)) {
@@ -1842,11 +2734,37 @@
 	        return (c.r === this.r) && (c.g === this.g) && (c.b === this.b) && (c.a === this.a);
 	    }
 
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this.r = array[offset];
+	        this.g = array[offset + 1];
+	        this.b = array[offset + 2];
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this.r;
+	        array[offset + 1] = this.g;
+	        array[offset + 2] = this.b;
+
+	        return array;
+	    }
+
+	    toJSON() {
+	        return this.getHex();
+	    }
+
 	    // 处理透明度
 	    _handleAlpha(style) {
 	        console.warn('THREE.Color: Alpha component of ' + style + ' will be ignored.');
 	    }
 
+	    // 将hsl颜色转换成rgb颜色值,根据第三个参数计算rgb的值
 	    _hue2rgb(p, q, t) {
 	        if (t < 0) t += 1;
 	        if (t > 1) t -= 1;
@@ -1857,180 +2775,17 @@
 	    }
 	}
 
-	Object.assign(Color.prototype, {
-	    isColor: true
-	});
+	Object.defineProperty(Color.prototype, 'isColor', {value: true});
 
-	class Vector2 {
-	    constructor(x = 0, y = 0) {
-	        this.x = x;
-	        this.y = y;
-	    }
-
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
-
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y);
-	    }
-
-	    set(x, y) {
-	        this.x = x;
-	        this.y = y;
-
-	        return this;
-	    }
-
-	    // 左加向量
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        return this;
-	    }
-
-	    // 左加标量
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        return this;
-	    }
-
-	    // 两向量相加
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        return this;
-	    }
-
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        return this;
-	    }
-
-	    subScalar(s) {
-	        this.x -= s;
-	        this.y -= s;
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        return this;
-	    }
-
-	    multiply(v) {
-	        this.x *= v.x;
-	        this.y *= v.y;
-	        return this;
-	    }
-
-	    multiplyScalar(scalar) {
-	        this.x *= scalar;
-	        this.y *= scalar;
-	        return this;
-	    }
-
-	    divide(v) {
-	        this.x /= v.x;
-	        this.y /= v.y;
-	        return this;
-	    }
-
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
-	    negate() {
-	        this.x = -this.x;
-	        this.y = -this.y;
-
-	        return this;
-	    }
-
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y;
-	    }
-
-	    cross(v) {
-	        return this.x * v.y - this.y * v.x;
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y;
-	    }
-
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y);
-	    }
-
-	    lerp(v, alpha) {
-	        this.x += (v.x - this.x) * alpha;
-	        this.y += (v.y - this.y) * alpha;
-
-	        return this;
-	    }
-
-	    lerpVectors(v1, v2, alpha) {
-	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
-	    }
-
-	    min(v) {
-	        this.x = Math.min(this.x, v.x);
-	        this.y = Math.min(this.y, v.y);
-
-	        return this;
-	    }
-
-	    max(v) {
-	        this.x = Math.max(this.x, v.x);
-	        this.y = Math.max(this.y, v.y);
-
-	        return this;
-	    }
-
-	    equals(v) {
-	        return ((v.x === this.x) && (v.y === this.y));
-	    }
-
-	    fromArray(array, offset) {
-	        if (offset === undefined) offset = 0;
-
-	        this.x = array[offset];
-	        this.y = array[offset + 1];
-
-	        return this;
-	    }
-	}
-
-	Object.assign(Vector2.prototype, {
-	    isVector2: true
-	});
-
+	/**
+	 * 四维向量
+	 */
 	class Vector4 {
 	    constructor(x = 0, y = 0, z = 0, w = 1) {
 	        this.x = x;
 	        this.y = y;
 	        this.z = z;
 	        this.w = w;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y, this.z, this.w);
-	    }
-
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
-	        this.z = v.z;
-	        this.w = (v.w !== undefined) ? v.w : 1;
-
-	        return this;
 	    }
 
 	    set(x, y, z, w) {
@@ -2042,65 +2797,15 @@
 	        return this;
 	    }
 
-	    setScalar(scalar) {
-	        this.x = scalar;
-	        this.y = scalar;
-	        this.z = scalar;
-	        this.w = scalar;
-
-	        return this;
+	    clone() {
+	        return new this.constructor(this.x, this.y, this.z, this.w);
 	    }
 
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        this.z += v.z;
-	        this.w += v.w;
-
-	        return this;
-	    }
-
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        this.z += s;
-	        this.w += s;
-
-	        return this;
-	    }
-
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        this.z = a.z + b.z;
-	        this.w = a.w + b.w;
-
-	        return this;
-	    }
-
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        this.z -= v.z;
-	        this.w -= v.w;
-
-	        return this;
-	    }
-
-	    subScalar(s) {
-	        this.x -= s;
-	        this.y -= s;
-	        this.z -= s;
-	        this.w -= s;
-
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        this.z = a.z - b.z;
-	        this.w = a.w - b.w;
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+	        this.z = v.z;
+	        this.w = (v.w !== undefined) ? v.w : 1;
 
 	        return this;
 	    }
@@ -2120,10 +2825,7 @@
 	        return this;
 	    }
 
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
+	    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
 	    applyMatrix4(m) {
 	        let x = this.x, y = this.y, z = this.z, w = this.w;
 	        let e = m.elements;
@@ -2136,22 +2838,7 @@
 	        return this;
 	    }
 
-	    normalize() {
-	        return this.divideScalar(this.length());
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
-	    }
-
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
-	    }
-
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
-	    }
-
+	    // 线性插值
 	    lerp(v, alpha) {
 	        this.x += (v.x - this.x) * alpha;
 	        this.y += (v.y - this.y) * alpha;
@@ -2164,173 +2851,301 @@
 	    equals(v) {
 	        return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z) && (v.w === this.w));
 	    }
-	}
 
-	Object.assign(Vector4.prototype, {
-	    isVector4: true
-	});
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
 
-	/**
-	 * 3*3矩阵（暂未使用）
-	 */
-	class Matrix3 {
-	    constructor(){
-	        this.elements = [
-	            1, 0, 0,
-	            0, 1, 0,
-	            0, 0, 1
-	       ];
-	    }
-
-	    set(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
-	        let te = this.elements;
-
-	        te[0] = n11; te[1] = n21; te[2] = n31;
-	        te[3] = n12; te[4] = n22; te[5] = n32;
-	        te[6] = n13; te[7] = n23; te[8] = n33;
+	        this.x = array[offset];
+	        this.y = array[offset + 1];
+	        this.z = array[offset + 2];
+	        this.w = array[offset + 3];
 
 	        return this;
 	    }
 
-	    identity() {
-	        this.set(
-	            1, 0, 0,
-	            0, 1, 0,
-	            0, 0, 1
-	        );
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this.x;
+	        array[offset + 1] = this.y;
+	        array[offset + 2] = this.z;
+	        array[offset + 3] = this.w;
+
+	        return array;
+	    }
+
+	    fromBufferAttribute(attribute, index) {
+	        this.x = attribute.getX(index);
+	        this.y = attribute.getY(index);
+	        this.z = attribute.getZ(index);
+	        this.w = attribute.getW(index);
+
+	        return this;
+	    }
+	}
+
+	Object.defineProperty(Vector4.prototype, 'isVector4', {value: true});
+
+	/**
+	 * 用来在三维空间内创建一个立方体边界对象
+	 */
+	class Box3 {
+	    constructor(min = new Vector3(+Infinity, +Infinity, +Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity)) {
+	        this.min = min;
+	        this.max = max;
+	    }
+
+	    set(min, max) {
+	        this.min.copy(min);
+	        this.max.copy(max);
+
+	        return this;
+	    }
+
+	    setFromBufferAttribute(attribute) {
+	        let minX = +Infinity;
+	        let minY = +Infinity;
+	        let minZ = +Infinity;
+
+	        let maxX = -Infinity;
+	        let maxY = -Infinity;
+	        let maxZ = -Infinity;
+
+	        for (let i = 0, l = attribute.count; i < l; i++) {
+
+	            let x = attribute.getX(i);
+	            let y = attribute.getY(i);
+	            let z = attribute.getZ(i);
+
+	            if (x < minX) minX = x;
+	            if (y < minY) minY = y;
+	            if (z < minZ) minZ = z;
+
+	            if (x > maxX) maxX = x;
+	            if (y > maxY) maxY = y;
+	            if (z > maxZ) maxZ = z;
+
+	        }
+
+	        this.min.set(minX, minY, minZ);
+	        this.max.set(maxX, maxY, maxZ);
+
+	        return this;
+	    }
+
+	    /**
+	     * 设置这个盒子的上下边界，来包含所有设置在points参数中的点
+	     * @param points 点的集合，由这些点确定的空间将被盒子包围
+	     * @returns {Box3}
+	     */
+	    setFromPoints(points) {
+	        this.makeEmpty();
+	        for (let i = 0, il = points.length; i < il; i++) {
+	            this.expandByPoint(points[i]);
+	        }
+
 	        return this;
 	    }
 
 	    clone() {
-	        return new this.constructor().fromArray( this.elements );
+	        return new this.constructor().copy(this);
 	    }
 
-	    copy(m) {
-	        let te = this.elements;
-	        let me = m.elements;
-
-	        te[0] = me[0]; te[1] = me[1]; te[2] = me[2];
-	        te[3] = me[3]; te[4] = me[4]; te[5] = me[5];
-	        te[6] = me[6]; te[7] = me[7]; te[8] = me[8];
+	    copy(box) {
+	        this.min.copy(box.min);
+	        this.max.copy(box.max);
 
 	        return this;
 	    }
 
-	    setFromMatrix4(m) {
-	        let me = m.elements;
-	        this.set(
-	            me[0], me[4], me[8],
-	            me[1], me[5], me[9],
-	            me[2], me[6], me[10]
-	        );
-	        return this;
-	    }
-
-	    getInverse(matrix, throwOnDegenerate) {
-	        if ( matrix && matrix.isMatrix4 ) {
-
-	            console.error( "THREE.Matrix3: .getInverse() no longer takes a Matrix4 argument." );
-
-	        }
-
-	        let me = matrix.elements,
-	            te = this.elements,
-
-	            n11 = me[0], n21 = me[1], n31 = me[2],
-	            n12 = me[3], n22 = me[4], n32 = me[5],
-	            n13 = me[6], n23 = me[7], n33 = me[8],
-
-	            t11 = n33 * n22 - n32 * n23,
-	            t12 = n32 * n13 - n33 * n12,
-	            t13 = n23 * n12 - n22 * n13,
-
-	            det = n11 * t11 + n21 * t12 + n31 * t13;
-
-	        if ( det === 0 ) {
-
-	            let msg = "THREE.Matrix3: .getInverse() can't invert matrix, determinant is 0";
-
-	            if ( throwOnDegenerate === true ) {
-
-	                throw new Error( msg );
-
-	            } else {
-
-	                console.warn( msg );
-
-	            }
-
-	            return this.identity();
-
-	        }
-
-	        let detInv = 1 / det;
-
-	        te[0] = t11 * detInv;
-	        te[1] = ( n31 * n23 - n33 * n21 ) * detInv;
-	        te[2] = ( n32 * n21 - n31 * n22 ) * detInv;
-
-	        te[3] = t12 * detInv;
-	        te[4] = ( n33 * n11 - n31 * n13 ) * detInv;
-	        te[5] = ( n31 * n12 - n32 * n11 ) * detInv;
-
-	        te[6] = t13 * detInv;
-	        te[7] = ( n21 * n13 - n23 * n11 ) * detInv;
-	        te[8] = ( n22 * n11 - n21 * n12 ) * detInv;
-
-	        return this;
-
-	    }
-
-	    transpose() {
-	        let tmp, m = this.elements;
-
-	        tmp = m[1]; m[1] = m[3]; m[3] = tmp;
-	        tmp = m[2]; m[2] = m[6]; m[6] = tmp;
-	        tmp = m[5]; m[5] = m[7]; m[7] = tmp;
+	    makeEmpty() {
+	        this.min.x = this.min.y = this.min.z = +Infinity;
+	        this.max.x = this.max.y = this.max.z = -Infinity;
 
 	        return this;
 	    }
 
-	    getNormalMatrix(matrix4) {
-	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
+	    isEmpty() {
+	        // this is a more robust check for empty than ( volume <= 0 ) because volume can get positive with two negative axes
+	        return (this.max.x < this.min.x) || (this.max.y < this.min.y) || (this.max.z < this.min.z);
+	    }
+
+	    // 扩展盒子的边界来包含该点
+	    expandByPoint(point) {
+	        this.min.min(point);
+	        this.max.max(point);
+
+	        return this;
+	    }
+
+	    // 按 scalar 的值展开盒子的每个维度。如果是负数，盒子的尺寸会缩小。
+	    expandByScalar(scalar) {
+	        this.min.addScalar(-scalar);
+	        this.max.addScalar(scalar);
+
+	        return this;
+	    }
+
+	    // 判断点(point)是否位于盒子的边界内或边界上
+	    containsPoint(point) {
+	        return point.x < this.min.x || point.x > this.max.x ||
+	        point.y < this.min.y || point.y > this.max.y ||
+	        point.z < this.min.z || point.z > this.max.z ? false : true;
+	    }
+
+	    // 判断与盒子box是否相交
+	    intersectsBox(box) {
+	        // using 6 splitting planes to rule out intersections.
+	        return box.max.x < this.min.x || box.min.x > this.max.x ||
+	        box.max.y < this.min.y || box.min.y > this.max.y ||
+	        box.max.z < this.min.z || box.min.z > this.max.z ? false : true;
+	    }
+
+	    // （交集）返回两者的相交后的盒子，并将相交后的盒子的上限设置为两者的上限中的较小者，将下限设置为两者的下限中的较大者
+	    intersect(box) {
+	        this.min.max(box.min);
+	        this.max.min(box.max);
+
+	        // ensure that if there is no overlap, the result is fully empty, not slightly empty with non-inf/+inf values that will cause subsequence intersects to erroneously return valid values.
+	        if (this.isEmpty()) this.makeEmpty();
+
+	        return this;
+	    }
+
+	    // （并集）在box参数的上边界和该盒子的上边界之间取较大者，而对两者的下边界取较小者，这样获得一个新的较大的联合盒子
+	    union(box) {
+	        this.min.min(box.min);
+	        this.max.max(box.max);
+
+	        return this;
 	    }
 	}
 
-	Object.assign(Matrix3.prototype, {
-	    isMatrix3: true
-	});
+	Object.defineProperty(Box3.prototype, 'isBox3', {value: true});
+
+	/**
+	 * 通过两个Vector2(二维向量)min,max创建一个二维矩形边界对象.
+	 * 用法: let min = new Vector2(0,0),max = new Vector2(1,1); let box = new Box2(min,max);
+	 */
+	class Box2 {
+	    // 初始化二维矩形的起始点
+	    constructor(min = new Vector2(+Infinity, +Infinity), max = new Vector2(-Infinity, -Infinity)) {
+	        this.min = min;
+	        this.max = max;
+	    }
+
+	    clone() {
+	        return new this.constructor().copy(this);
+	    }
+
+	    copy(box) {
+	        this.min.copy(box.min);
+	        this.max.copy(box.max);
+
+	        return this;
+	    }
+
+	    set(min, max) {
+	        this.min.copy(min);
+	        this.max.copy(max);
+
+	        return this;
+	    }
+
+	    /**
+	     * 设置这个盒子的上下边界，来包含所有设置在points参数中的点
+	     * @param points 点的集合，由这些点确定的空间将被盒子包围
+	     * @returns {Box2}
+	     */
+	    setFromPoints(points) {
+	        this.makeEmpty();
+
+	        for (let i = 0, il = points.length; i < il; i++) {
+	            this.expandByPoint(points[i]);
+	        }
+
+	        return this;
+	    }
+
+	    makeEmpty() {
+	        this.min.x = this.min.y = +Infinity;
+	        this.max.x = this.max.y = -Infinity;
+
+	        return this;
+	    }
+
+	    isEmpty() {
+	        // this is a more robust check for empty than ( volume <= 0 ) because volume can get positive with two negative axes
+	        return (this.max.x < this.min.x) || (this.max.y < this.min.y);
+	    }
+
+	    // 扩展盒子的边界来包含该点
+	    expandByPoint(point) {
+	        this.min.min(point);
+	        this.max.max(point);
+
+	        return this;
+	    }
+
+	    // 在每个维度上扩展参数scalar所指定的距离，如果为负数，则盒子空间将收缩
+	    expandByScalar(scalar) {
+	        this.min.addScalar(-scalar);
+	        this.max.addScalar(scalar);
+
+	        return this;
+	    }
+
+	    // 判断点(point)是否位于盒子的边界内或边界上
+	    containsPoint ( point ) {
+	        return point.x < this.min.x || point.x > this.max.x || point.y < this.min.y || point.y > this.max.y ? false : true;
+	    }
+
+	    // 判断与盒子box是否相交
+	    intersectsBox(box) {
+	        // using 4 splitting planes to rule out intersections
+	        return box.max.x < this.min.x || box.min.x > this.max.x ||
+	        box.max.y < this.min.y || box.min.y > this.max.y ? false : true;
+	    }
+
+	    // （交集）返回两者的相交后的盒子，并将相交后的盒子的上限设置为两者的上限中的较小者，将下限设置为两者的下限中的较大者
+	    intersect(box) {
+	        this.min.max(box.min);
+	        this.max.min(box.max);
+
+	        return this;
+	    }
+
+	    // （并集）在box参数的上边界和该盒子的上边界之间取较大者，而对两者的下边界取较小者，这样获得一个新的较大的联合盒子
+	    union(box) {
+	        this.min.min(box.min);
+	        this.max.max(box.max);
+
+	        return this;
+	    }
+	}
+
+	Object.defineProperty(Box2.prototype, 'isBox2', {value: true});
 
 	class Camera extends Object3D {
 	    constructor() {
 	        super();
-	        this.isCamera = true;
+	        Object.defineProperty(this, 'isCamera', {value: true});
+
+	        this.type = 'Camera';
+
+	        this.matrixWorldInverse = new Matrix4();        // 世界矩阵逆矩阵
 
 	        this.projectionMatrix = new Matrix4();          // 投影矩阵
 	        this.projectionMatrixInverse = new Matrix4();   // 投影矩阵逆矩阵
-	        this.matrixWorldInverse = new Matrix4();        // matrixWorld逆矩阵
 	    }
 
 	    // 更新对象（重写父类）
 	    updateMatrixWorld(force) {
-	        if (this.matrixAutoUpdate) this.updateMatrix();
-	        if (this.matrixWorldNeedsUpdate || force) {
-	            if (this.parent === null) {
-	                this.matrixWorld.copy(this.matrix);
-	            } else {
-	                this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
-	            }
-	            this.matrixWorldNeedsUpdate = false;
-	            force = true;
-	        }
-
-	        let children = this.children;
-	        for (let i = 0, l = children.length; i < l; i++) {
-	            children[i].updateMatrixWorld(force);
-	        }
+	        super.updateMatrixWorld(force);
 
 	        // 更新逆矩阵
-	        this.matrixWorldInverse.getInverse( this.matrixWorld );
+	        this.matrixWorldInverse.getInverse(this.matrixWorld);
 	    }
 	}
 
@@ -2617,8 +3432,6 @@
 
 	class BufferAttribute {
 	    constructor(array, itemSize, normalized = true) {
-	        this.isBufferAttribute = true;
-
 	        this.array = array;
 	        this.itemSize = itemSize;
 	        this.normalized = normalized;
@@ -2631,16 +3444,20 @@
 	        if (value === true) this.version++;
 	    }
 
-	    getX( index ) {
-	        return this.array[ index * this.itemSize ];
+	    getX(index) {
+	        return this.array[index * this.itemSize];
 	    }
 
-	    getY( index ) {
-	        return this.array[ index * this.itemSize + 1 ];
+	    getY(index) {
+	        return this.array[index * this.itemSize + 1];
 	    }
 
-	    getZ( index ) {
-	        return this.array[ index * this.itemSize + 2 ];
+	    getZ(index) {
+	        return this.array[index * this.itemSize + 2];
+	    }
+
+	    getW(index) {
+	        return this.array[index * this.itemSize + 3];
 	    }
 
 	    setXYZ(index, x, y, z) {
@@ -2653,15 +3470,31 @@
 	        return this;
 	    }
 
+	    setXYZW(index, x, y, z, w) {
+	        index *= this.itemSize;
+
+	        this.array[index + 0] = x;
+	        this.array[index + 1] = y;
+	        this.array[index + 2] = z;
+	        this.array[index + 3] = w;
+
+	        return this;
+	    }
+
 	    onUploadCallback() {
 	    }
 	}
+
+	Object.assign(BufferAttribute.prototype, {
+	    isBufferAttribute: true
+	});
 
 	class Int8BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Int8Array(array), itemSize, normalized);
 	    }
 	}
+
 	class Uint8BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Uint8Array(array), itemSize, normalized);
@@ -2673,6 +3506,7 @@
 	        super(new Int16Array(array), itemSize, normalized);
 	    }
 	}
+
 	class Uint16BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Uint16Array(array), itemSize, normalized);
@@ -2684,6 +3518,7 @@
 	        super(new Int32Array(array), itemSize, normalized);
 	    }
 	}
+
 	class Uint32BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Uint32Array(array), itemSize, normalized);
@@ -2695,6 +3530,7 @@
 	        super(new Int64Array(array), itemSize, normalized);
 	    }
 	}
+
 	class Float32BufferAttribute extends BufferAttribute {
 	    constructor(array, itemSize, normalized) {
 	        super(new Float32Array(array), itemSize, normalized);
@@ -2717,7 +3553,7 @@
 	        this.isBufferGeometry = true;
 
 	        this.index = null;
-	        this.attributes = {}; // 缓存属性（position,nomal,uv,color等类型数组）
+	        this.attributes = {};
 
 	        this.groups = [];   // 将当前几何体分割成组进行渲染
 	    }
@@ -2726,6 +3562,7 @@
 	        return this.index;
 	    }
 
+	    // 设置顶点索引
 	    setIndex(index) {
 	        if (Array.isArray(index)) {
 	            this.index = new (arrayMax(index) > 65535 ? Uint32BufferAttribute : Uint16BufferAttribute)(index, 1);
@@ -3657,53 +4494,6 @@
 	    }
 	}
 
-	// import {Box2} from "./Box2";
-
-	class Box3 {
-	    constructor(min = new Vector3(+Infinity, +Infinity, +Infinity), max = new Vector3(-Infinity, -Infinity, -Infinity)) {
-	        this.min = min;
-	        this.max = max;
-	    }
-
-	    set(min, max) {
-	        this.min.copy(min);
-	        this.max.copy(max);
-
-	        return this;
-	    }
-
-	    makeEmpty() {
-	        this.min.x = this.min.y = this.min.z = +Infinity;
-	        this.max.x = this.max.y = this.max.z = -Infinity;
-
-	        return this;
-	    }
-
-	    expandByPoint(point) {
-	        this.min.min(point);
-	        this.max.max(point);
-
-	        return this;
-	    }
-
-	    setFromPoints(points) {
-	        this.makeEmpty();
-
-	        for (let i = 0, il = points.length; i < il; i++) {
-	            this.expandByPoint(points[i]);
-	        }
-
-	        return this;
-	    }
-
-	    intersectsBox(box) {
-	        // using 6 splitting planes to rule out intersections.
-	        return box.max.x < this.min.x || box.min.x > this.max.x ||
-	        box.max.y < this.min.y || box.min.y > this.max.y ||
-	        box.max.z < this.min.z || box.min.z > this.max.z ? false : true;
-	    }
-	}
-
 	// 存储对象池
 	let _object, _face, _vertex, _sprite, _line,
 	    _objectPool = [], _facePool = [], _vertexPool = [], _spritePool = [], _linePool = [],
@@ -3924,7 +4714,7 @@
 
 	        _viewMatrix.copy(camera.matrixWorldInverse); // 相机逆矩阵
 
-	        // 视图投影矩阵（camera.projectionMatrix = _viewProjectionMatrix * camera.matrixWorld）
+	        // 相机投影矩阵 = 视图矩阵 * 相机矩阵（camera.projectionMatrix = _viewProjectionMatrix * camera.matrixWorld）
 	        // 当屏幕大小固定时，camera.projectionMatrix不变！camera.matrixWorld的变化影响视图矩阵_viewProjectionMatrix
 	        _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
 
@@ -4346,78 +5136,6 @@
 	    }
 	}
 
-	class Box2 {
-	    constructor(min = new Vector2(+Infinity, +Infinity), max = new Vector2(-Infinity, -Infinity)) {
-	        this.min = min;
-	        this.max = max;
-	    }
-
-	    set(min, max) {
-	        this.min.copy(min);
-	        this.max.copy(max);
-
-	        return this;
-	    }
-
-	    makeEmpty() {
-	        this.min.x = this.min.y = +Infinity;
-	        this.max.x = this.max.y = -Infinity;
-
-	        return this;
-	    }
-
-	    isEmpty() {
-	        // this is a more robust check for empty than ( volume <= 0 ) because volume can get positive with two negative axes
-	        return (this.max.x < this.min.x) || (this.max.y < this.min.y);
-	    }
-
-	    // 应该被盒子包含的点
-	    expandByPoint(point) {
-	        this.min.min(point);
-	        this.max.max(point);
-
-	        return this;
-	    }
-
-	    setFromPoints(points) {
-	        this.makeEmpty();
-
-	        for (let i = 0, il = points.length; i < il; i++) {
-	            this.expandByPoint(points[i]);
-	        }
-
-	        return this;
-	    }
-
-	    intersectsBox(box) {
-	        // using 4 splitting planes to rule out intersections
-	        return box.max.x < this.min.x || box.min.x > this.max.x ||
-	        box.max.y < this.min.y || box.min.y > this.max.y ? false : true;
-	    }
-
-	    // 盒子扩展的距离
-	    expandByScalar(scalar) {
-	        this.min.addScalar(-scalar);
-	        this.max.addScalar(scalar);
-
-	        return this;
-	    }
-
-	    intersect(box) {
-	        this.min.max(box.min);
-	        this.max.min(box.max);
-
-	        return this;
-	    }
-
-	    union(box) {
-	        this.min.min(box.min);
-	        this.max.max(box.max);
-
-	        return this;
-	    }
-	}
-
 	let _canvas, _context;
 	let _canvasWidth, _canvasHeight,
 	    _canvasWidthHalf, _canvasHeightHalf;
@@ -4425,7 +5143,7 @@
 	let _patterns = {}, _uvs;
 	let _v1, _v2, _v3,
 	    _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
-	let _clipBox$1 = new Box2(),
+	let _clipBox$1 = new Box2(),  // 裁剪盒子，默认设为canvas大小
 	    _clearBox = new Box2(), // 清空画布2d盒子模型（不需要全屏清除，只清除绘制部分）
 	    _elemBox = new Box2();
 	let _color = new Color();
@@ -4477,7 +5195,7 @@
 
 	    render(scene, camera) {
 	        if (scene.autoUpdate === true) scene.updateMatrixWorld();
-	        if (camera.parent === null) camera.updateMatrixWorld();
+	        if (camera.parent === null) camera.updateMatrixWorld(); // 相机不加入到scene的情况，单独更新
 
 	        let background = scene.background;
 	        if (background && background.isColor) {
@@ -4955,6 +5673,8 @@
 	exports.Vector4 = Vector4;
 	exports.Matrix3 = Matrix3;
 	exports.Matrix4 = Matrix4;
+	exports.Box3 = Box3;
+	exports.Box2 = Box2;
 	exports.PerspectiveCamera = PerspectiveCamera;
 	exports.OrthographicCamera = OrthographicCamera;
 	exports.Scene = Scene;
@@ -4990,6 +5710,8 @@
 	exports.FrontSide = FrontSide;
 	exports.BackSide = BackSide;
 	exports.DoubleSide = DoubleSide;
+	exports.FlatShading = FlatShading;
+	exports.SmoothShading = SmoothShading;
 	exports.NoColors = NoColors;
 	exports.FaceColors = FaceColors;
 	exports.VertexColors = VertexColors;
@@ -5015,4 +5737,4 @@
 
 	Object.defineProperty(exports, '__esModule', { value: true });
 
-})));
+}));

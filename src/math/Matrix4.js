@@ -1,3 +1,15 @@
+import {Vector3} from "./Vector3";
+
+let x = new Vector3();  // lookAt变量
+let y = new Vector3();
+let z = new Vector3();
+let zero = new Vector3(0, 0, 0);    // makeRotationFromQuaternion变量
+let one = new Vector3(1, 1, 1);     // makeRotationFromQuaternion变量
+let v1 = new Vector3(); // applyToBufferAttribute变量，attribute里的position
+
+let vector = new Vector3();
+let matrix = undefined;
+
 /**
  * 4*4矩阵原理可以参考这篇文章：http://blog.vr-seesee.com/detail/185
  * 矩阵是用于表示变换而不是坐标，4*4矩阵的核心是变换：平移、旋转、缩放
@@ -5,16 +17,12 @@
  * 1.变换；
  * 2.矩阵乘以对应的3D点坐标，就可以获取变换后的点坐标；
  * 3.矩阵相乘结果为新的矩阵变换。
+ * three.js里的矩阵：
+ * 1.投影矩阵projectionMatrix
+ * 2.视图矩阵CameraMatrixWorldInverse（camera.matrixWorldInverse） 或 viewMatrix
+ * 3.模型矩阵ObjectWorldMatrix（object.matrixWorld） 或 modelMatrix
+ * 三维投影矩阵计算公式：let m = ProjectMatrix * CameraMatrixWorldInverse* ObjectMatrixWorld
  */
-import {Vector3} from "./Vector3";
-
-let x = new Vector3();
-let y = new Vector3();
-let z = new Vector3();
-let zero = new Vector3(0, 0, 0);
-let one = new Vector3(1, 1, 1);
-let v1 = new Vector3();
-
 class Matrix4 {
     constructor() {
         this.elements = [
@@ -28,14 +36,15 @@ class Matrix4 {
     set(n11, n12, n13, n14, n21, n22, n23, n24, n31, n32, n33, n34, n41, n42, n43, n44) {
         let te = this.elements;
 
-        te[0] = n11;te[4] = n12;te[8] =  n13;te[12] = n14;
-        te[1] = n21;te[5] = n22;te[9] =  n23;te[13] = n24;
-        te[2] = n31;te[6] = n32;te[10] = n33;te[14] = n34;
-        te[3] = n41;te[7] = n42;te[11] = n43;te[15] = n44;
+        te[0] = n11, te[4] = n12, te[8] = n13, te[12] = n14;
+        te[1] = n21, te[5] = n22, te[9] = n23, te[13] = n24;
+        te[2] = n31, te[6] = n32, te[10] = n33, te[14] = n34;
+        te[3] = n41, te[7] = n42, te[11] = n43, te[15] = n44;
 
         return this;
     }
 
+    // 重置为单位矩阵
     identity() {
         this.set(
             1, 0, 0, 0,
@@ -55,35 +64,35 @@ class Matrix4 {
         let te = this.elements;
         let me = m.elements;
 
-        te[0] = me[0];  te[1] =  me[1]; te[2] =  me[2]; te[3] =  me[3];
-        te[4] = me[4];  te[5] =  me[5]; te[6] =  me[6]; te[7] =  me[7];
-        te[8] = me[8];  te[9] =  me[9]; te[10] = me[10];te[11] = me[11];
-        te[12] = me[12];te[13] = me[13];te[14] = me[14];te[15] = me[15];
-
-        return this;
-    }
-
-    copyPosition(m) {
-        let te = this.elements, me = m.elements;
-
+        te[0] = me[0];
+        te[1] = me[1];
+        te[2] = me[2];
+        te[3] = me[3];
+        te[4] = me[4];
+        te[5] = me[5];
+        te[6] = me[6];
+        te[7] = me[7];
+        te[8] = me[8];
+        te[9] = me[9];
+        te[10] = me[10];
+        te[11] = me[11];
         te[12] = me[12];
         te[13] = me[13];
         te[14] = me[14];
+        te[15] = me[15];
 
         return this;
     }
 
-    // 左乘矩阵
+    // 矩阵乘法（矩阵相乘结果为新的矩阵变换）
     multiply(m) {
         return this.multiplyMatrices(this, m);
     }
 
-    // 右乘矩阵
     premultiply(m) {
         return this.multiplyMatrices(m, this);
     }
 
-    // 矩阵相乘
     multiplyMatrices(a, b) {
         let ae = a.elements;
         let be = b.elements;
@@ -122,24 +131,49 @@ class Matrix4 {
         return this;
     }
 
-    // 矩阵缩放（暂未使用）
+    // 矩阵乘以标量s（缩放矩阵）
     multiplyScalar(s) {
         let te = this.elements;
 
-        te[0] *= s;te[4] *= s;te[8] *= s; te[12] *= s;
-        te[1] *= s;te[5] *= s;te[9] *= s; te[13] *= s;
-        te[2] *= s;te[6] *= s;te[10] *= s;te[14] *= s;
-        te[3] *= s;te[7] *= s;te[11] *= s;te[15] *= s;
+        te[0] *= s;
+        te[4] *= s;
+        te[8] *= s;
+        te[12] *= s;
+        te[1] *= s;
+        te[5] *= s;
+        te[9] *= s;
+        te[13] *= s;
+        te[2] *= s;
+        te[6] *= s;
+        te[10] *= s;
+        te[14] *= s;
+        te[3] *= s;
+        te[7] *= s;
+        te[11] *= s;
+        te[15] *= s;
 
         return this;
     }
 
+    // 复制参数m(4x4矩阵)的平移分量
+    copyPosition(m) {
+        let te = this.elements, me = m.elements;
+
+        te[12] = me[12];
+        te[13] = me[13];
+        te[14] = me[14];
+
+        return this;
+    }
+
+    // 用这个矩阵乘以缓存属性attribute里position向量
     applyToBufferAttribute(attribute) {
         for (let i = 0, l = attribute.count; i < l; i++) {
             v1.x = attribute.getX(i);
             v1.y = attribute.getY(i);
             v1.z = attribute.getZ(i);
 
+            // v1经过矩阵变换后的位置
             v1.applyMatrix4(this);
 
             attribute.setXYZ(i, v1.x, v1.y, v1.z);
@@ -159,7 +193,7 @@ class Matrix4 {
         return this;
     }
 
-    // 旋转
+    // 绕x轴旋转theta弧度
     makeRotationX(theta) {
         let c = Math.cos(theta), s = Math.sin(theta);
 
@@ -199,6 +233,7 @@ class Matrix4 {
         return this;
     }
 
+    // 围绕轴 axis 旋转量为 theta弧度（旋转轴需要归一化）
     makeRotationAxis(axis, angle) {
         let c = Math.cos(angle);
         let s = Math.sin(angle);
@@ -216,7 +251,120 @@ class Matrix4 {
         return this;
     }
 
-    // 通过四元数对Matrix4应用旋转变换
+    // 将传入的欧拉角转换为该矩阵的旋转分量(左上角的3x3矩阵)。 矩阵的其余部分被设为单位矩阵（未使用）
+    makeRotationFromEuler(euler) {
+        if (!(euler && euler.isEuler)) {
+            console.error('THREE.Matrix4: .makeRotationFromEuler() now expects a Euler rotation rather than a Vector3 and order.');
+        }
+
+        let te = this.elements;
+
+        let x = euler.x, y = euler.y, z = euler.z;
+        let a = Math.cos(x), b = Math.sin(x);
+        let c = Math.cos(y), d = Math.sin(y);
+        let e = Math.cos(z), f = Math.sin(z);
+
+        if (euler.order === 'XYZ') {
+            let ae = a * e, af = a * f, be = b * e, bf = b * f;
+
+            te[0] = c * e;
+            te[4] = -c * f;
+            te[8] = d;
+
+            te[1] = af + be * d;
+            te[5] = ae - bf * d;
+            te[9] = -b * c;
+
+            te[2] = bf - ae * d;
+            te[6] = be + af * d;
+            te[10] = a * c;
+        } else if (euler.order === 'YXZ') {
+            let ce = c * e, cf = c * f, de = d * e, df = d * f;
+
+            te[0] = ce + df * b;
+            te[4] = de * b - cf;
+            te[8] = a * d;
+
+            te[1] = a * f;
+            te[5] = a * e;
+            te[9] = -b;
+
+            te[2] = cf * b - de;
+            te[6] = df + ce * b;
+            te[10] = a * c;
+        } else if (euler.order === 'ZXY') {
+            let ce = c * e, cf = c * f, de = d * e, df = d * f;
+
+            te[0] = ce - df * b;
+            te[4] = -a * f;
+            te[8] = de + cf * b;
+
+            te[1] = cf + de * b;
+            te[5] = a * e;
+            te[9] = df - ce * b;
+
+            te[2] = -a * d;
+            te[6] = b;
+            te[10] = a * c;
+        } else if (euler.order === 'ZYX') {
+            let ae = a * e, af = a * f, be = b * e, bf = b * f;
+
+            te[0] = c * e;
+            te[4] = be * d - af;
+            te[8] = ae * d + bf;
+
+            te[1] = c * f;
+            te[5] = bf * d + ae;
+            te[9] = af * d - be;
+
+            te[2] = -d;
+            te[6] = b * c;
+            te[10] = a * c;
+        } else if (euler.order === 'YZX') {
+            let ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+
+            te[0] = c * e;
+            te[4] = bd - ac * f;
+            te[8] = bc * f + ad;
+
+            te[1] = f;
+            te[5] = a * e;
+            te[9] = -b * e;
+
+            te[2] = -d * e;
+            te[6] = ad * f + bc;
+            te[10] = ac - bd * f;
+        } else if (euler.order === 'XZY') {
+            let ac = a * c, ad = a * d, bc = b * c, bd = b * d;
+
+            te[0] = c * e;
+            te[4] = -f;
+            te[8] = d * e;
+
+            te[1] = ac * f + bd;
+            te[5] = a * e;
+            te[9] = ad * f - bc;
+
+            te[2] = bc * f - ad;
+            te[6] = b * e;
+            te[10] = bd * f + ac;
+        }
+
+        // bottom row
+        te[3] = 0;
+        te[7] = 0;
+        te[11] = 0;
+
+        // last column
+        te[12] = 0;
+        te[13] = 0;
+        te[14] = 0;
+        te[15] = 1;
+
+        return this;
+    }
+
+    // 将这个矩阵的旋转分量设置为四元数q指定的旋转，矩阵的其余部分被设为单位矩阵（用于通过Quaternion设置Euler）
     makeRotationFromQuaternion(q) {
         return this.compose(zero, q, one);
     }
@@ -233,9 +381,8 @@ class Matrix4 {
         return this;
     }
 
-    // 处理矩阵位移、旋转、缩放
+    // 由位置position，四元数quaternion 和 缩放scale 组合变换的矩阵
     compose(position, quaternion, scale) {
-
         let te = this.elements;
 
         let x = quaternion.x, y = quaternion.y, z = quaternion.z, w = quaternion.w;
@@ -267,7 +414,52 @@ class Matrix4 {
         te[15] = 1;
 
         return this;
+    }
 
+    // 将矩阵分解到给定的平移position ,旋转 quaternion，缩放scale分量中。
+    decompose(position, quaternion, scale) {
+        if (matrix == undefined) matrix = new Matrix4();
+
+        let te = this.elements;
+
+        let sx = vector.set(te[0], te[1], te[2]).length();
+        let sy = vector.set(te[4], te[5], te[6]).length();
+        let sz = vector.set(te[8], te[9], te[10]).length();
+
+        // if determine is negative, we need to invert one scale
+        let det = this.determinant();
+        if (det < 0) sx = -sx;
+
+        position.x = te[12];
+        position.y = te[13];
+        position.z = te[14];
+
+        // scale the rotation part
+        matrix.copy(this);
+
+        let invSX = 1 / sx;
+        let invSY = 1 / sy;
+        let invSZ = 1 / sz;
+
+        matrix.elements[0] *= invSX;
+        matrix.elements[1] *= invSX;
+        matrix.elements[2] *= invSX;
+
+        matrix.elements[4] *= invSY;
+        matrix.elements[5] *= invSY;
+        matrix.elements[6] *= invSY;
+
+        matrix.elements[8] *= invSZ;
+        matrix.elements[9] *= invSZ;
+        matrix.elements[10] *= invSZ;
+
+        quaternion.setFromRotationMatrix(matrix);
+
+        scale.x = sx;
+        scale.y = sy;
+        scale.z = sz;
+
+        return this;
     }
 
     // 构造一个旋转矩阵从eye 指向 target
@@ -299,9 +491,9 @@ class Matrix4 {
         x.normalize();
         y.crossVectors(z, x);
 
-        te[0] = x.x;te[4] = y.x;te[8] =  z.x;
-        te[1] = x.y;te[5] = y.y;te[9] =  z.y;
-        te[2] = x.z;te[6] = y.z;te[10] = z.z;
+        te[0] = x.x, te[4] = y.x, te[8] = z.x;
+        te[1] = x.y, te[5] = y.y, te[9] = z.y;
+        te[2] = x.z, te[6] = y.z, te[10] = z.z;
 
         return this;
     }
@@ -317,10 +509,10 @@ class Matrix4 {
         let c = -(far + near) / (far - near);
         let d = -2 * far * near / (far - near);
 
-        te[0] = x;te[4] = 0;te[8] = a;  te[12] = 0;
-        te[1] = 0;te[5] = y;te[9] = b;  te[13] = 0;
-        te[2] = 0;te[6] = 0;te[10] = c; te[14] = d;
-        te[3] = 0;te[7] = 0;te[11] = -1;te[15] = 0;
+        te[0] = x, te[4] = 0, te[8] = a, te[12] = 0;
+        te[1] = 0, te[5] = y, te[9] = b, te[13] = 0;
+        te[2] = 0, te[6] = 0, te[10] = c, te[14] = d;
+        te[3] = 0, te[7] = 0, te[11] = -1, te[15] = 0;
 
         return this;
     }
@@ -336,14 +528,67 @@ class Matrix4 {
         let y = (top + bottom) * h;
         let z = (far + near) * p;
 
-        te[0] = 2 * w;te[4] = 0;te[8] = 0;te[12] = -x;
-        te[1] = 0;te[5] = 2 * h;te[9] = 0;te[13] = -y;
-        te[2] = 0;te[6] = 0;te[10] = -2 * p;te[14] = -z;
-        te[3] = 0;te[7] = 0;te[11] = 0;te[15] = 1;
+        te[0] = 2 * w, te[4] = 0, te[8] = 0, te[12] = -x;
+        te[1] = 0, te[5] = 2 * h, te[9] = 0, te[13] = -y;
+        te[2] = 0, te[6] = 0, te[10] = -2 * p, te[14] = -z;
+        te[3] = 0, te[7] = 0, te[11] = 0, te[15] = 1;
         return this;
     }
 
-    // 逆矩阵（矩阵的倒数，用来实现矩阵的除法。矩阵不存在直接相除的概念，需要借助逆矩阵）
+    // 行列式
+    determinant() {
+        let te = this.elements;
+
+        let n11 = te[0], n12 = te[4], n13 = te[8], n14 = te[12];
+        let n21 = te[1], n22 = te[5], n23 = te[9], n24 = te[13];
+        let n31 = te[2], n32 = te[6], n33 = te[10], n34 = te[14];
+        let n41 = te[3], n42 = te[7], n43 = te[11], n44 = te[15];
+
+        //( based on http://www.euclideanspace.com/maths/algebra/matrix/functions/inverse/fourD/index.htm )
+
+        return (
+            n41 * (
+                +n14 * n23 * n32
+                - n13 * n24 * n32
+                - n14 * n22 * n33
+                + n12 * n24 * n33
+                + n13 * n22 * n34
+                - n12 * n23 * n34
+            ) +
+            n42 * (
+                +n11 * n23 * n34
+                - n11 * n24 * n33
+                + n14 * n21 * n33
+                - n13 * n21 * n34
+                + n13 * n24 * n31
+                - n14 * n23 * n31
+            ) +
+            n43 * (
+                +n11 * n24 * n32
+                - n11 * n22 * n34
+                - n14 * n21 * n32
+                + n12 * n21 * n34
+                + n14 * n22 * n31
+                - n12 * n24 * n31
+            ) +
+            n44 * (
+                -n13 * n22 * n31
+                - n11 * n23 * n32
+                + n11 * n22 * n33
+                + n13 * n21 * n32
+                - n12 * n21 * n33
+                + n12 * n23 * n31
+            )
+        );
+    }
+
+    /**
+     * 求逆矩阵（矩阵的倒数，用来实现矩阵的除法。矩阵不存在直接相除的概念，需要借助逆矩阵）
+     * X * A = B，我们要求X矩阵的值。X = B * A的逆矩阵
+     * @param m 取逆的矩阵
+     * @param throwOnDegenerate
+     * @returns {this}
+     */
     getInverse(m, throwOnDegenerate) {
         let te = this.elements,
             me = m.elements,
@@ -395,6 +640,22 @@ class Matrix4 {
         return this;
     }
 
+    // 转置矩阵
+    transpose() {
+        let te = this.elements;
+        let tmp;
+
+        tmp = te[1], te[1] = te[4], te[4] = tmp;
+        tmp = te[2], te[2] = te[8], te[8] = tmp;
+        tmp = te[6], te[6] = te[9], te[9] = tmp;
+
+        tmp = te[3], te[3] = te[12], te[12] = tmp;
+        tmp = te[7], te[7] = te[13], te[13] = tmp;
+        tmp = te[11], te[11] = te[14], te[14] = tmp;
+
+        return this;
+    }
+
     equals(matrix) {
         let te = this.elements;
         let me = matrix.elements;
@@ -405,10 +666,47 @@ class Matrix4 {
 
         return true;
     }
+
+    fromArray(array, offset) {
+        if (offset === undefined) offset = 0;
+
+        for (let i = 0; i < 16; i++) {
+            this.elements[i] = array[i + offset];
+        }
+
+        return this;
+    }
+
+    toArray(array, offset) {
+        if (array === undefined) array = [];
+        if (offset === undefined) offset = 0;
+
+        let te = this.elements;
+
+        array[offset] = te[0];
+        array[offset + 1] = te[1];
+        array[offset + 2] = te[2];
+        array[offset + 3] = te[3];
+
+        array[offset + 4] = te[4];
+        array[offset + 5] = te[5];
+        array[offset + 6] = te[6];
+        array[offset + 7] = te[7];
+
+        array[offset + 8] = te[8];
+        array[offset + 9] = te[9];
+        array[offset + 10] = te[10];
+        array[offset + 11] = te[11];
+
+        array[offset + 12] = te[12];
+        array[offset + 13] = te[13];
+        array[offset + 14] = te[14];
+        array[offset + 15] = te[15];
+
+        return array;
+    }
 }
 
-Object.assign(Matrix4.prototype, {
-    isMatrix4: true
-});
+Object.defineProperty(Matrix4.prototype, 'isMatrix4', {value: true});
 
 export {Matrix4};

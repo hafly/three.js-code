@@ -1,22 +1,16 @@
 import {_Math} from "./Math";
 import {Matrix4} from "./Matrix4";
+import {Vector2} from "./Vector2";
 
+/**
+ * 三维向量
+ * （部分没有意义且未使用的方法注释了）
+ */
 class Vector3 {
     constructor(x = 0, y = 0, z = 0) {
         this.x = x;
         this.y = y;
         this.z = z;
-    }
-
-    copy(v) {
-        this.x = v.x;
-        this.y = v.y;
-        this.z = v.z;
-        return this;
-    }
-
-    clone() {
-        return new this.constructor(this.x, this.y, this.z);
     }
 
     set(x, y, z) {
@@ -26,14 +20,33 @@ class Vector3 {
         return this;
     }
 
-    zero() {
-        this.x = 0;
-        this.y = 0;
-        this.z = 0;
+    setX(x) {
+        this.x = x;
         return this;
     }
 
-    // 向量加法（AB+BC=AC）
+    setY(y) {
+        this.y = y;
+        return this;
+    }
+
+    setZ(z) {
+        this.z = z;
+        return this;
+    }
+
+    clone() {
+        return new this.constructor(this.x, this.y, this.z);
+    }
+
+    copy(v) {
+        this.x = v.x;
+        this.y = v.y;
+        this.z = v.z;
+        return this;
+    }
+
+    // 向量加法
     add(v) {
         this.x += v.x;
         this.y += v.y;
@@ -41,15 +54,6 @@ class Vector3 {
         return this;
     }
 
-    // 加标量（没有意义，只用到个别特殊情况）
-    addScalar(s) {
-        this.x += s;
-        this.y += s;
-        this.z += s;
-        return this;
-    }
-
-    // 向量加法（由另外两个向量相加）
     addVectors(a, b) {
         this.x = a.x + b.x;
         this.y = a.y + b.y;
@@ -57,17 +61,19 @@ class Vector3 {
         return this;
     }
 
+    // 与标量s相加（没有几何意义，只用到Box3扩展边界）
+    addScalar(s) {
+        this.x += s;
+        this.y += s;
+        this.z += s;
+        return this;
+    }
+
+    // 向量减法
     sub(v) {
         this.x -= v.x;
         this.y -= v.y;
         this.z -= v.z;
-        return this;
-    }
-
-    subScalar(s) {
-        this.x -= s;
-        this.y -= s;
-        this.z -= s;
         return this;
     }
 
@@ -78,11 +84,27 @@ class Vector3 {
         return this;
     }
 
-    // 两向量的乘除法（没有几何意义）
+    // 与标量s相减（没有几何意义）
+    // subScalar(s) {
+    //     this.x -= s;
+    //     this.y -= s;
+    //     this.z -= s;
+    //     return this;
+    // }
+
+    // 向量乘法（没有几何意义）
     // multiply(v) {
     //     this.x *= v.x;
     //     this.y *= v.y;
     //     this.z *= v.z;
+    //     return this;
+    // }
+
+    // multiplyVectors(a, b) {
+    //     this.x = a.x * b.x;
+    //     this.y = a.y * b.y;
+    //     this.z = a.z * b.z;
+    //
     //     return this;
     // }
 
@@ -94,22 +116,13 @@ class Vector3 {
         return this;
     }
 
-    // 未使用
-    // multiplyVectors(a, b) {
-    //     this.x = a.x * b.x;
-    //     this.y = a.y * b.y;
-    //     this.z = a.z * b.z;
-    //
+    // 向量除法（没有几何意义）
+    // divide(v) {
+    //     this.x /= v.x;
+    //     this.y /= v.y;
+    //     this.z /= v.z;
     //     return this;
     // }
-
-    // 只用于个别情况（向量x,y,z各自的缩放）
-    divide(v) {
-        this.x /= v.x;
-        this.y /= v.y;
-        this.z /= v.z;
-        return this;
-    }
 
     // 除以标量（缩小向量）
     divideScalar(scalar) {
@@ -129,7 +142,7 @@ class Vector3 {
         return this;
     }
 
-    // 向量的模
+    // 向量的模（长度）
     length() {
         return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z);
     }
@@ -138,12 +151,7 @@ class Vector3 {
         return this.x * this.x + this.y * this.y + this.z * this.z;
     }
 
-    // 与向量的角度
-    angleTo(v) {
-        let theta = this.dot(v) / (Math.sqrt(this.lengthSq() * v.lengthSq()));
-        return Math.acos(_Math.clamp(theta, -1, 1));
-    }
-
+    // 到向量v的距离
     distanceTo(v) {
         return Math.sqrt(this.distanceToSquared(v));
     }
@@ -153,6 +161,12 @@ class Vector3 {
             dy = this.y - v.y,
             dz = this.z - v.z;
         return dx * dx + dy * dy + dz * dz;
+    }
+
+    // 与向量v的角度
+    angleTo(v) {
+        let theta = this.dot(v) / (Math.sqrt(this.lengthSq() * v.lengthSq()));
+        return Math.acos(_Math.clamp(theta, -1, 1));
     }
 
     // 点乘
@@ -208,12 +222,13 @@ class Vector3 {
         return this.applyMatrix4(matrix.getInverse(camera.projectionMatrix)).applyMatrix4(camera.matrixWorld);
     }
 
-    // 在向量上的投影
+    // 投影该向量到另一个向量上。
     projectOnVector(vector) {
         let scalar = vector.dot(this) / vector.lengthSq();
         return this.copy(vector).multiplyScalar(scalar);
     }
 
+    // 线性插值
     lerp(v, alpha) {
         this.x += (v.x - this.x) * alpha;
         this.y += (v.y - this.y) * alpha;
@@ -250,10 +265,17 @@ class Vector3 {
         return this;
     }
 
+    /**
+     * 将矩阵指定的列中的元素的向量值赋值给给当前的向量
+     * @param m
+     * @param index 列数,列的下标
+     * @returns {*}
+     */
     setFromMatrixColumn(m, index) {
         return this.fromArray(m.elements, index * 4);
     }
 
+    // 与向量v比较返回(x,y,z)值最小的三维向量
     min(v) {
         this.x = Math.min(this.x, v.x);
         this.y = Math.min(this.y, v.y);
@@ -262,6 +284,7 @@ class Vector3 {
         return this;
     }
 
+    // 与向量v比较返回(x,y,z)值最大的三维向量
     max(v) {
         this.x = Math.max(this.x, v.x);
         this.y = Math.max(this.y, v.y);
@@ -275,7 +298,6 @@ class Vector3 {
     }
 
     fromArray(array, offset) {
-
         if (offset === undefined) offset = 0;
 
         this.x = array[offset];
@@ -283,11 +305,9 @@ class Vector3 {
         this.z = array[offset + 2];
 
         return this;
-
     }
 
     toArray(array, offset) {
-
         if (array === undefined) array = [];
         if (offset === undefined) offset = 0;
 
@@ -296,12 +316,17 @@ class Vector3 {
         array[offset + 2] = this.z;
 
         return array;
+    }
 
+    fromBufferAttribute(attribute, index) {
+        this.x = attribute.getX(index);
+        this.y = attribute.getY(index);
+        this.z = attribute.getZ(index);
+
+        return this;
     }
 }
 
-Object.assign(Vector3.prototype, {
-    isVector3: true
-});
+Object.defineProperty(Vector3.prototype, 'isVector3', {value: true});
 
 export {Vector3};

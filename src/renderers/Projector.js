@@ -227,7 +227,7 @@ class Projector {
 
         _viewMatrix.copy(camera.matrixWorldInverse); // 相机逆矩阵
 
-        // 视图投影矩阵（camera.projectionMatrix = _viewProjectionMatrix * camera.matrixWorld）
+        // 相机投影矩阵 = 视图矩阵 * 相机矩阵（camera.projectionMatrix = _viewProjectionMatrix * camera.matrixWorld）
         // 当屏幕大小固定时，camera.projectionMatrix不变！camera.matrixWorld的变化影响视图矩阵_viewProjectionMatrix
         _viewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, _viewMatrix);
 

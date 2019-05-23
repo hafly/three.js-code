@@ -9,6 +9,8 @@ export {Vector3} from "./math/Vector3";
 export {Vector4} from "./math/Vector4";
 export {Matrix3} from "./math/Matrix3";
 export {Matrix4} from "./math/Matrix4";
+export { Box3 } from './math/Box3.js';
+export { Box2 } from './math/Box2.js';
 export {PerspectiveCamera} from "./cameras/PerspectiveCamera";
 export {OrthographicCamera} from "./cameras/OrthographicCamera";
 export {Scene} from "./scenes/Scene";

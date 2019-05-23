@@ -1,22 +1,14 @@
+import {Vector2} from "./Vector2";
+
+/**
+ * 四维向量
+ */
 class Vector4 {
     constructor(x = 0, y = 0, z = 0, w = 1) {
         this.x = x;
         this.y = y;
         this.z = z;
         this.w = w;
-    }
-
-    clone() {
-        return new this.constructor(this.x, this.y, this.z, this.w);
-    }
-
-    copy(v) {
-        this.x = v.x;
-        this.y = v.y;
-        this.z = v.z;
-        this.w = (v.w !== undefined) ? v.w : 1;
-
-        return this;
     }
 
     set(x, y, z, w) {
@@ -28,65 +20,15 @@ class Vector4 {
         return this;
     }
 
-    setScalar(scalar) {
-        this.x = scalar;
-        this.y = scalar;
-        this.z = scalar;
-        this.w = scalar;
-
-        return this;
+    clone() {
+        return new this.constructor(this.x, this.y, this.z, this.w);
     }
 
-    add(v) {
-        this.x += v.x;
-        this.y += v.y;
-        this.z += v.z;
-        this.w += v.w;
-
-        return this;
-    }
-
-    addScalar(s) {
-        this.x += s;
-        this.y += s;
-        this.z += s;
-        this.w += s;
-
-        return this;
-    }
-
-    addVectors(a, b) {
-        this.x = a.x + b.x;
-        this.y = a.y + b.y;
-        this.z = a.z + b.z;
-        this.w = a.w + b.w;
-
-        return this;
-    }
-
-    sub(v) {
-        this.x -= v.x;
-        this.y -= v.y;
-        this.z -= v.z;
-        this.w -= v.w;
-
-        return this;
-    }
-
-    subScalar(s) {
-        this.x -= s;
-        this.y -= s;
-        this.z -= s;
-        this.w -= s;
-
-        return this;
-    }
-
-    subVectors(a, b) {
-        this.x = a.x - b.x;
-        this.y = a.y - b.y;
-        this.z = a.z - b.z;
-        this.w = a.w - b.w;
+    copy(v) {
+        this.x = v.x;
+        this.y = v.y;
+        this.z = v.z;
+        this.w = (v.w !== undefined) ? v.w : 1;
 
         return this;
     }
@@ -106,10 +48,7 @@ class Vector4 {
         return this;
     }
 
-    divideScalar(scalar) {
-        return this.multiplyScalar(1 / scalar);
-    }
-
+    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
     applyMatrix4(m) {
         let x = this.x, y = this.y, z = this.z, w = this.w;
         let e = m.elements;
@@ -122,22 +61,7 @@ class Vector4 {
         return this;
     }
 
-    normalize() {
-        return this.divideScalar(this.length());
-    }
-
-    lengthSq() {
-        return this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w;
-    }
-
-    length() {
-        return Math.sqrt(this.x * this.x + this.y * this.y + this.z * this.z + this.w * this.w);
-    }
-
-    dot(v) {
-        return this.x * v.x + this.y * v.y + this.z * v.z + this.w * v.w;
-    }
-
+    // 线性插值
     lerp(v, alpha) {
         this.x += (v.x - this.x) * alpha;
         this.y += (v.y - this.y) * alpha;
@@ -150,10 +74,40 @@ class Vector4 {
     equals(v) {
         return ((v.x === this.x) && (v.y === this.y) && (v.z === this.z) && (v.w === this.w));
     }
+
+    fromArray(array, offset) {
+        if (offset === undefined) offset = 0;
+
+        this.x = array[offset];
+        this.y = array[offset + 1];
+        this.z = array[offset + 2];
+        this.w = array[offset + 3];
+
+        return this;
+    }
+
+    toArray(array, offset) {
+        if (array === undefined) array = [];
+        if (offset === undefined) offset = 0;
+
+        array[offset] = this.x;
+        array[offset + 1] = this.y;
+        array[offset + 2] = this.z;
+        array[offset + 3] = this.w;
+
+        return array;
+    }
+
+    fromBufferAttribute(attribute, index) {
+        this.x = attribute.getX(index);
+        this.y = attribute.getY(index);
+        this.z = attribute.getZ(index);
+        this.w = attribute.getW(index);
+
+        return this;
+    }
 }
 
-Object.assign(Vector4.prototype, {
-    isVector4: true
-});
+Object.defineProperty(Vector4.prototype, 'isVector4', {value: true});
 
 export {Vector4};

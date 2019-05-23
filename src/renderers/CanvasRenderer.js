@@ -11,7 +11,7 @@ let _canvasWidth, _canvasHeight,
 let _patterns = {}, _uvs;
 let _v1, _v2, _v3,
     _v1x, _v1y, _v2x, _v2y, _v3x, _v3y;
-let _clipBox = new Box2(),
+let _clipBox = new Box2(),  // 裁剪盒子，默认设为canvas大小
     _clearBox = new Box2(), // 清空画布2d盒子模型（不需要全屏清除，只清除绘制部分）
     _elemBox = new Box2();
 let _color = new Color();
@@ -63,7 +63,7 @@ class CanvasRenderer extends Renderer {
 
     render(scene, camera) {
         if (scene.autoUpdate === true) scene.updateMatrixWorld();
-        if (camera.parent === null) camera.updateMatrixWorld();
+        if (camera.parent === null) camera.updateMatrixWorld(); // 相机不加入到scene的情况，单独更新
 
         let background = scene.background;
         if (background && background.isColor) {

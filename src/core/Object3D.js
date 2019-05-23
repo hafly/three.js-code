@@ -1,16 +1,15 @@
-// import {_Math} from "../math/Math";
+import {_Math} from "../math/Math";
 import {EventDispatcher} from "./EventDispatcher";
 import {Euler} from "../math/Euler";
 import {Vector3} from "../math/Vector3";
 import {Matrix4} from "../math/Matrix4";
 import {Quaternion} from "../math/Quaternion";
 
-// 全局临时变量（作为全局避免重复实例化）
-let m1 = new Matrix4();
-let position = new Vector3();   // eye
-let target = new Vector3();     // target
-
 let object3DId = 0;
+// lookAt()的变量（声明全局变量，避免重复实例化）
+let m1 = new Matrix4();
+let position = new Vector3();
+let target = new Vector3();
 
 /**
  * 三维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
@@ -20,9 +19,12 @@ class Object3D extends EventDispatcher {
         super();
 
         Object.defineProperty(this, 'id', {value: object3DId++});
-        // this.uuid = _Math.generateUUID();
+        Object.defineProperty(this, 'isObject3D', {value: true});
+
+        this.uuid = _Math.generateUUID();
+
+        this.name = '';
         this.type = 'Object3D';
-        this.isObject3D = true;
 
         this.parent = null;
         this.children = [];
@@ -35,11 +37,12 @@ class Object3D extends EventDispatcher {
         this.up = Object3D.DefaultUp.clone();
 
         this.matrix = new Matrix4();        // 局部变换（相对于父级的变换）
-        this.matrixWorld = new Matrix4();   // 全局变换（用于最终的显示）
+        this.matrixWorld = new Matrix4();   // 全局变换
 
-        // 默认true，当设置为true时，自动更新局部矩阵。
+        // 当这个属性设置了之后，它将计算每一帧的位移、旋转（四元变换）和缩放矩阵，并重新计算matrixWorld属性。默认为true
         this.matrixAutoUpdate = Object3D.DefaultMatrixAutoUpdate;
-        // 默认false，当设置为true时，自动更新世界矩阵，然后重置该属性为false
+
+        // 当这个属性设置了之后，它将计算在那一帧中的matrixWorld，并将这个值重置为false。默认为false
         this.matrixWorldNeedsUpdate = false;
 
         // rotation改变后自动更新quaternion
@@ -63,21 +66,30 @@ class Object3D extends EventDispatcher {
     // 更新局部变换。位置、旋转、缩放 触发矩阵变化
     updateMatrix() {
         this.matrix.compose(this.position, this.quaternion, this.scale);
+        // 本地坐标变换一定会更新世界坐标
         this.matrixWorldNeedsUpdate = true;
     }
 
-    // 更新对象和子对象变换
+    // 更新物体及其子级的全局变换（render中调用）
     updateMatrixWorld(force) {
-        if (this.matrixAutoUpdate) this.updateMatrix();
+        // 更新局部坐标
+        if (this.matrixAutoUpdate){
+            this.updateMatrix();
+        }
+
+        // 更新世界坐标
         if (this.matrixWorldNeedsUpdate || force) {
             if (this.parent === null) {
+                // 父对象（一般是Scene）
                 this.matrixWorld.copy(this.matrix);
-            } else {
-                // 矩阵相乘结果为新的矩阵变换
+            }
+            else {
+                // 子对象
                 this.matrixWorld.multiplyMatrices(this.parent.matrixWorld, this.matrix);
             }
             this.matrixWorldNeedsUpdate = false;
-            force = true;
+
+            force = false;
         }
 
         // 必须更新子对象
@@ -163,6 +175,7 @@ class Object3D extends EventDispatcher {
         }
     }
 
+    // 遍历可见对象
     traverseVisible(callback) {
         if (this.visible === false) return;
 
@@ -173,6 +186,21 @@ class Object3D extends EventDispatcher {
         for (let i = 0, l = children.length; i < l; i++) {
             children[i].traverseVisible(callback);
         }
+    }
+
+    /**
+     * 返回一个表示该物体在世界空间中位置的矢量
+     * @param target 结果将被复制到这个Vector3中
+     * @returns {*} target
+     */
+    getWorldPosition(target) {
+        if (target === undefined) {
+            target = new Vector3();
+        }
+
+        this.updateMatrixWorld(true);
+
+        return target.setFromMatrixPosition(this.matrixWorld);
     }
 
     clone(recursive) {
