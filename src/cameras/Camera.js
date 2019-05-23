@@ -1,6 +1,9 @@
 import {Matrix4} from "../math/Matrix4";
 import {Object3D} from "../core/Object3D";
 
+/**
+ * 相机基类
+ */
 class Camera extends Object3D {
     constructor() {
         super();
@@ -20,6 +23,21 @@ class Camera extends Object3D {
 
         // 更新相机逆矩阵
         this.matrixWorldInverse.getInverse(this.matrixWorld);
+    }
+
+    copy(source, recursive) {
+        super.copy(source, recursive);
+
+        this.matrixWorldInverse.copy(source.matrixWorldInverse);
+
+        this.projectionMatrix.copy(source.projectionMatrix);
+        this.projectionMatrixInverse.copy(source.projectionMatrixInverse);
+
+        return this;
+    }
+
+    clone() {
+        return new this.constructor().copy(this);
     }
 }
 

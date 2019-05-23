@@ -181,785 +181,6 @@
 	}
 
 	/**
-	 * 3x3矩阵
-	 * 3x3矩阵可含有旋转、缩放、倾斜，但没有平移。
-	 */
-	class Matrix3 {
-	    constructor() {
-	        this.elements = [
-	            1, 0, 0,
-	            0, 1, 0,
-	            0, 0, 1
-	        ];
-	    }
-
-	    set(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
-	        let te = this.elements;
-
-	        te[0] = n11, te[1] = n21, te[2] = n31;
-	        te[3] = n12, te[4] = n22, te[5] = n32;
-	        te[6] = n13, te[7] = n23, te[8] = n33;
-
-	        return this;
-	    }
-
-	    // 重置为单位矩阵
-	    identity() {
-	        this.set(
-	            1, 0, 0,
-	            0, 1, 0,
-	            0, 0, 1
-	        );
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor().fromArray(this.elements);
-	    }
-
-	    copy(m) {
-	        let te = this.elements;
-	        let me = m.elements;
-
-	        te[0] = me[0], te[1] = me[1], te[2] = me[2];
-	        te[3] = me[3], te[4] = me[4], te[5] = me[5];
-	        te[6] = me[6], te[7] = me[7], te[8] = me[8];
-
-	        return this;
-	    }
-
-	    // 从Matrix4中设置
-	    setFromMatrix4(m) {
-	        let me = m.elements;
-	        this.set(
-	            me[0], me[4], me[8],
-	            me[1], me[5], me[9],
-	            me[2], me[6], me[10]
-	        );
-	        return this;
-	    }
-
-	    // 矩阵乘法
-	    multiply(m) {
-	        return this.multiplyMatrices(this, m);
-	    }
-
-	    premultiply(m) {
-	        return this.multiplyMatrices(m, this);
-	    }
-
-	    multiplyMatrices(a, b) {
-	        let ae = a.elements;
-	        let be = b.elements;
-	        let te = this.elements;
-
-	        let a11 = ae[0], a12 = ae[3], a13 = ae[6];
-	        let a21 = ae[1], a22 = ae[4], a23 = ae[7];
-	        let a31 = ae[2], a32 = ae[5], a33 = ae[8];
-
-	        let b11 = be[0], b12 = be[3], b13 = be[6];
-	        let b21 = be[1], b22 = be[4], b23 = be[7];
-	        let b31 = be[2], b32 = be[5], b33 = be[8];
-
-	        te[0] = a11 * b11 + a12 * b21 + a13 * b31;
-	        te[3] = a11 * b12 + a12 * b22 + a13 * b32;
-	        te[6] = a11 * b13 + a12 * b23 + a13 * b33;
-
-	        te[1] = a21 * b11 + a22 * b21 + a23 * b31;
-	        te[4] = a21 * b12 + a22 * b22 + a23 * b32;
-	        te[7] = a21 * b13 + a22 * b23 + a23 * b33;
-
-	        te[2] = a31 * b11 + a32 * b21 + a33 * b31;
-	        te[5] = a31 * b12 + a32 * b22 + a33 * b32;
-	        te[8] = a31 * b13 + a32 * b23 + a33 * b33;
-
-	        return this;
-	    }
-
-	    // 矩阵乘以标量s（缩放矩阵）
-	    multiplyScalar(s) {
-	        let te = this.elements;
-
-	        te[0] *= s;
-	        te[3] *= s;
-	        te[6] *= s;
-	        te[1] *= s;
-	        te[4] *= s;
-	        te[7] *= s;
-	        te[2] *= s;
-	        te[5] *= s;
-	        te[8] *= s;
-
-	        return this;
-	    }
-
-	    // 行列式
-	    determinant() {
-	        let te = this.elements;
-
-	        let a = te[0], b = te[1], c = te[2],
-	            d = te[3], e = te[4], f = te[5],
-	            g = te[6], h = te[7], i = te[8];
-
-	        return a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
-	    }
-
-	    // 求逆矩阵
-	    getInverse(matrix, throwOnDegenerate) {
-	        if (matrix && matrix.isMatrix4) {
-	            console.error("THREE.Matrix3: .getInverse() no longer takes a Matrix4 argument.");
-	        }
-
-	        let me = matrix.elements,
-	            te = this.elements,
-
-	            n11 = me[0], n21 = me[1], n31 = me[2],
-	            n12 = me[3], n22 = me[4], n32 = me[5],
-	            n13 = me[6], n23 = me[7], n33 = me[8],
-
-	            t11 = n33 * n22 - n32 * n23,
-	            t12 = n32 * n13 - n33 * n12,
-	            t13 = n23 * n12 - n22 * n13,
-
-	            det = n11 * t11 + n21 * t12 + n31 * t13;
-
-	        if (det === 0) {
-	            let msg = "THREE.Matrix3: .getInverse() can't invert matrix, determinant is 0";
-
-	            if (throwOnDegenerate === true) {
-	                throw new Error(msg);
-	            }
-	            else {
-	                console.warn(msg);
-	            }
-
-	            return this.identity();
-	        }
-
-	        let detInv = 1 / det;
-
-	        te[0] = t11 * detInv;
-	        te[1] = (n31 * n23 - n33 * n21) * detInv;
-	        te[2] = (n32 * n21 - n31 * n22) * detInv;
-
-	        te[3] = t12 * detInv;
-	        te[4] = (n33 * n11 - n31 * n13) * detInv;
-	        te[5] = (n31 * n12 - n32 * n11) * detInv;
-
-	        te[6] = t13 * detInv;
-	        te[7] = (n21 * n13 - n23 * n11) * detInv;
-	        te[8] = (n22 * n11 - n21 * n12) * detInv;
-
-	        return this;
-	    }
-
-	    // 转置矩阵
-	    transpose() {
-	        let tmp, m = this.elements;
-
-	        tmp = m[1], m[1] = m[3], m[3] = tmp;
-	        tmp = m[2], m[2] = m[6], m[6] = tmp;
-	        tmp = m[5], m[5] = m[7], m[7] = tmp;
-
-	        return this;
-	    }
-
-	    // 正规矩阵（矩阵m的逆矩阵的转置）
-	    getNormalMatrix(matrix4) {
-	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
-	    }
-
-	    equals(matrix) {
-	        let te = this.elements;
-	        let me = matrix.elements;
-
-	        for (let i = 0; i < 9; i++) {
-	            if (te[i] !== me[i]) return false;
-	        }
-
-	        return true;
-	    }
-
-	    fromArray(array, offset) {
-	        if (offset === undefined) offset = 0;
-
-	        for (let i = 0; i < 9; i++) {
-	            this.elements[i] = array[i + offset];
-	        }
-
-	        return this;
-	    }
-
-	    toArray(array, offset) {
-	        if (array === undefined) array = [];
-	        if (offset === undefined) offset = 0;
-
-	        let te = this.elements;
-
-	        array[offset] = te[0];
-	        array[offset + 1] = te[1];
-	        array[offset + 2] = te[2];
-
-	        array[offset + 3] = te[3];
-	        array[offset + 4] = te[4];
-	        array[offset + 5] = te[5];
-
-	        array[offset + 6] = te[6];
-	        array[offset + 7] = te[7];
-	        array[offset + 8] = te[8];
-
-	        return array;
-	    }
-	}
-
-	Object.defineProperty(Matrix3.prototype, 'isMatrix3', {value: true});
-
-	/**
-	 * 四元数
-	 */
-	class Quaternion {
-	    constructor(x = 0, y = 0, z = 0, w = 1) {
-	        this._x = x;
-	        this._y = y;
-	        this._z = z;
-	        this._w = w;
-	    }
-
-	    set(x, y, z, w) {
-	        this._x = x;
-	        this._y = y;
-	        this._z = z;
-	        this._w = w;
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor(this._x, this._y, this._z, this._w);
-	    }
-
-	    copy(quaternion) {
-	        this._x = quaternion._x;
-	        this._y = quaternion._y;
-	        this._z = quaternion._z;
-	        this._w = quaternion._w;
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    /**
-	     * 从欧拉角设置Quaternion
-	     * @param euler
-	     * @param update {Boolean} 是否调用onChangeCallback()方法
-	     * @returns {Quaternion}
-	     */
-	    setFromEuler(euler, update) {
-	        if (!(euler && euler.isEuler)) {
-	            throw new Error('THREE.Quaternion: .setFromEuler() now expects an Euler rotation rather than a Vector3 and order.');
-	        }
-
-	        let x = euler._x, y = euler._y, z = euler._z, order = euler._order;
-
-	        let cos = Math.cos;
-	        let sin = Math.sin;
-
-	        let c1 = cos(x / 2);
-	        let c2 = cos(y / 2);
-	        let c3 = cos(z / 2);
-
-	        let s1 = sin(x / 2);
-	        let s2 = sin(y / 2);
-	        let s3 = sin(z / 2);
-
-	        if (order === 'XYZ') {
-	            this._x = s1 * c2 * c3 + c1 * s2 * s3;
-	            this._y = c1 * s2 * c3 - s1 * c2 * s3;
-	            this._z = c1 * c2 * s3 + s1 * s2 * c3;
-	            this._w = c1 * c2 * c3 - s1 * s2 * s3;
-	        } else if (order === 'YXZ') {
-	            this._x = s1 * c2 * c3 + c1 * s2 * s3;
-	            this._y = c1 * s2 * c3 - s1 * c2 * s3;
-	            this._z = c1 * c2 * s3 - s1 * s2 * c3;
-	            this._w = c1 * c2 * c3 + s1 * s2 * s3;
-	        } else if (order === 'ZXY') {
-	            this._x = s1 * c2 * c3 - c1 * s2 * s3;
-	            this._y = c1 * s2 * c3 + s1 * c2 * s3;
-	            this._z = c1 * c2 * s3 + s1 * s2 * c3;
-	            this._w = c1 * c2 * c3 - s1 * s2 * s3;
-	        } else if (order === 'ZYX') {
-	            this._x = s1 * c2 * c3 - c1 * s2 * s3;
-	            this._y = c1 * s2 * c3 + s1 * c2 * s3;
-	            this._z = c1 * c2 * s3 - s1 * s2 * c3;
-	            this._w = c1 * c2 * c3 + s1 * s2 * s3;
-	        } else if (order === 'YZX') {
-	            this._x = s1 * c2 * c3 + c1 * s2 * s3;
-	            this._y = c1 * s2 * c3 + s1 * c2 * s3;
-	            this._z = c1 * c2 * s3 - s1 * s2 * c3;
-	            this._w = c1 * c2 * c3 - s1 * s2 * s3;
-	        } else if (order === 'XZY') {
-	            this._x = s1 * c2 * c3 - c1 * s2 * s3;
-	            this._y = c1 * s2 * c3 - s1 * c2 * s3;
-	            this._z = c1 * c2 * s3 + s1 * s2 * c3;
-	            this._w = c1 * c2 * c3 + s1 * s2 * s3;
-	        }
-
-	        if (update !== false) this.onChangeCallback();
-
-	        return this;
-
-	    }
-
-	    /**
-	     * 从轴和角度设置Quaternion
-	     * @param axis
-	     * @param angle
-	     * @returns {Quaternion}
-	     */
-	    setFromAxisAngle(axis, angle) {
-	        let halfAngle = angle / 2, s = Math.sin(halfAngle);
-
-	        this._x = axis._x * s;
-	        this._y = axis._y * s;
-	        this._z = axis._z * s;
-	        this._w = Math.cos(halfAngle);
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    /**
-	     * 从Matrix4设置Quaternion
-	     * @param m
-	     * @returns {Quaternion}
-	     */
-	    setFromRotationMatrix(m) {
-	        let te = m.elements,
-
-	            m11 = te[0], m12 = te[4], m13 = te[8],
-	            m21 = te[1], m22 = te[5], m23 = te[9],
-	            m31 = te[2], m32 = te[6], m33 = te[10],
-
-	            trace = m11 + m22 + m33, s;
-	        if (trace > 0) {
-	            s = 0.5 / Math.sqrt(trace + 1.0);
-
-	            this._w = 0.25 / s;
-	            this._x = (m32 - m23) * s;
-	            this._y = (m13 - m31) * s;
-	            this._z = (m21 - m12) * s;
-	        } else if (m11 > m22 && m11 > m33) {
-	            s = 2.0 * Math.sqrt(1.0 + m11 - m22 - m33);
-
-	            this._w = (m32 - m23) / s;
-	            this._x = 0.25 * s;
-	            this._y = (m12 + m21) / s;
-	            this._z = (m13 + m31) / s;
-	        } else if (m22 > m33) {
-	            s = 2.0 * Math.sqrt(1.0 + m22 - m11 - m33);
-
-	            this._w = (m13 - m31) / s;
-	            this._x = (m12 + m21) / s;
-	            this._y = 0.25 * s;
-	            this._z = (m23 + m32) / s;
-	        } else {
-	            s = 2.0 * Math.sqrt(1.0 + m33 - m11 - m22);
-
-	            this._w = (m21 - m12) / s;
-	            this._x = (m13 + m31) / s;
-	            this._y = (m23 + m32) / s;
-	            this._z = 0.25 * s;
-	        }
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    // 四元素乘法
-	    multiply(q) {
-	        return this.multiplyQuaternions(this, q);
-	    }
-
-	    premultiply(q) {
-	        return this.multiplyQuaternions(q, this);
-	    }
-
-	    multiplyQuaternions(a, b) {
-	        let qax = a._x, qay = a._y, qaz = a._z, qaw = a._w;
-	        let qbx = b._x, qby = b._y, qbz = b._z, qbw = b._w;
-
-	        this._x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
-	        this._y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
-	        this._z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
-	        this._w = qaw * qbw - qax * qbx - qay * qby - qaz * qbz;
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    // 线性插值
-	    slerp(qb, t) {
-	        if (t === 0) return this;
-	        if (t === 1) return this.copy(qb);
-
-	        let x = this._x, y = this._y, z = this._z, w = this._w;
-
-	        // http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/
-
-	        let cosHalfTheta = w * qb._w + x * qb._x + y * qb._y + z * qb._z;
-
-	        if (cosHalfTheta < 0) {
-	            this._w = -qb._w;
-	            this._x = -qb._x;
-	            this._y = -qb._y;
-	            this._z = -qb._z;
-
-	            cosHalfTheta = -cosHalfTheta;
-	        }
-	        else {
-	            this.copy(qb);
-	        }
-
-	        if (cosHalfTheta >= 1.0) {
-	            this._w = w;
-	            this._x = x;
-	            this._y = y;
-	            this._z = z;
-
-	            return this;
-	        }
-
-	        let sqrSinHalfTheta = 1.0 - cosHalfTheta * cosHalfTheta;
-
-	        if (sqrSinHalfTheta <= Number.EPSILON) {
-	            let s = 1 - t;
-	            this._w = s * w + t * this._w;
-	            this._x = s * x + t * this._x;
-	            this._y = s * y + t * this._y;
-	            this._z = s * z + t * this._z;
-
-	            return this.normalize();
-	        }
-
-	        let sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
-	        let halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
-	        let ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,
-	            ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
-
-	        this._w = (w * ratioA + this._w * ratioB);
-	        this._x = (x * ratioA + this._x * ratioB);
-	        this._y = (y * ratioA + this._y * ratioB);
-	        this._z = (z * ratioA + this._z * ratioB);
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    equals(quaternion) {
-	        return (quaternion._x === this._x) && (quaternion._y === this._y) && (quaternion._z === this._z) && (quaternion._w === this._w);
-	    }
-
-	    fromArray(array, offset) {
-	        if (offset === undefined) offset = 0;
-
-	        this._x = array[offset];
-	        this._y = array[offset + 1];
-	        this._z = array[offset + 2];
-	        this._w = array[offset + 3];
-
-	        this.onChangeCallback();
-
-	        return this;
-	    }
-
-	    toArray(array, offset) {
-	        if (array === undefined) array = [];
-	        if (offset === undefined) offset = 0;
-
-	        array[offset] = this._x;
-	        array[offset + 1] = this._y;
-	        array[offset + 2] = this._z;
-	        array[offset + 3] = this._w;
-
-	        return array;
-	    }
-
-	    onChange(callback) {
-	        this.onChangeCallback = callback;
-
-	        return this;
-	    }
-
-	    onChangeCallback() {
-	    }
-	}
-
-	Object.defineProperty(Quaternion.prototype, 'isQuaternion', {value: true});
-
-	// 定义内部属性。对xyzw值的改变会自动触发 onChangeCallback() 方法
-	Object.defineProperties(Quaternion.prototype, {
-	    x: {
-	        get: function () {
-	            return this._x;
-	        },
-
-	        set: function (value) {
-	            this._x = value;
-	            this.onChangeCallback();
-	        }
-	    },
-	    y: {
-	        get: function () {
-	            return this._y;
-	        },
-
-	        set: function (value) {
-	            this._y = value;
-	            this.onChangeCallback();
-	        }
-	    },
-	    z: {
-	        get: function () {
-	            return this._z;
-	        },
-
-	        set: function (value) {
-	            this._z = value;
-	            this.onChangeCallback();
-	        }
-	    },
-	    w: {
-	        get: function () {
-	            return this._w;
-	        },
-
-	        set: function (value) {
-	            this._w = value;
-	            this.onChangeCallback();
-	        }
-	    },
-	});
-
-	/**
-	 * 二维向量
-	 * （部分没有意义且未使用的方法注释了）
-	 */
-	class Vector2 {
-	    constructor(x = 0, y = 0) {
-	        this.x = x;
-	        this.y = y;
-	    }
-
-	    set(x, y) {
-	        this.x = x;
-	        this.y = y;
-
-	        return this;
-	    }
-
-	    setX(x) {
-	        this.x = x;
-	        return this;
-	    }
-
-	    setY(y) {
-	        this.y = y;
-	        return this;
-	    }
-
-	    clone() {
-	        return new this.constructor(this.x, this.y);
-	    }
-
-	    copy(v) {
-	        this.x = v.x;
-	        this.y = v.y;
-
-	        return this;
-	    }
-
-	    // 向量加法：AB+BC=AC
-	    add(v) {
-	        this.x += v.x;
-	        this.y += v.y;
-	        return this;
-	    }
-
-	    addVectors(a, b) {
-	        this.x = a.x + b.x;
-	        this.y = a.y + b.y;
-	        return this;
-	    }
-
-	    // 与标量s相加（没有几何意义，只用到Box2扩展边界）
-	    addScalar(s) {
-	        this.x += s;
-	        this.y += s;
-	        return this;
-	    }
-
-	    // 向量减法
-	    sub(v) {
-	        this.x -= v.x;
-	        this.y -= v.y;
-	        return this;
-	    }
-
-	    subVectors(a, b) {
-	        this.x = a.x - b.x;
-	        this.y = a.y - b.y;
-	        return this;
-	    }
-
-	    // 与标量s相减（没有几何意义）
-	    // subScalar(s) {
-	    //     this.x -= s;
-	    //     this.y -= s;
-	    //     return this;
-	    // }
-
-	    // 向量乘法（没有几何意义）
-	    // multiply(v) {
-	    //     this.x *= v.x;
-	    //     this.y *= v.y;
-	    //     return this;
-	    // }
-
-	    // 乘以标量（放大向量）
-	    multiplyScalar(scalar) {
-	        this.x *= scalar;
-	        this.y *= scalar;
-	        return this;
-	    }
-
-	    // 向量除法（没有几何意义）
-	    // divide(v) {
-	    //     this.x /= v.x;
-	    //     this.y /= v.y;
-	    //     return this;
-	    // }
-
-	    // 除以标量（缩小向量）
-	    divideScalar(scalar) {
-	        return this.multiplyScalar(1 / scalar);
-	    }
-
-	    // 标准化向量，长度为1
-	    normalize() {
-	        return this.divideScalar(this.length() || 1);
-	    }
-
-	    // 反转向量
-	    negate() {
-	        this.x = -this.x;
-	        this.y = -this.y;
-
-	        return this;
-	    }
-
-	    // 点乘
-	    dot(v) {
-	        return this.x * v.x + this.y * v.y;
-	    }
-
-	    // 叉乘
-	    cross(v) {
-	        return this.x * v.y - this.y * v.x;
-	    }
-
-	    // 向量的模（长度）
-	    length() {
-	        return Math.sqrt(this.x * this.x + this.y * this.y);
-	    }
-
-	    lengthSq() {
-	        return this.x * this.x + this.y * this.y;
-	    }
-
-	    // 到向量v的距离
-	    distanceTo(v) {
-	        return Math.sqrt(this.distanceToSquared(v));
-	    }
-
-	    distanceToSquared(v) {
-	        let dx = this.x - v.x, dy = this.y - v.y;
-	        return dx * dx + dy * dy;
-	    }
-
-	    /**
-	     * 与向量v的线性插值
-	     * @param v
-	     * @param alpha 百分比权值(0.0-1.0)
-	     * @returns {Vector2}
-	     */
-	    lerp(v, alpha) {
-	        this.x += (v.x - this.x) * alpha;
-	        this.y += (v.y - this.y) * alpha;
-
-	        return this;
-	    }
-
-	    lerpVectors(v1, v2, alpha) {
-	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
-	    }
-
-	    // 与向量v比较返回(x,y)值最小的二维向量
-	    min(v) {
-	        this.x = Math.min(this.x, v.x);
-	        this.y = Math.min(this.y, v.y);
-
-	        return this;
-	    }
-
-	    // 与向量v比较返回(x,y)值最大的二维向量
-	    max(v) {
-	        this.x = Math.max(this.x, v.x);
-	        this.y = Math.max(this.y, v.y);
-
-	        return this;
-	    }
-
-	    equals(v) {
-	        return ((v.x === this.x) && (v.y === this.y));
-	    }
-
-	    fromArray(array, offset) {
-	        if (offset === undefined) offset = 0;
-
-	        this.x = array[offset];
-	        this.y = array[offset + 1];
-
-	        return this;
-	    }
-
-	    toArray(array, offset) {
-	        if (array === undefined) array = [];
-	        if (offset === undefined) offset = 0;
-
-	        array[offset] = this.x;
-	        array[offset + 1] = this.y;
-
-	        return array;
-	    }
-
-	    fromBufferAttribute(attribute, index) {
-	        this.x = attribute.getX(index);
-	        this.y = attribute.getY(index);
-
-	        return this;
-	    }
-	}
-
-	Object.defineProperty(Vector2.prototype, 'isVector2', {value: true});
-
-	/**
 	 * 三维向量
 	 * （部分没有意义且未使用的方法注释了）
 	 */
@@ -1154,7 +375,19 @@
 	        return this;
 	    }
 
-	    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
+	    // 将该向量乘以三阶矩阵m
+	    applyMatrix3(m) {
+	        let x = this.x, y = this.y, z = this.z;
+	        let e = m.elements;
+
+	        this.x = e[0] * x + e[3] * y + e[6] * z;
+	        this.y = e[1] * x + e[4] * y + e[7] * z;
+	        this.z = e[2] * x + e[5] * y + e[8] * z;
+
+	        return this;
+	    }
+
+	    // 将当前向量乘以一个4x4的矩阵，第四个维度隐式地为1（= 当前位置 + 矩阵变换位置）
 	    applyMatrix4(m) {
 	        let x = this.x, y = this.y, z = this.z;
 	        let e = m.elements;
@@ -1995,6 +1228,591 @@
 
 	Object.defineProperty(Matrix4.prototype, 'isMatrix4', {value: true});
 
+	let v1$1 = new Vector3();
+	/**
+	 * 3x3矩阵
+	 * 3x3矩阵可含有旋转、缩放、倾斜，但没有平移。
+	 */
+	class Matrix3 {
+	    constructor() {
+	        this.elements = [
+	            1, 0, 0,
+	            0, 1, 0,
+	            0, 0, 1
+	        ];
+	    }
+
+	    set(n11, n12, n13, n21, n22, n23, n31, n32, n33) {
+	        let te = this.elements;
+
+	        te[0] = n11, te[1] = n21, te[2] = n31;
+	        te[3] = n12, te[4] = n22, te[5] = n32;
+	        te[6] = n13, te[7] = n23, te[8] = n33;
+
+	        return this;
+	    }
+
+	    // 重置为单位矩阵
+	    identity() {
+	        this.set(
+	            1, 0, 0,
+	            0, 1, 0,
+	            0, 0, 1
+	        );
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor().fromArray(this.elements);
+	    }
+
+	    copy(m) {
+	        let te = this.elements;
+	        let me = m.elements;
+
+	        te[0] = me[0], te[1] = me[1], te[2] = me[2];
+	        te[3] = me[3], te[4] = me[4], te[5] = me[5];
+	        te[6] = me[6], te[7] = me[7], te[8] = me[8];
+
+	        return this;
+	    }
+
+	    // 从Matrix4中设置
+	    setFromMatrix4(m) {
+	        let me = m.elements;
+	        this.set(
+	            me[0], me[4], me[8],
+	            me[1], me[5], me[9],
+	            me[2], me[6], me[10]
+	        );
+	        return this;
+	    }
+
+	    /**
+	     * 用这个矩阵乘以缓存属性attribute里的所有3d向量
+	     * @param attribute 三维向量缓存属性
+	     * @returns {attribute}
+	     */
+	    applyToBufferAttribute(attribute) {
+	        for (let i = 0, l = attribute.count; i < l; i++) {
+	            v1$1.x = attribute.getX(i);
+	            v1$1.y = attribute.getY(i);
+	            v1$1.z = attribute.getZ(i);
+
+	            v1$1.applyMatrix3(this);
+	            attribute.setXYZ(i, v1$1.x, v1$1.y, v1$1.z);
+	        }
+	        return attribute;
+	    }
+
+	    // 矩阵乘法
+	    multiply(m) {
+	        return this.multiplyMatrices(this, m);
+	    }
+
+	    premultiply(m) {
+	        return this.multiplyMatrices(m, this);
+	    }
+
+	    multiplyMatrices(a, b) {
+	        let ae = a.elements;
+	        let be = b.elements;
+	        let te = this.elements;
+
+	        let a11 = ae[0], a12 = ae[3], a13 = ae[6];
+	        let a21 = ae[1], a22 = ae[4], a23 = ae[7];
+	        let a31 = ae[2], a32 = ae[5], a33 = ae[8];
+
+	        let b11 = be[0], b12 = be[3], b13 = be[6];
+	        let b21 = be[1], b22 = be[4], b23 = be[7];
+	        let b31 = be[2], b32 = be[5], b33 = be[8];
+
+	        te[0] = a11 * b11 + a12 * b21 + a13 * b31;
+	        te[3] = a11 * b12 + a12 * b22 + a13 * b32;
+	        te[6] = a11 * b13 + a12 * b23 + a13 * b33;
+
+	        te[1] = a21 * b11 + a22 * b21 + a23 * b31;
+	        te[4] = a21 * b12 + a22 * b22 + a23 * b32;
+	        te[7] = a21 * b13 + a22 * b23 + a23 * b33;
+
+	        te[2] = a31 * b11 + a32 * b21 + a33 * b31;
+	        te[5] = a31 * b12 + a32 * b22 + a33 * b32;
+	        te[8] = a31 * b13 + a32 * b23 + a33 * b33;
+
+	        return this;
+	    }
+
+	    // 矩阵乘以标量s（缩放矩阵）
+	    multiplyScalar(s) {
+	        let te = this.elements;
+
+	        te[0] *= s;
+	        te[3] *= s;
+	        te[6] *= s;
+	        te[1] *= s;
+	        te[4] *= s;
+	        te[7] *= s;
+	        te[2] *= s;
+	        te[5] *= s;
+	        te[8] *= s;
+
+	        return this;
+	    }
+
+	    // 行列式
+	    determinant() {
+	        let te = this.elements;
+
+	        let a = te[0], b = te[1], c = te[2],
+	            d = te[3], e = te[4], f = te[5],
+	            g = te[6], h = te[7], i = te[8];
+
+	        return a * e * i - a * f * h - b * d * i + b * f * g + c * d * h - c * e * g;
+	    }
+
+	    // 求逆矩阵
+	    getInverse(matrix, throwOnDegenerate) {
+	        if (matrix && matrix.isMatrix4) {
+	            console.error("THREE.Matrix3: .getInverse() no longer takes a Matrix4 argument.");
+	        }
+
+	        let me = matrix.elements,
+	            te = this.elements,
+
+	            n11 = me[0], n21 = me[1], n31 = me[2],
+	            n12 = me[3], n22 = me[4], n32 = me[5],
+	            n13 = me[6], n23 = me[7], n33 = me[8],
+
+	            t11 = n33 * n22 - n32 * n23,
+	            t12 = n32 * n13 - n33 * n12,
+	            t13 = n23 * n12 - n22 * n13,
+
+	            det = n11 * t11 + n21 * t12 + n31 * t13;
+
+	        if (det === 0) {
+	            let msg = "THREE.Matrix3: .getInverse() can't invert matrix, determinant is 0";
+
+	            if (throwOnDegenerate === true) {
+	                throw new Error(msg);
+	            }
+	            else {
+	                console.warn(msg);
+	            }
+
+	            return this.identity();
+	        }
+
+	        let detInv = 1 / det;
+
+	        te[0] = t11 * detInv;
+	        te[1] = (n31 * n23 - n33 * n21) * detInv;
+	        te[2] = (n32 * n21 - n31 * n22) * detInv;
+
+	        te[3] = t12 * detInv;
+	        te[4] = (n33 * n11 - n31 * n13) * detInv;
+	        te[5] = (n31 * n12 - n32 * n11) * detInv;
+
+	        te[6] = t13 * detInv;
+	        te[7] = (n21 * n13 - n23 * n11) * detInv;
+	        te[8] = (n22 * n11 - n21 * n12) * detInv;
+
+	        return this;
+	    }
+
+	    // 转置矩阵
+	    transpose() {
+	        let tmp, m = this.elements;
+
+	        tmp = m[1], m[1] = m[3], m[3] = tmp;
+	        tmp = m[2], m[2] = m[6], m[6] = tmp;
+	        tmp = m[5], m[5] = m[7], m[7] = tmp;
+
+	        return this;
+	    }
+
+	    // 正规矩阵（矩阵m的逆矩阵的转置）
+	    getNormalMatrix(matrix4) {
+	        return this.setFromMatrix4(matrix4).getInverse(this).transpose();
+	    }
+
+	    equals(matrix) {
+	        let te = this.elements;
+	        let me = matrix.elements;
+
+	        for (let i = 0; i < 9; i++) {
+	            if (te[i] !== me[i]) return false;
+	        }
+
+	        return true;
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        for (let i = 0; i < 9; i++) {
+	            this.elements[i] = array[i + offset];
+	        }
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        let te = this.elements;
+
+	        array[offset] = te[0];
+	        array[offset + 1] = te[1];
+	        array[offset + 2] = te[2];
+
+	        array[offset + 3] = te[3];
+	        array[offset + 4] = te[4];
+	        array[offset + 5] = te[5];
+
+	        array[offset + 6] = te[6];
+	        array[offset + 7] = te[7];
+	        array[offset + 8] = te[8];
+
+	        return array;
+	    }
+	}
+
+	Object.defineProperty(Matrix3.prototype, 'isMatrix3', {value: true});
+
+	/**
+	 * 四元数
+	 */
+	class Quaternion {
+	    constructor(x = 0, y = 0, z = 0, w = 1) {
+	        this._x = x;
+	        this._y = y;
+	        this._z = z;
+	        this._w = w;
+	    }
+
+	    set(x, y, z, w) {
+	        this._x = x;
+	        this._y = y;
+	        this._z = z;
+	        this._w = w;
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this._x, this._y, this._z, this._w);
+	    }
+
+	    copy(quaternion) {
+	        this._x = quaternion._x;
+	        this._y = quaternion._y;
+	        this._z = quaternion._z;
+	        this._w = quaternion._w;
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    /**
+	     * 从欧拉角设置Quaternion
+	     * @param euler
+	     * @param update {Boolean} 是否调用onChangeCallback()方法
+	     * @returns {Quaternion}
+	     */
+	    setFromEuler(euler, update) {
+	        if (!(euler && euler.isEuler)) {
+	            throw new Error('THREE.Quaternion: .setFromEuler() now expects an Euler rotation rather than a Vector3 and order.');
+	        }
+
+	        let x = euler._x, y = euler._y, z = euler._z, order = euler._order;
+
+	        let cos = Math.cos;
+	        let sin = Math.sin;
+
+	        let c1 = cos(x / 2);
+	        let c2 = cos(y / 2);
+	        let c3 = cos(z / 2);
+
+	        let s1 = sin(x / 2);
+	        let s2 = sin(y / 2);
+	        let s3 = sin(z / 2);
+
+	        if (order === 'XYZ') {
+	            this._x = s1 * c2 * c3 + c1 * s2 * s3;
+	            this._y = c1 * s2 * c3 - s1 * c2 * s3;
+	            this._z = c1 * c2 * s3 + s1 * s2 * c3;
+	            this._w = c1 * c2 * c3 - s1 * s2 * s3;
+	        } else if (order === 'YXZ') {
+	            this._x = s1 * c2 * c3 + c1 * s2 * s3;
+	            this._y = c1 * s2 * c3 - s1 * c2 * s3;
+	            this._z = c1 * c2 * s3 - s1 * s2 * c3;
+	            this._w = c1 * c2 * c3 + s1 * s2 * s3;
+	        } else if (order === 'ZXY') {
+	            this._x = s1 * c2 * c3 - c1 * s2 * s3;
+	            this._y = c1 * s2 * c3 + s1 * c2 * s3;
+	            this._z = c1 * c2 * s3 + s1 * s2 * c3;
+	            this._w = c1 * c2 * c3 - s1 * s2 * s3;
+	        } else if (order === 'ZYX') {
+	            this._x = s1 * c2 * c3 - c1 * s2 * s3;
+	            this._y = c1 * s2 * c3 + s1 * c2 * s3;
+	            this._z = c1 * c2 * s3 - s1 * s2 * c3;
+	            this._w = c1 * c2 * c3 + s1 * s2 * s3;
+	        } else if (order === 'YZX') {
+	            this._x = s1 * c2 * c3 + c1 * s2 * s3;
+	            this._y = c1 * s2 * c3 + s1 * c2 * s3;
+	            this._z = c1 * c2 * s3 - s1 * s2 * c3;
+	            this._w = c1 * c2 * c3 - s1 * s2 * s3;
+	        } else if (order === 'XZY') {
+	            this._x = s1 * c2 * c3 - c1 * s2 * s3;
+	            this._y = c1 * s2 * c3 - s1 * c2 * s3;
+	            this._z = c1 * c2 * s3 + s1 * s2 * c3;
+	            this._w = c1 * c2 * c3 + s1 * s2 * s3;
+	        }
+
+	        if (update !== false) this.onChangeCallback();
+
+	        return this;
+
+	    }
+
+	    /**
+	     * 从轴和角度设置Quaternion
+	     * @param axis
+	     * @param angle
+	     * @returns {Quaternion}
+	     */
+	    setFromAxisAngle(axis, angle) {
+	        let halfAngle = angle / 2, s = Math.sin(halfAngle);
+
+	        this._x = axis._x * s;
+	        this._y = axis._y * s;
+	        this._z = axis._z * s;
+	        this._w = Math.cos(halfAngle);
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    /**
+	     * 从Matrix4设置Quaternion
+	     * @param m
+	     * @returns {Quaternion}
+	     */
+	    setFromRotationMatrix(m) {
+	        let te = m.elements,
+
+	            m11 = te[0], m12 = te[4], m13 = te[8],
+	            m21 = te[1], m22 = te[5], m23 = te[9],
+	            m31 = te[2], m32 = te[6], m33 = te[10],
+
+	            trace = m11 + m22 + m33, s;
+	        if (trace > 0) {
+	            s = 0.5 / Math.sqrt(trace + 1.0);
+
+	            this._w = 0.25 / s;
+	            this._x = (m32 - m23) * s;
+	            this._y = (m13 - m31) * s;
+	            this._z = (m21 - m12) * s;
+	        } else if (m11 > m22 && m11 > m33) {
+	            s = 2.0 * Math.sqrt(1.0 + m11 - m22 - m33);
+
+	            this._w = (m32 - m23) / s;
+	            this._x = 0.25 * s;
+	            this._y = (m12 + m21) / s;
+	            this._z = (m13 + m31) / s;
+	        } else if (m22 > m33) {
+	            s = 2.0 * Math.sqrt(1.0 + m22 - m11 - m33);
+
+	            this._w = (m13 - m31) / s;
+	            this._x = (m12 + m21) / s;
+	            this._y = 0.25 * s;
+	            this._z = (m23 + m32) / s;
+	        } else {
+	            s = 2.0 * Math.sqrt(1.0 + m33 - m11 - m22);
+
+	            this._w = (m21 - m12) / s;
+	            this._x = (m13 + m31) / s;
+	            this._y = (m23 + m32) / s;
+	            this._z = 0.25 * s;
+	        }
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    // 四元素乘法
+	    multiply(q) {
+	        return this.multiplyQuaternions(this, q);
+	    }
+
+	    premultiply(q) {
+	        return this.multiplyQuaternions(q, this);
+	    }
+
+	    multiplyQuaternions(a, b) {
+	        let qax = a._x, qay = a._y, qaz = a._z, qaw = a._w;
+	        let qbx = b._x, qby = b._y, qbz = b._z, qbw = b._w;
+
+	        this._x = qax * qbw + qaw * qbx + qay * qbz - qaz * qby;
+	        this._y = qay * qbw + qaw * qby + qaz * qbx - qax * qbz;
+	        this._z = qaz * qbw + qaw * qbz + qax * qby - qay * qbx;
+	        this._w = qaw * qbw - qax * qbx - qay * qby - qaz * qbz;
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    // 线性插值
+	    slerp(qb, t) {
+	        if (t === 0) return this;
+	        if (t === 1) return this.copy(qb);
+
+	        let x = this._x, y = this._y, z = this._z, w = this._w;
+
+	        // http://www.euclideanspace.com/maths/algebra/realNormedAlgebra/quaternions/slerp/
+
+	        let cosHalfTheta = w * qb._w + x * qb._x + y * qb._y + z * qb._z;
+
+	        if (cosHalfTheta < 0) {
+	            this._w = -qb._w;
+	            this._x = -qb._x;
+	            this._y = -qb._y;
+	            this._z = -qb._z;
+
+	            cosHalfTheta = -cosHalfTheta;
+	        }
+	        else {
+	            this.copy(qb);
+	        }
+
+	        if (cosHalfTheta >= 1.0) {
+	            this._w = w;
+	            this._x = x;
+	            this._y = y;
+	            this._z = z;
+
+	            return this;
+	        }
+
+	        let sqrSinHalfTheta = 1.0 - cosHalfTheta * cosHalfTheta;
+
+	        if (sqrSinHalfTheta <= Number.EPSILON) {
+	            let s = 1 - t;
+	            this._w = s * w + t * this._w;
+	            this._x = s * x + t * this._x;
+	            this._y = s * y + t * this._y;
+	            this._z = s * z + t * this._z;
+
+	            return this.normalize();
+	        }
+
+	        let sinHalfTheta = Math.sqrt(sqrSinHalfTheta);
+	        let halfTheta = Math.atan2(sinHalfTheta, cosHalfTheta);
+	        let ratioA = Math.sin((1 - t) * halfTheta) / sinHalfTheta,
+	            ratioB = Math.sin(t * halfTheta) / sinHalfTheta;
+
+	        this._w = (w * ratioA + this._w * ratioB);
+	        this._x = (x * ratioA + this._x * ratioB);
+	        this._y = (y * ratioA + this._y * ratioB);
+	        this._z = (z * ratioA + this._z * ratioB);
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    equals(quaternion) {
+	        return (quaternion._x === this._x) && (quaternion._y === this._y) && (quaternion._z === this._z) && (quaternion._w === this._w);
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this._x = array[offset];
+	        this._y = array[offset + 1];
+	        this._z = array[offset + 2];
+	        this._w = array[offset + 3];
+
+	        this.onChangeCallback();
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this._x;
+	        array[offset + 1] = this._y;
+	        array[offset + 2] = this._z;
+	        array[offset + 3] = this._w;
+
+	        return array;
+	    }
+
+	    onChange(callback) {
+	        this.onChangeCallback = callback;
+
+	        return this;
+	    }
+
+	    onChangeCallback() {
+	    }
+	}
+
+	Object.defineProperty(Quaternion.prototype, 'isQuaternion', {value: true});
+
+	// 定义内部属性。对xyzw值的改变会自动触发 onChangeCallback() 方法
+	Object.defineProperties(Quaternion.prototype, {
+	    x: {
+	        get: function () {
+	            return this._x;
+	        },
+
+	        set: function (value) {
+	            this._x = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	    y: {
+	        get: function () {
+	            return this._y;
+	        },
+
+	        set: function (value) {
+	            this._y = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	    z: {
+	        get: function () {
+	            return this._z;
+	        },
+
+	        set: function (value) {
+	            this._z = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	    w: {
+	        get: function () {
+	            return this._w;
+	        },
+
+	        set: function (value) {
+	            this._w = value;
+	            this.onChangeCallback();
+	        }
+	    },
+	});
+
 	let matrix$1 = new Matrix4();
 
 	/**
@@ -2239,21 +2057,138 @@
 
 	Euler.DefaultOrder = 'XYZ';
 
+	/**
+	 * 缓存属性
+	 * 用来存储于bufferGeometry相关联的属性数据，例如顶点位置向量，面片索引，法向量，颜色值，UV坐标以及任何自定义 attribute
+	 */
+	class BufferAttribute {
+	    constructor(array, itemSize, normalized = true) {
+	        if (Array.isArray(array)) {
+	            throw new TypeError('THREE.BufferAttribute: array should be a Typed Array.');
+	        }
+
+	        this.name='';   // 该 attribute 实例的别名
+
+	        this.array = array; // 缓存数据
+	        this.itemSize = itemSize; // 队列中与顶点相关的数据值的大小。举例，如果 attribute 存储的是三元组（例如顶点空间坐标、法向量或颜色值）则itemSize的值应该是3
+
+	        this.count = array.length;
+	        this.version = 0;   // 版本号，当 needsUpdate 被设置为 true 时，该值会自增
+	    }
+
+	    set needsUpdate(value) {
+	        if (value === true) this.version++;
+	    }
+
+	    getX(index) {
+	        return this.array[index * this.itemSize];
+	    }
+
+	    getY(index) {
+	        return this.array[index * this.itemSize + 1];
+	    }
+
+	    getZ(index) {
+	        return this.array[index * this.itemSize + 2];
+	    }
+
+	    getW(index) {
+	        return this.array[index * this.itemSize + 3];
+	    }
+
+	    setXYZ(index, x, y, z) {
+	        index *= this.itemSize;
+
+	        this.array[index + 0] = x;
+	        this.array[index + 1] = y;
+	        this.array[index + 2] = z;
+
+	        return this;
+	    }
+
+	    setXYZW(index, x, y, z, w) {
+	        index *= this.itemSize;
+
+	        this.array[index + 0] = x;
+	        this.array[index + 1] = y;
+	        this.array[index + 2] = z;
+	        this.array[index + 3] = w;
+
+	        return this;
+	    }
+	}
+
+	Object.defineProperty(BufferAttribute.prototype, 'isBufferAttribute', {value: true});
+
+	class Int8BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int8Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Uint8BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Uint8Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Int16BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int16Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Uint16BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Uint16Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Int32BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int32Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Uint32BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Uint32Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Int64BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Int64Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Float32BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Float32Array(array), itemSize, normalized);
+	    }
+	}
+
+	class Float64BufferAttribute extends BufferAttribute {
+	    constructor(array, itemSize, normalized) {
+	        super(new Float64Array(array), itemSize, normalized);
+	    }
+	}
+
 	let object3DId = 0;
 	// lookAt()的变量（声明全局变量，避免重复实例化）
-	let m1 = new Matrix4();
+	let m1 = new Matrix4(); // 一个旋转矩阵，从position执行target
 	let position = new Vector3();
 	let target = new Vector3();
 
 	/**
 	 * 三维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
+	 * （其它旋转平移缩放，应用其它矩阵的方法暂时未添加）
 	 */
 	class Object3D extends EventDispatcher {
 	    constructor() {
 	        super();
 
 	        Object.defineProperty(this, 'id', {value: object3DId++});
-	        Object.defineProperty(this, 'isObject3D', {value: true});
 
 	        this.uuid = _Math.generateUUID();
 
@@ -2333,6 +2268,7 @@
 	        }
 	    }
 
+	    // 添加子对象
 	    add(object) {
 	        if (arguments.length > 1) {
 	            for (let i = 0; i < arguments.length; i++) {
@@ -2361,6 +2297,7 @@
 	        return this;
 	    }
 
+	    // 移除子对象
 	    remove(object) {
 	        if (arguments.length > 1) {
 	            for (let i = 0; i < arguments.length; i++) {
@@ -2473,6 +2410,8 @@
 	        return this;
 	    }
 	}
+
+	Object.defineProperty(Object3D.prototype, 'isObject3D', {value: true});
 
 	Object3D.DefaultUp = new Vector3(0, 1, 0);
 	Object3D.DefaultMatrixAutoUpdate = true;
@@ -2776,6 +2715,229 @@
 	}
 
 	Object.defineProperty(Color.prototype, 'isColor', {value: true});
+
+	/**
+	 * 二维向量
+	 * （部分没有意义且未使用的方法注释了）
+	 */
+	class Vector2 {
+	    constructor(x = 0, y = 0) {
+	        this.x = x;
+	        this.y = y;
+	    }
+
+	    set(x, y) {
+	        this.x = x;
+	        this.y = y;
+
+	        return this;
+	    }
+
+	    setX(x) {
+	        this.x = x;
+	        return this;
+	    }
+
+	    setY(y) {
+	        this.y = y;
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor(this.x, this.y);
+	    }
+
+	    copy(v) {
+	        this.x = v.x;
+	        this.y = v.y;
+
+	        return this;
+	    }
+
+	    // 向量加法：AB+BC=AC
+	    add(v) {
+	        this.x += v.x;
+	        this.y += v.y;
+	        return this;
+	    }
+
+	    addVectors(a, b) {
+	        this.x = a.x + b.x;
+	        this.y = a.y + b.y;
+	        return this;
+	    }
+
+	    // 与标量s相加（没有几何意义，只用到Box2扩展边界）
+	    addScalar(s) {
+	        this.x += s;
+	        this.y += s;
+	        return this;
+	    }
+
+	    // 向量减法
+	    sub(v) {
+	        this.x -= v.x;
+	        this.y -= v.y;
+	        return this;
+	    }
+
+	    subVectors(a, b) {
+	        this.x = a.x - b.x;
+	        this.y = a.y - b.y;
+	        return this;
+	    }
+
+	    // 与标量s相减（没有几何意义）
+	    // subScalar(s) {
+	    //     this.x -= s;
+	    //     this.y -= s;
+	    //     return this;
+	    // }
+
+	    // 向量乘法（没有几何意义）
+	    // multiply(v) {
+	    //     this.x *= v.x;
+	    //     this.y *= v.y;
+	    //     return this;
+	    // }
+
+	    // 乘以标量（放大向量）
+	    multiplyScalar(scalar) {
+	        this.x *= scalar;
+	        this.y *= scalar;
+	        return this;
+	    }
+
+	    // 向量除法（没有几何意义）
+	    // divide(v) {
+	    //     this.x /= v.x;
+	    //     this.y /= v.y;
+	    //     return this;
+	    // }
+
+	    // 除以标量（缩小向量）
+	    divideScalar(scalar) {
+	        return this.multiplyScalar(1 / scalar);
+	    }
+
+	    // 标准化向量，长度为1
+	    normalize() {
+	        return this.divideScalar(this.length() || 1);
+	    }
+
+	    // 反转向量
+	    negate() {
+	        this.x = -this.x;
+	        this.y = -this.y;
+
+	        return this;
+	    }
+
+	    // 点乘
+	    dot(v) {
+	        return this.x * v.x + this.y * v.y;
+	    }
+
+	    // 叉乘
+	    cross(v) {
+	        return this.x * v.y - this.y * v.x;
+	    }
+
+	    // 向量的模（长度）
+	    length() {
+	        return Math.sqrt(this.x * this.x + this.y * this.y);
+	    }
+
+	    lengthSq() {
+	        return this.x * this.x + this.y * this.y;
+	    }
+
+	    // 到向量v的距离
+	    distanceTo(v) {
+	        return Math.sqrt(this.distanceToSquared(v));
+	    }
+
+	    distanceToSquared(v) {
+	        let dx = this.x - v.x, dy = this.y - v.y;
+	        return dx * dx + dy * dy;
+	    }
+
+	    /**
+	     * 与向量v的线性插值
+	     * @param v
+	     * @param alpha 百分比权值(0.0-1.0)
+	     * @returns {Vector2}
+	     */
+	    lerp(v, alpha) {
+	        this.x += (v.x - this.x) * alpha;
+	        this.y += (v.y - this.y) * alpha;
+
+	        return this;
+	    }
+
+	    lerpVectors(v1, v2, alpha) {
+	        return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+	    }
+
+	    // 将该向量乘以三阶矩阵m
+	    applyMatrix3(m) {
+	        let x = this.x, y = this.y;
+	        let e = m.elements;
+
+	        this.x = e[0] * x + e[3] * y + e[6];
+	        this.y = e[1] * x + e[4] * y + e[7];
+
+	        return this;
+	    }
+
+	    // 与向量v比较返回(x,y)值最小的二维向量
+	    min(v) {
+	        this.x = Math.min(this.x, v.x);
+	        this.y = Math.min(this.y, v.y);
+
+	        return this;
+	    }
+
+	    // 与向量v比较返回(x,y)值最大的二维向量
+	    max(v) {
+	        this.x = Math.max(this.x, v.x);
+	        this.y = Math.max(this.y, v.y);
+
+	        return this;
+	    }
+
+	    equals(v) {
+	        return ((v.x === this.x) && (v.y === this.y));
+	    }
+
+	    fromArray(array, offset) {
+	        if (offset === undefined) offset = 0;
+
+	        this.x = array[offset];
+	        this.y = array[offset + 1];
+
+	        return this;
+	    }
+
+	    toArray(array, offset) {
+	        if (array === undefined) array = [];
+	        if (offset === undefined) offset = 0;
+
+	        array[offset] = this.x;
+	        array[offset + 1] = this.y;
+
+	        return array;
+	    }
+
+	    fromBufferAttribute(attribute, index) {
+	        this.x = attribute.getX(index);
+	        this.y = attribute.getY(index);
+
+	        return this;
+	    }
+	}
+
+	Object.defineProperty(Vector2.prototype, 'isVector2', {value: true});
 
 	/**
 	 * 四维向量
@@ -3127,6 +3289,9 @@
 
 	Object.defineProperty(Box2.prototype, 'isBox2', {value: true});
 
+	/**
+	 * 相机基类
+	 */
 	class Camera extends Object3D {
 	    constructor() {
 	        super();
@@ -3144,28 +3309,49 @@
 	    updateMatrixWorld(force) {
 	        super.updateMatrixWorld(force);
 
-	        // 更新逆矩阵
+	        // 更新相机逆矩阵
 	        this.matrixWorldInverse.getInverse(this.matrixWorld);
+	    }
+
+	    copy(source, recursive) {
+	        super.copy(source, recursive);
+
+	        this.matrixWorldInverse.copy(source.matrixWorldInverse);
+
+	        this.projectionMatrix.copy(source.projectionMatrix);
+	        this.projectionMatrixInverse.copy(source.projectionMatrixInverse);
+
+	        return this;
+	    }
+
+	    clone() {
+	        return new this.constructor().copy(this);
 	    }
 	}
 
+	/**
+	 * 透视投影相机
+	 */
 	class PerspectiveCamera extends Camera {
 	    constructor(fov = 50, aspect = 1, near = 0.1, far = 2000) {
 	        super();
+	        Object.defineProperty(this, 'isPerspectiveCamera', {value: true});
+
 	        this.type = 'PerspectiveCamera';
+
 	        this.fov = fov;
 	        this.zoom = 1;
 
 	        this.near = near;
 	        this.far = far;
 
-	        this.aspect = aspect;
-	        // this.view = null;
+	        this.aspect = aspect;   // 摄像机视锥体长宽比
+	        this.view = null;       // 视图范围，通过setViewOffset()来设置（暂未使用）
 
 	        this.updateProjectionMatrix();
 	    }
 
-	    // 更新相机投影矩阵
+	    // 更新相机投影矩阵（在任何参数被改变以后必须被调用）
 	    updateProjectionMatrix() {
 	        let near = this.near,
 	            top = near * Math.tan(_Math.DEG2RAD * 0.5 * this.fov) / this.zoom,
@@ -3173,19 +3359,44 @@
 	            width = this.aspect * height,
 	            left = -width / 2;
 
-	        // 创建透视投影矩阵（在屏幕上的矩阵）
+	        // 创建透视投影矩阵
 	        this.projectionMatrix.makePerspective(left, left + width, top, top - height, near, this.far);
-	        // 获取投影矩阵逆矩阵
+	        // 更新投影矩阵逆矩阵
 	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
+	    }
+
+	    copy(source, recursive) {
+	        super.copy(source, recursive);
+
+	        this.fov = source.fov;
+	        this.zoom = source.zoom;
+
+	        this.near = source.near;
+	        this.far = source.far;
+	        this.focus = source.focus;
+
+	        this.aspect = source.aspect;
+	        this.view = source.view === null ? null : Object.assign({}, source.view);
+
+	        this.filmGauge = source.filmGauge;
+	        this.filmOffset = source.filmOffset;
+
+	        return this;
 	    }
 	}
 
+	/**
+	 * 正交相机
+	 */
 	class OrthographicCamera extends Camera {
 	    constructor(left, right, top, bottom, near = 0.1, far = 2000) {
 	        super();
+	        Object.defineProperty(this, 'isOrthographicCamera', {value: true});
+
 	        this.type = 'OrthographicCamera';
+
 	        this.zoom = 1;
-	        // this.view = null;
+	        this.view = null;   // 视图范围（暂未使用）
 
 	        this.left = left;
 	        this.right = right;
@@ -3211,6 +3422,22 @@
 
 	        this.projectionMatrix.makeOrthographic(left, right, top, bottom, this.near, this.far);
 	        this.projectionMatrixInverse.getInverse(this.projectionMatrix);
+	    }
+
+	    copy(source, recursive) {
+	        super.copy(source, recursive);
+
+	        this.left = source.left;
+	        this.right = source.right;
+	        this.top = source.top;
+	        this.bottom = source.bottom;
+	        this.near = source.near;
+	        this.far = source.far;
+
+	        this.zoom = source.zoom;
+	        this.view = source.view === null ? null : Object.assign({}, source.view);
+
+	        return this;
 	    }
 	}
 
@@ -3369,11 +3596,22 @@
 	 * 三角面片
 	 */
 	class Face3 {
-	    constructor(a, b, c, color = new Color(), materialIndex = 0) {
-	        this.a = a;
-	        this.b = b;
-	        this.c = c;
-	        this.color = color;
+	    constructor(a, b, c, normal, vertexColors = [], color, materialIndex = 0) {
+	        this.a = a; // 顶点 A 的索引
+	        this.b = b; // 顶点 B 的索引
+	        this.c = c; // 顶点 C 的索引
+
+	        // (可选) 面的法向量 (Vector3) 或顶点法向量队列。
+	        // 如果参数传入单一矢量，则用该量设置面的法向量 .normal，如果传入的是包含三个矢量的队列， 则用该量设置 .vertexNormals
+	        this.normal = (normal && normal.isVector3) ? normal : new Vector3();
+	        this.vertexNormals = Array.isArray(normal) ? normal : []; // 三角面顶点法线向量数组
+
+	        // (可选) 面的颜色值 color 或顶点颜色值的队列。
+	        // 如果参数传入单一矢量，则用该量设置 .color，如果传入的是包含三个矢量的队列， 则用该量设置 .vertexColors
+	        this.color = (color && color.isColor) ? color : new Color();
+	        this.vertexColors = Array.isArray(color) ? color : [];
+
+	        // (可选) 材质队列中与该面对应的材质的索引
 	        this.materialIndex = materialIndex;
 	    }
 
@@ -3386,8 +3624,18 @@
 	        this.b = source.b;
 	        this.c = source.c;
 
+	        this.normal.copy(source.normal);
 	        this.color.copy(source.color);
+
 	        this.materialIndex = source.materialIndex;
+
+	        for (let i = 0, il = source.vertexNormals.length; i < il; i++) {
+	            this.vertexNormals[i] = source.vertexNormals[i].clone();
+	        }
+
+	        for (let i = 0, il = source.vertexColors.length; i < il; i++) {
+	            this.vertexColors[i] = source.vertexColors[i].clone();
+	        }
 
 	        return this;
 	    }
@@ -3430,132 +3678,28 @@
 	    return max;
 	}
 
-	class BufferAttribute {
-	    constructor(array, itemSize, normalized = true) {
-	        this.array = array;
-	        this.itemSize = itemSize;
-	        this.normalized = normalized;
-
-	        this.count = array.length;
-	        this.version = 0;
-	    }
-
-	    set needsUpdate(value) {
-	        if (value === true) this.version++;
-	    }
-
-	    getX(index) {
-	        return this.array[index * this.itemSize];
-	    }
-
-	    getY(index) {
-	        return this.array[index * this.itemSize + 1];
-	    }
-
-	    getZ(index) {
-	        return this.array[index * this.itemSize + 2];
-	    }
-
-	    getW(index) {
-	        return this.array[index * this.itemSize + 3];
-	    }
-
-	    setXYZ(index, x, y, z) {
-	        index *= this.itemSize;
-
-	        this.array[index + 0] = x;
-	        this.array[index + 1] = y;
-	        this.array[index + 2] = z;
-
-	        return this;
-	    }
-
-	    setXYZW(index, x, y, z, w) {
-	        index *= this.itemSize;
-
-	        this.array[index + 0] = x;
-	        this.array[index + 1] = y;
-	        this.array[index + 2] = z;
-	        this.array[index + 3] = w;
-
-	        return this;
-	    }
-
-	    onUploadCallback() {
-	    }
-	}
-
-	Object.assign(BufferAttribute.prototype, {
-	    isBufferAttribute: true
-	});
-
-	class Int8BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Int8Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Uint8BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Uint8Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Int16BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Int16Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Uint16BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Uint16Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Int32BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Int32Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Uint32BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Uint32Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Int64BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Int64Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Float32BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Float32Array(array), itemSize, normalized);
-	    }
-	}
-
-	class Float64BufferAttribute extends BufferAttribute {
-	    constructor(array, itemSize, normalized) {
-	        super(new Float64Array(array), itemSize, normalized);
-	    }
-	}
-
+	/**
+	 * 缓存几何体
+	 * BufferGeometry类用来和BufferAttribute配合使用，将所有的数据包括顶点位置,法线,面,颜色,uv和其它的自定义属性存在缓冲区
+	 * 需要访问这些属性,需要从属性缓冲区中读原始数据。
+	 * （部分方法暂未使用，先删除掉）
+	 */
 	let bufferGeometryId = 1; // BufferGeometry uses odd numbers as Id
 	class BufferGeometry {
 	    constructor() {
 	        Object.defineProperty(this, 'id', {value: bufferGeometryId += 2});
-	        // this.uuid = _Math.generateUUID();
 
+	        this.uuid = _Math.generateUUID();
+
+	        this.name = '';
 	        this.type = 'BufferGeometry';
-	        this.isBufferGeometry = true;
 
-	        this.index = null;
-	        this.attributes = {};
+	        this.index = null;      // 三角面索引
+	        this.attributes = {};   // 通过 hashmap 存储该几何体相关的属性，通常有 position,normal,uv
 
-	        this.groups = [];   // 将当前几何体分割成组进行渲染
+	        // 将当前几何体分割成组进行渲染，每个部分都会在单独的 WebGL 的 draw call 中进行绘制。
+	        // 该方法可以让当前的 bufferGeometry 可以使用一个材质队列进行描述
+	        this.groups = [];
 	    }
 
 	    getIndex() {
@@ -3571,20 +3715,24 @@
 	        }
 	    }
 
+	    // 给BufferGeometry对象添加属性信息
 	    addAttribute(name, attribute) {
 	        this.attributes[name] = attribute;
 	        return this;
 	    }
 
+	    // 获取BufferGeometry对象属性信息
 	    getAttribute(name) {
 	        return this.attributes[name];
 	    }
 
+	    // 移除BufferGeometry对象属性信息
 	    removeAttribute(name) {
 	        delete this.attributes[name];
 	        return this;
 	    }
 
+	    // 为当前几何体增加一个 group
 	    addGroup(start, count, materialIndex) {
 	        this.groups.push({
 	            start: start,
@@ -3593,61 +3741,88 @@
 	        });
 	    }
 
+	    // 清除组
 	    clearGroups() {
 	        this.groups = [];
 	    }
 
+	    // 用给定矩阵转换几何体的顶点坐标
 	    applyMatrix(matrix) {
 	        let position = this.attributes.position;
 	        if (position !== undefined) {
 	            matrix.applyToBufferAttribute(position);
 	            position.needsUpdate = true;
 	        }
-	        return this;
-	    }
 
-	    rotateX(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationX(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
+	        let normal = this.attributes.normal;
+	        if (normal !== undefined) {
+	            let normalMatrix = new Matrix3().getNormalMatrix(matrix);
+	            normalMatrix.applyToBufferAttribute(normal);
+	            normal.needsUpdate = true;
+	        }
 
-	    rotateY(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationY(angle);
-	        this.applyMatrix(m1);
 	        return this;
-	    }
-
-	    rotateZ(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationZ(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    translate(x, y, z) {
-	        let m1 = new Matrix4();
-	        m1.makeTranslation(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    scale(x, y, z) {
-	        let m1 = new Matrix4();
-	        m1.makeScale(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    lookAt(vector) {
-	        let obj = new Object3D();
-	        obj.lookAt(vector);
-	        obj.updateMatrix();
-	        this.applyMatrix(obj.matrix);
 	    }
 	}
+
+	Object.defineProperty(BufferGeometry.prototype, 'isBufferGeometry', {value: true});
+
+	// 使用闭包声明变量不污染全局
+	Object.assign(BufferGeometry.prototype, {
+	    rotateX: function () {
+	        let m1 = new Matrix4();
+	        return function rotateX(angle) {
+	            m1.makeRotationX(angle);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    rotateY: function () {
+	        let m1 = new Matrix4();
+	        return function rotateY(angle) {
+	            m1.makeRotationY(angle);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    rotateZ: function () {
+	        let m1 = new Matrix4();
+	        return function rotateZ(angle) {
+	            m1.makeRotationZ(angle);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    translate: function () {
+	        let m1 = new Matrix4();
+	        return function translate(x, y, z) {
+	            m1.makeTranslation(x, y, z);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    scale: function () {
+	        let m1 = new Matrix4();
+	        return function scale(x, y, z) {
+	            m1.makeScale(x, y, z);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    lookAt: function () {
+	        let obj = new Object3D();
+	        return function lookAt(vector) {
+	            obj.lookAt(vector);
+	            obj.updateMatrix();
+	            this.applyMatrix(obj.matrix);
+	        };
+	    }(),
+	});
 
 	class Line extends Object3D {
 	    constructor(geometry = new BufferGeometry(), material = new LineBasicMaterial({color: 0x000000})) {
@@ -3664,129 +3839,115 @@
 	}
 
 	/**
+	 * 几何体对象。由顶点和三角面构成的几何体对象的基类，保存描述几何体所有必要的数据
 	 * Geometry 是对 BufferGeometry 的用户友好替代。
 	 * Geometry 利用 Vector3 或 Color 存储了几何体的相关 attributes（如顶点位置，面信息，颜色等）比起 BufferGeometry 更容易读写，但是运行效率不如有类型的队列。
-	 * 对于大型工程或正式工程，推荐采用 BufferGeometry
+	 * 对于大型工程或正式工程，推荐采用 BufferGeometry，Geometry后期可能会被弃用
+	 * （部分方法暂未使用，先删除掉）
 	 */
 	let geometryId = 0;// Geometry uses even numbers as Id
 	class Geometry {
 	    constructor() {
 	        Object.defineProperty(this, 'id', {value: geometryId += 2});
-	        // this.uuid = _Math.generateUUID();
 
+	        this.uuid = _Math.generateUUID();
+
+	        this.name = '';
 	        this.type = 'Geometry';
-	        this.isGeometry = true;
 
 	        this.vertices = []; // 顶点
 	        this.colors = [];   // 顶点 colors 队列
 	        this.faces = [];    // 面
-	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列
+	        this.faceVertexUvs = [[]];  // 面的 UV 层的队列。每个 UV 层都是一个 UV 的队列，顺序和数量同面中的顶点相对
 	    }
 
-	    // 几何体变换
-	    applyMatrix(matrix) {
-	        // let normalMatrix = new Matrix3().getNormalMatrix(matrix);
-
-	        for (let i = 0; i < this.vertices.length; i++) {
-	            let vertex = this.vertices[i];
-	            vertex.applyMatrix4(matrix);
-	        }
-
-	        // for (let i = 0; i < this.faces.length; i++) {
-	        //     let face = this.faces[i];
-	        //     face.normal.applyMatrix3(normalMatrix).normalize();
-	        // }
-
-	        return this;
-	    }
-
-	    rotateX(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationX(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateY(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationY(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    rotateZ(angle) {
-	        let m1 = new Matrix4();
-	        m1.makeRotationZ(angle);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    translate(x, y, z) {
-	        let m1 = new Matrix4();
-	        m1.makeTranslation(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    scale(x, y, z) {
-	        let m1 = new Matrix4();
-	        m1.makeScale(x, y, z);
-	        this.applyMatrix(m1);
-	        return this;
-	    }
-
-	    lookAt(vector) {
-	        let obj = new Object3D();
-	        obj.lookAt(vector);
-	        obj.updateMatrix();
-	        this.applyMatrix(obj.matrix);
-	    }
-
+	    // 将一个 BufferGeometry 对象，转换成一个 Geometry 对象
+	    // Geometry需要需要开辟大量的不连续数组空间（new Vecotr()），所以性能较低
 	    fromBufferGeometry(geometry) {
 	        let scope = this;
+
+	        // 空BufferGeometry的时候index为null
 	        let indices = geometry.index !== null ? geometry.index.array : undefined;
 	        let attributes = geometry.attributes;
 
 	        let positions = attributes.position.array;
-
+	        let normals = attributes.normal !== undefined ? attributes.normal.array : undefined;
 	        let colors = attributes.color !== undefined ? attributes.color.array : undefined;
 	        let uvs = attributes.uv !== undefined ? attributes.uv.array : undefined;
 
-	        let tempUVs = [];
-
 	        for (let i = 0, j = 0; i < positions.length; i += 3, j += 2) {
-	            scope.vertices.push(new Vector3(positions[i], positions[i + 1], positions[i + 2]));
+	            scope.vertices.push(new Vector3().fromArray(positions, i));
 
 	            if (colors !== undefined) {
-	                scope.colors.push(new Color(colors[i], colors[i + 1], colors[i + 2]));
-	            }
-
-	            if (uvs !== undefined) {
-	                tempUVs.push(new Vector2(uvs[j], uvs[j + 1]));
+	                scope.colors.push(new Color().fromArray(colors, i));
 	            }
 	        }
 
-	        if (indices !== undefined) {
-	            for (let i = 0; i < indices.length; i += 3) {
-	                addFace(indices[i], indices[i + 1], indices[i + 2]);
+	        // 实例化Face3添加到faces
+	        function addFace(a, b, c, materialIndex) {
+	            // 顶点法向量队列
+	            let vertexNormals = (normals === undefined) ? [] : [
+	                new Vector3().fromArray(normals, a * 3),
+	                new Vector3().fromArray(normals, b * 3),
+	                new Vector3().fromArray(normals, c * 3)
+	            ];
+
+	            // 顶点颜色值队列
+	            let vertexColors = (colors === undefined) ? [] : [
+	                scope.colors[a].clone(),
+	                scope.colors[b].clone(),
+	                scope.colors[c].clone()
+	            ];
+
+	            let face = new Face3(a, b, c, vertexNormals, vertexColors, materialIndex);
+
+	            // 面
+	            scope.faces.push(face);
+
+	            // UV层队列
+	            if (uvs !== undefined) {
+	                scope.faceVertexUvs[0].push([
+	                    new Vector2().fromArray(uvs, a * 2),
+	                    new Vector2().fromArray(uvs, b * 2),
+	                    new Vector2().fromArray(uvs, c * 2)
+	                ]);
+	            }
+	        }
+
+	        let groups = geometry.groups;
+
+	        if (groups.length > 0) {
+	            for (let i = 0; i < groups.length; i++) {
+	                let group = groups[i];
+
+	                let start = group.start;
+	                let count = group.count;
+
+	                for (let j = start, jl = start + count; j < jl; j += 3) {
+	                    if (indices !== undefined) {
+	                        addFace(indices[j], indices[j + 1], indices[j + 2], group.materialIndex);
+	                    }
+	                    else {
+	                        addFace(j, j + 1, j + 2, group.materialIndex);
+	                    }
+	                }
 	            }
 	        }
 	        else {
-	            for (let i = 0; i < positions.length / 3; i += 3) {
-	                addFace(i, i + 1, i + 2);
+	            if (indices !== undefined) {
+	                for (let i = 0; i < indices.length; i += 3) {
+	                    addFace(indices[i], indices[i + 1], indices[i + 2]);
+	                }
 	            }
-	        }
-
-	        function addFace(a, b, c, materialIndex) {
-	            let face = new Face3(a, b, c, materialIndex);
-	            scope.faces.push(face);
-
-	            if (uvs !== undefined) {
-	                scope.faceVertexUvs[0].push([tempUVs[a].clone(), tempUVs[b].clone(), tempUVs[c].clone()]);
+	            else {
+	                for (let i = 0; i < positions.length / 3; i += 3) {
+	                    addFace(i, i + 1, i + 2);
+	                }
 	            }
 	        }
 	    }
 
+	    // 通过 hashmap 检查重复的顶点。重复的顶点将会被移除，面的顶点信息会被更新。
 	    mergeVertices() {
 	        let verticesMap = {}; // Hashmap for looking up vertices by position coordinates (and making sure they are unique)
 	        let unique = [], changes = [];
@@ -3795,7 +3956,7 @@
 	        let precisionPoints = 4; // number of decimal points, e.g. 4 for epsilon of 0.0001
 	        let precision = Math.pow(10, precisionPoints);
 	        let i, il, face;
-	        let indices;
+	        let indices, j, jl;
 
 	        for (i = 0, il = this.vertices.length; i < il; i++) {
 	            v = this.vertices[i];
@@ -3811,12 +3972,10 @@
 	            }
 	        }
 
-	        // if faces are completely degenerate after merging vertices, we
-	        // have to remove them from the geometry.
+	        // if faces are completely degenerate after merging vertices, we have to remove them from the geometry.
 	        let faceIndicesToRemove = [];
 
 	        for (i = 0, il = this.faces.length; i < il; i++) {
-
 	            face = this.faces[i];
 
 	            face.a = changes[face.a];
@@ -3825,8 +3984,7 @@
 
 	            indices = [face.a, face.b, face.c];
 
-	            // if any duplicate vertices are found in a Face3
-	            // we have to remove the face as nothing can be saved
+	            // if any duplicate vertices are found in a Face3,we have to remove the face as nothing can be saved
 	            for (let n = 0; n < 3; n++) {
 	                if (indices[n] === indices[(n + 1) % 3]) {
 	                    faceIndicesToRemove.push(i);
@@ -3837,8 +3995,11 @@
 
 	        for (i = faceIndicesToRemove.length - 1; i >= 0; i--) {
 	            let idx = faceIndicesToRemove[i];
-
 	            this.faces.splice(idx, 1);
+
+	            for (j = 0, jl = this.faceVertexUvs.length; j < jl; j++) {
+	                this.faceVertexUvs[j].splice(idx, 1);
+	            }
 	        }
 
 	        // Use unique set of vertices
@@ -3846,7 +4007,83 @@
 	        this.vertices = unique;
 	        return diff;
 	    }
+
+	    // 用给定矩阵转换几何体的顶点坐标
+	    applyMatrix(matrix) {
+	        let normalMatrix = new Matrix3().getNormalMatrix(matrix);
+
+	        for (let i = 0; i < this.vertices.length; i++) {
+	            let vertex = this.vertices[i];
+	            vertex.applyMatrix4(matrix);
+	        }
+
+	        for (let i = 0; i < this.faces.length; i++) {
+	            let face = this.faces[i];
+	            face.normal.applyMatrix3(normalMatrix).normalize();
+	        }
+
+	        return this;
+	    }
 	}
+
+	Object.defineProperty(Geometry.prototype, 'isGeometry', {value: true});
+
+	// 使用闭包声明变量不污染全局
+	Object.assign(Geometry.prototype, {
+	    rotateX: function () {
+	        let m1 = new Matrix4();
+	        return function rotateX(angle) {
+	            m1.makeRotationX(angle);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    rotateY: function () {
+	        let m1 = new Matrix4();
+	        return function rotateY(angle) {
+	            m1.makeRotationY(angle);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    rotateZ: function () {
+	        let m1 = new Matrix4();
+	        return function rotateZ(angle) {
+	            m1.makeRotationZ(angle);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    translate: function () {
+	        let m1 = new Matrix4();
+	        return function translate(x, y, z) {
+	            m1.makeTranslation(x, y, z);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    scale: function () {
+	        let m1 = new Matrix4();
+	        return function scale(x, y, z) {
+	            m1.makeScale(x, y, z);
+	            this.applyMatrix(m1);
+	            return this;
+	        };
+	    }(),
+
+	    lookAt: function () {
+	        let obj = new Object3D();
+	        return function lookAt(vector) {
+	            obj.lookAt(vector);
+	            obj.updateMatrix();
+	            this.applyMatrix(obj.matrix);
+	        };
+	    }()
+	});
 
 	// 立方体
 	class BoxGeometry extends Geometry {
@@ -4115,30 +4352,30 @@
 	            thetaLength: thetaLength
 	        };
 
-	        var thetaEnd = thetaStart + thetaLength;
+	        let thetaEnd = thetaStart + thetaLength;
 
-	        var ix, iy;
+	        let ix, iy;
 
-	        var index = 0;
-	        var grid = [];
+	        let index = 0;
+	        let grid = [];
 
-	        var vertex = new Vector3();
-	        var normal = new Vector3();
+	        let vertex = new Vector3();
+	        let normal = new Vector3();
 
 	        // buffers
 
-	        var indices = [];
-	        var vertices = [];
-	        var normals = [];
-	        var uvs = [];
+	        let indices = [];
+	        let vertices = [];
+	        let normals = [];
+	        let uvs = [];
 
 	        // generate vertices, normals and uvs
 	        for (iy = 0; iy <= heightSegments; iy++) {
-	            var verticesRow = [];
-	            var v = iy / heightSegments;
+	            let verticesRow = [];
+	            let v = iy / heightSegments;
 
 	            for (ix = 0; ix <= widthSegments; ix++) {
-	                var u = ix / widthSegments;
+	                let u = ix / widthSegments;
 
 	                // vertex
 	                vertex.x = -radius * Math.cos(phiStart + u * phiLength) * Math.sin(thetaStart + v * thetaLength);
@@ -4163,10 +4400,10 @@
 	        // indices
 	        for (iy = 0; iy < heightSegments; iy++) {
 	            for (ix = 0; ix < widthSegments; ix++) {
-	                var a = grid[iy][ix + 1];
-	                var b = grid[iy][ix];
-	                var c = grid[iy + 1][ix];
-	                var d = grid[iy + 1][ix + 1];
+	                let a = grid[iy][ix + 1];
+	                let b = grid[iy][ix];
+	                let c = grid[iy + 1][ix];
+	                let d = grid[iy + 1][ix + 1];
 
 	                if (iy !== 0 || thetaStart > 0) indices.push(a, b, d);
 	                if (iy !== heightSegments - 1 || thetaEnd < Math.PI) indices.push(b, c, d);
@@ -4218,20 +4455,20 @@
 	            thetaLength: thetaLength
 	        };
 
-	        var scope = this;
+	        let scope = this;
 	        // buffers
 
-	        var indices = [];
-	        var vertices = [];
-	        var normals = [];
-	        var uvs = [];
+	        let indices = [];
+	        let vertices = [];
+	        let normals = [];
+	        let uvs = [];
 
 	        // helper variables
 
-	        var index = 0;
-	        var indexArray = [];
-	        var halfHeight = height / 2;
-	        var groupStart = 0;
+	        let index = 0;
+	        let indexArray = [];
+	        let halfHeight = height / 2;
+	        let groupStart = 0;
 
 	        // generate geometry
 
@@ -4253,35 +4490,35 @@
 
 	        function generateTorso() {
 
-	            var x, y;
-	            var normal = new Vector3();
-	            var vertex = new Vector3();
+	            let x, y;
+	            let normal = new Vector3();
+	            let vertex = new Vector3();
 
-	            var groupCount = 0;
+	            let groupCount = 0;
 
 	            // this will be used to calculate the normal
-	            var slope = (radiusBottom - radiusTop) / height;
+	            let slope = (radiusBottom - radiusTop) / height;
 
 	            // generate vertices, normals and uvs
 
 	            for (y = 0; y <= heightSegments; y++) {
 
-	                var indexRow = [];
+	                let indexRow = [];
 
-	                var v = y / heightSegments;
+	                let v = y / heightSegments;
 
 	                // calculate the radius of the current row
 
-	                var radius = v * (radiusBottom - radiusTop) + radiusTop;
+	                let radius = v * (radiusBottom - radiusTop) + radiusTop;
 
 	                for (x = 0; x <= radialSegments; x++) {
 
-	                    var u = x / radialSegments;
+	                    let u = x / radialSegments;
 
-	                    var theta = u * thetaLength + thetaStart;
+	                    let theta = u * thetaLength + thetaStart;
 
-	                    var sinTheta = Math.sin(theta);
-	                    var cosTheta = Math.cos(theta);
+	                    let sinTheta = Math.sin(theta);
+	                    let cosTheta = Math.cos(theta);
 
 	                    // vertex
 
@@ -4319,10 +4556,10 @@
 
 	                    // we use the index array to access the correct indices
 
-	                    var a = indexArray[y][x];
-	                    var b = indexArray[y + 1][x];
-	                    var c = indexArray[y + 1][x + 1];
-	                    var d = indexArray[y][x + 1];
+	                    let a = indexArray[y][x];
+	                    let b = indexArray[y + 1][x];
+	                    let c = indexArray[y + 1][x + 1];
+	                    let d = indexArray[y][x + 1];
 
 	                    // faces
 
@@ -4349,15 +4586,15 @@
 
 	        function generateCap(top) {
 
-	            var x, centerIndexStart, centerIndexEnd;
+	            let x, centerIndexStart, centerIndexEnd;
 
-	            var uv = new Vector2();
-	            var vertex = new Vector3();
+	            let uv = new Vector2();
+	            let vertex = new Vector3();
 
-	            var groupCount = 0;
+	            let groupCount = 0;
 
-	            var radius = (top === true) ? radiusTop : radiusBottom;
-	            var sign = (top === true) ? 1 : -1;
+	            let radius = (top === true) ? radiusTop : radiusBottom;
+	            let sign = (top === true) ? 1 : -1;
 
 	            // save the index of the first center vertex
 	            centerIndexStart = index;
@@ -4394,11 +4631,11 @@
 
 	            for (x = 0; x <= radialSegments; x++) {
 
-	                var u = x / radialSegments;
-	                var theta = u * thetaLength + thetaStart;
+	                let u = x / radialSegments;
+	                let theta = u * thetaLength + thetaStart;
 
-	                var cosTheta = Math.cos(theta);
-	                var sinTheta = Math.sin(theta);
+	                let cosTheta = Math.cos(theta);
+	                let sinTheta = Math.sin(theta);
 
 	                // vertex
 
@@ -4427,8 +4664,8 @@
 
 	            for (x = 0; x < radialSegments; x++) {
 
-	                var c = centerIndexStart + x;
-	                var i = centerIndexEnd + x;
+	                let c = centerIndexStart + x;
+	                let i = centerIndexEnd + x;
 
 	                if (top === true) {
 
@@ -5435,16 +5672,17 @@
 	                this.setStrokeStyle(material.color.getStyle());
 	            }
 	            else {
-	                var colorStyle1 = element.vertexColors[0].getStyle();
-	                var colorStyle2 = element.vertexColors[1].getStyle();
+	                let colorStyle1 = element.vertexColors[0].getStyle();
+	                let colorStyle2 = element.vertexColors[1].getStyle();
 
 	                if (colorStyle1 === colorStyle2) {
 	                    this.setStrokeStyle(colorStyle1);
 	                }
 	                else {
+	                    let grad;
 	                    // 线性渐变
 	                    try {
-	                        var grad = _context.createLinearGradient(
+	                        grad = _context.createLinearGradient(
 	                            v1.positionScreen.x,
 	                            v1.positionScreen.y,
 	                            v2.positionScreen.x,

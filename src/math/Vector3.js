@@ -1,6 +1,5 @@
 import {_Math} from "./Math";
 import {Matrix4} from "./Matrix4";
-import {Vector2} from "./Vector2";
 
 /**
  * 三维向量
@@ -197,7 +196,19 @@ class Vector3 {
         return this;
     }
 
-    // 将当前向量乘以一个4x4的矩阵（= 当前位置 + 矩阵变换位置）
+    // 将该向量乘以三阶矩阵m
+    applyMatrix3(m) {
+        let x = this.x, y = this.y, z = this.z;
+        let e = m.elements;
+
+        this.x = e[0] * x + e[3] * y + e[6] * z;
+        this.y = e[1] * x + e[4] * y + e[7] * z;
+        this.z = e[2] * x + e[5] * y + e[8] * z;
+
+        return this;
+    }
+
+    // 将当前向量乘以一个4x4的矩阵，第四个维度隐式地为1（= 当前位置 + 矩阵变换位置）
     applyMatrix4(m) {
         let x = this.x, y = this.y, z = this.z;
         let e = m.elements;

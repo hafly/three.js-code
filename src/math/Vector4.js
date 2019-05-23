@@ -1,5 +1,3 @@
-import {Vector2} from "./Vector2";
-
 /**
  * 四维向量
  */

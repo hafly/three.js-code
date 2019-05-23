@@ -1,5 +1,6 @@
-import {Euler} from "./Euler";
+import {Vector3} from "./Vector3";
 
+let v1 = new Vector3();
 /**
  * 3x3矩阵
  * 3x3矩阵可含有旋转、缩放、倾斜，但没有平移。
@@ -57,6 +58,23 @@ class Matrix3 {
             me[2], me[6], me[10]
         );
         return this;
+    }
+
+    /**
+     * 用这个矩阵乘以缓存属性attribute里的所有3d向量
+     * @param attribute 三维向量缓存属性
+     * @returns {attribute}
+     */
+    applyToBufferAttribute(attribute) {
+        for (let i = 0, l = attribute.count; i < l; i++) {
+            v1.x = attribute.getX(i);
+            v1.y = attribute.getY(i);
+            v1.z = attribute.getZ(i);
+
+            v1.applyMatrix3(this);
+            attribute.setXYZ(i, v1.x, v1.y, v1.z);
+        }
+        return attribute;
     }
 
     // 矩阵乘法

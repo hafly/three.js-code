@@ -303,16 +303,17 @@ class CanvasRenderer extends Renderer {
                 this.setStrokeStyle(material.color.getStyle());
             }
             else {
-                var colorStyle1 = element.vertexColors[0].getStyle();
-                var colorStyle2 = element.vertexColors[1].getStyle();
+                let colorStyle1 = element.vertexColors[0].getStyle();
+                let colorStyle2 = element.vertexColors[1].getStyle();
 
                 if (colorStyle1 === colorStyle2) {
                     this.setStrokeStyle(colorStyle1);
                 }
                 else {
+                    let grad;
                     // 线性渐变
                     try {
-                        var grad = _context.createLinearGradient(
+                        grad = _context.createLinearGradient(
                             v1.positionScreen.x,
                             v1.positionScreen.y,
                             v2.positionScreen.x,

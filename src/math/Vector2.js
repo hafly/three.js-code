@@ -1,5 +1,3 @@
-import {Quaternion} from "./Quaternion";
-
 /**
  * 二维向量
  * （部分没有意义且未使用的方法注释了）
@@ -161,6 +159,17 @@ class Vector2 {
 
     lerpVectors(v1, v2, alpha) {
         return this.subVectors(v2, v1).multiplyScalar(alpha).add(v1);
+    }
+
+    // 将该向量乘以三阶矩阵m
+    applyMatrix3(m) {
+        let x = this.x, y = this.y;
+        let e = m.elements;
+
+        this.x = e[0] * x + e[3] * y + e[6];
+        this.y = e[1] * x + e[4] * y + e[7];
+
+        return this;
     }
 
     // 与向量v比较返回(x,y)值最小的二维向量

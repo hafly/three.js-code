@@ -4,22 +4,23 @@ import {Euler} from "../math/Euler";
 import {Vector3} from "../math/Vector3";
 import {Matrix4} from "../math/Matrix4";
 import {Quaternion} from "../math/Quaternion";
+import {BufferAttribute} from "./BufferAttribute";
 
 let object3DId = 0;
 // lookAt()的变量（声明全局变量，避免重复实例化）
-let m1 = new Matrix4();
+let m1 = new Matrix4(); // 一个旋转矩阵，从position执行target
 let position = new Vector3();
 let target = new Vector3();
 
 /**
  * 三维物体，大部分对象的基类，提供了一系列的属性和方法来对三维空间中的物体进行操纵。
+ * （其它旋转平移缩放，应用其它矩阵的方法暂时未添加）
  */
 class Object3D extends EventDispatcher {
     constructor() {
         super();
 
         Object.defineProperty(this, 'id', {value: object3DId++});
-        Object.defineProperty(this, 'isObject3D', {value: true});
 
         this.uuid = _Math.generateUUID();
 
@@ -99,6 +100,7 @@ class Object3D extends EventDispatcher {
         }
     }
 
+    // 添加子对象
     add(object) {
         if (arguments.length > 1) {
             for (let i = 0; i < arguments.length; i++) {
@@ -127,6 +129,7 @@ class Object3D extends EventDispatcher {
         return this;
     }
 
+    // 移除子对象
     remove(object) {
         if (arguments.length > 1) {
             for (let i = 0; i < arguments.length; i++) {
@@ -239,6 +242,8 @@ class Object3D extends EventDispatcher {
         return this;
     }
 }
+
+Object.defineProperty(Object3D.prototype, 'isObject3D', {value: true});
 
 Object3D.DefaultUp = new Vector3(0, 1, 0);
 Object3D.DefaultMatrixAutoUpdate = true;
